@@ -557,6 +557,18 @@ Resultaat:
 
 ---
 
+## Stap 38 — Feature afgerond: Spelletjes opslaan in de database (13 oktober 2026)
+
+**Vraag:**
+> /feature complete
+
+**Uitgevoerde handelingen:**
+1. Taak 7 afgevinkt in `to-do.md`; status Complete; feature gecommit (`794b201`, geen connection strings in de diff) en de branch gepusht.
+2. Run op de branch geslaagd: tests, migratiestap ("No pending migrations" op `dev`, de migratie stond er al) en preview-deploy. Preview https://gokkast-3pnotdzya-jeroenkleuters-9584s-projects.vercel.app: titel "Eenarmige Bandiet", bron `database`.
+3. Fast-forward gemerged in `main`, lokale branch verwijderd; `current-feature.md` teruggezet en de feature toegevoegd aan History; reset gecommit.
+
+---
+
 ## Huidige bestandsstructuur
 
 ```

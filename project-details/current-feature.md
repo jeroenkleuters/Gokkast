@@ -1,29 +1,16 @@
-# Current Feature: Spelletjes opslaan in de database
+# Current Feature
 
 ## Status
 
-Complete
+Not Started
 
 ## Goals
 
-- Na elk afgelopen spel (winst of verlies) wordt de ronde opgeslagen in de tabel `games`: uitkomst (`WON`/`LOST`), aantal gebruikte pogingen en datum; naam blijft leeg (komt later uit de betaling)
-- Opslaan gaat via een server action (of API-route) op de server; de browser praat nooit direct met de database
-- De server controleert de invoer: uitkomst alleen `WON`/`LOST`, pogingen een geheel getal van 1 t/m het maximum uit de instellingen
-- Kolom `name` in `games` optioneel gemaakt (migratie); geen naamveld en geen highscores in het spel
-- Het spel blijft speelbaar als opslaan mislukt of er geen database is (geen foutmelding die het spel blokkeert; wel een waarschuwing in de serverlog)
-- Elke ronde wordt precies één keer opgeslagen (niet dubbel bij opnieuw renderen of snel klikken)
-- Vitest-tests voor de validatie en het opslaan (met een nep-database); Playwright-tests blijven slagen (zonder database)
-- Lint, typecheck en build zonder fouten; in de browser en in de `dev`-database gecontroleerd dat een gespeelde ronde verschijnt
+<!-- Doelen van de feature, in te vullen met /feature load -->
 
 ## Notes
 
-- Spec: taak 7 in `project-details/to-do.md`. Tabel `games` bestaat al (taak 6, model `Game`: `name`, `outcome` `WON`/`LOST`, `tries`, `playedAt`); geen migratie nodig, tenzij er een veld bij moet.
-- Einde van een spel zit in `gameReducer` (`spinEnd` met `gameOver: true`, `messageKind` `win`/`lose`); `spinsThisGame` is het aantal gebruikte pogingen. De reducer is puur: het opslaan hoort in de component (`SlotMachine.tsx`) of een aparte hook, niet in de reducer.
-- Database-toegang via `getDb()` in `src/lib/db.ts` (geeft `null` zonder `DATABASE_URL`); zelfde aanpak als `loadSettings` (fout of geen database → doorgaan zonder opslaan).
-- Besluit gebruiker (start): de naam komt pas uit de transactie als er betaald wordt via een QR-code (taak 10/11); geen naam invullen in het spel. Highscores worden niet in het spel getoond, alleen in de game-manager (taak 13).
-- Server actions: eerst de Next.js 16-docs in `node_modules/next/dist/docs/` lezen (o.a. `use server`, foutafhandeling, beveiliging van server actions).
-- Koppelen aan een betaling volgt in taak 11; statistieken in de game-manager in taak 13.
-- Een server action is een openbaar endpoint: iedereen kan rondes insturen. Fraudebestendig maken (uitkomst op de server bepalen) valt buiten deze taak; wel noteren als risico voor de betaal-taken.
+<!-- Extra context, beperkingen of details uit de spec -->
 
 ## History
 
@@ -35,3 +22,4 @@ Complete
 - **Visuele tests met Playwright** (13 oktober 2026, taak 4) — `@playwright/test` 1.64 met `npm run test:e2e` en `test:e2e:ui`; `playwright.config.ts` (Chromium 1024x768, `e2e/*.spec.ts`, `webServer` bouwt en start de app op poort 3100 met `GAME_ALLOW_ODDS_URL=true`). `e2e/gokkast.spec.ts` (6 tests: laden, hendel, vastzetten max 2, winst, verlies, nieuw spel); voorspelbaar via `?kans=1` (winst) en `?kans=100000` met `Math.random` ≥ 0,05 (verlies). 30/30 bij 5x herhalen; foutcontrole met tijdelijk `MAX_HELD = 3`; lint, typecheck, build en 39 Vitest-tests zonder fouten. Commit `7762a9a`.
 - **CI/CD met Vercel** (13 oktober 2026, taak 5) — aanpak A: `.github/workflows/ci-cd.yml` draait bij elke push lint, typecheck, Vitest en Playwright en deployt daarna pas met de Vercel CLI 60.1.3 (`pull`/`build`/`deploy --prebuilt`; preview per branch, `--prod` op `main`, URL als GitHub-environment); `vercel.json` zet Vercels eigen Git-deploys uit. Secrets `VERCEL_TOKEN`, `VERCEL_ORG_ID`, `VERCEL_PROJECT_ID`; Vercel-variabelen per omgeving (`GAME_ALLOW_ODDS_URL` alleen aan in Preview/Development). Debug-runs geven `--debug` aan de CLI. Preview gecontroleerd met `vercel curl` (Deployment Protection aan). README-sectie Deployen. Commit `698444a`.
 - **Database met Neon en Prisma** (13 oktober 2026, taak 6) — Prisma 7.10 met `@prisma/adapter-neon`; schema `game_settings` (één rij), `games` (naam, `WON`/`LOST`, pogingen, datum) en `payments` (naam, bedrag in centen); migratie `20261013000000_init` en seed (instellingen + 4 voorbeeldrondes). `loadSettings` leest de database met terugval op `.env` (geen rij, ongeldige waarde, fout of 5 s timeout); tandwiel toont de bron. Neon-project `neon-gokkast`: `main` voor Production (Vercel-integratie), `dev` voor Preview/Development. Workflow past migraties toe vóór de deploy met GitHub-environment-secret `DATABASE_URL_UNPOOLED` (sensitive Vercel-variabelen komen niet mee met `vercel pull`); Playwright zonder database. Neon CLI 6.2.4, MCP-server (OAuth, `.mcp.json`) en skills `neon`, `neon-postgres`, `neon-postgres-branches`. 48 Vitest- en 6 Playwright-tests; lokaal en in de preview gecontroleerd dat de instellingen uit de database komen. Commit `2da2855`.
+- **Spelletjes opslaan in de database** (13 oktober 2026, taak 7) — server action `saveGame` (`src/app/actions.ts`) slaat aan het eind van elk spel de ronde op in `games` (uitkomst, pogingen, datum); aanroep één keer vanuit `play()` in `SlotMachine.tsx`. `src/lib/gameStore.ts` controleert de invoer (`WON`/`LOST`, pogingen 1 t/m `maxTries`, verlies alleen na alle pogingen) en slaat op; zonder database of bij een fout gaat het spel door met een waarschuwing in de serverlog. Besluit gebruiker: geen naam in het spel (komt uit de QR-betaling, taak 10/11), highscores alleen in de game-manager; daarom `games.name` optioneel (migratie `20261013163330_games_name_optional`). 57 Vitest- en 8 Playwright-tests; in de `dev`-database gecontroleerd met een gespeelde winst en verlies. Commit `794b201`.
