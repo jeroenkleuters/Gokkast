@@ -31,6 +31,13 @@ export default defineConfig({
       GAME_ALLOW_ODDS_URL: "true",
       // Zonder database, ook als .env.local er een heeft: dan gelden de waarden hierboven
       DATABASE_URL: "",
+      // Game-manager (taak 8): nep-sleutels, geen echte Google-login en geen beheerders.
+      // AUTH_TRUST_HOST omdat `next start` buiten Vercel de host anders niet vertrouwt.
+      AUTH_SECRET: "playwright-test-secret-niet-voor-productie",
+      AUTH_TRUST_HOST: "true",
+      AUTH_GOOGLE_ID: "test-google-id",
+      AUTH_GOOGLE_SECRET: "test-google-secret",
+      GAME_MANAGER_ADMINS: "",
     },
   },
 });

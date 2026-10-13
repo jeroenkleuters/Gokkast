@@ -48,7 +48,7 @@ De taken staan in volgorde: latere taken bouwen voort op eerdere.
 
 ### Game-manager
 
-- [ ] **8. Game-manager pagina met OAuth**
+- [x] **8. Game-manager pagina met OAuth**
   - Pagina `/game-manager`, alleen toegankelijk na inloggen
   - OAuth via Auth.js (provider kiezen, bijv. Google of GitHub)
   - Alleen toegestane beheerders (lijst in `.env`)
@@ -91,7 +91,7 @@ De taken staan in volgorde: latere taken bouwen voort op eerdere.
 
 - Waarvoor wordt betaald: per spel van 3 pogingen, of een tegoed voor meerdere spellen? Wat kost het?
 - ~~Waar komt de naam van de speler vandaan?~~ Besloten (taak 7): uit de transactie als er betaald wordt via een QR-code; geen naam invullen in het spel. Highscores alleen in de game-manager, niet in het spel.
-- Welke OAuth-provider voor de game-manager (Google, GitHub, Microsoft)?
+- ~~Welke OAuth-provider voor de game-manager?~~ Besloten (taak 8): Google; inloggen alleen lokaal en in productie.
 - Moet het rekeningnummer getoond worden in de game-manager, of alleen naam en bedrag?
 
 ## Ideeën

@@ -1,16 +1,31 @@
-# Current Feature
+# Current Feature: Game-manager pagina met OAuth
 
 ## Status
 
-Not Started
+Complete
 
 ## Goals
 
-<!-- Doelen van de feature, in te vullen met /feature load -->
+- Pagina `/game-manager` bestaat en is alleen toegankelijk na inloggen; zonder sessie → doorsturen naar inloggen
+- Inloggen via OAuth met Auth.js en Google (keuze gebruiker)
+- Alleen beheerders uit een lijst in `.env` (`GAME_MANAGER_ADMINS`, komma-gescheiden) krijgen toegang; andere ingelogde gebruikers krijgen "geen toegang"
+- Controle op de server, dicht bij de data (pagina en latere server actions/data-functies), niet alleen in `proxy.ts`
+- Uitloggen werkt; de pagina toont wie er is ingelogd
+- Eerste opzet van de pagina (titel, ingelogde beheerder, plek voor instellingen/statistieken uit taak 9, 13, 14) — nog zonder beheerfuncties
+- Het spel zelf blijft zonder inloggen speelbaar
+- Nieuwe variabelen (`AUTH_SECRET`, provider-id/-secret, beheerderslijst) in `.env.example`, README en Vercel per omgeving (Production, Preview, Development)
+- Tests: Vitest voor de beheerderscontrole (lijst lezen, hoofdletters/spaties, lege lijst = niemand); Playwright: `/game-manager` zonder sessie stuurt door en het spel blijft werken
+- Lint, typecheck, build, Vitest en Playwright zonder fouten; in de browser gecontroleerd (lokaal en preview)
 
 ## Notes
 
-<!-- Extra context, beperkingen of details uit de spec -->
+- Keuze gebruiker: Google; inloggen alleen lokaal en in productie (geen redirect-proxy voor previews). Beheerderslijst: `GAME_MANAGER_ADMINS`.
+- Next.js 16: `middleware.ts` heet nu `proxy.ts`. Geen proxy gebruikt: de echte controle zit in de Data Access Layer (`src/lib/dal.ts`, `checkAdmin`), zoals `authentication.md` aanraadt; het spel hoeft er niet langs. Auth.js `next-auth@5.0.0-beta.32` (peer `next ^16`), versie vastgezet.
+- Callback-URL's: OAuth-app moet `localhost:3000`, `gokkast.vercel.app` en preview-URL's toestaan. Preview-URL's wisselen per deploy en Deployment Protection staat aan; mogelijk een vaste redirect-proxy (`AUTH_REDIRECT_PROXY_URL`) of inloggen alleen controleren lokaal en in productie.
+- Lege of ontbrekende beheerderslijst = niemand heeft toegang (veilig standaard).
+- Sessie liefst als JWT in een cookie, zodat er geen extra databasetabellen nodig zijn; anders Prisma-adapter met migratie.
+- Playwright draait zonder database en zonder echte OAuth: test alleen het doorsturen en dat het spel ongewijzigd werkt.
+- Volgende taken bouwen hierop voort: 9 (winkans instellen), 13 (statistieken), 14 (betalingen).
 
 ## History
 

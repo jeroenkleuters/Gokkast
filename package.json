@@ -22,8 +22,10 @@
     "@prisma/adapter-neon": "^7.10.0",
     "@prisma/client": "^7.10.0",
     "next": "16.4.0",
+    "next-auth": "5.0.0-beta.32",
     "react": "19.3.0",
-    "react-dom": "19.3.0"
+    "react-dom": "19.3.0",
+    "server-only": "^0.0.1"
   },
   "devDependencies": {
     "@playwright/test": "^1.64.0",

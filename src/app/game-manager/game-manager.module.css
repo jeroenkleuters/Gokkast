@@ -1,0 +1,68 @@
+/* Game-manager: gewone, scrollbare pagina (het spel zelf zet overflow en selecteren uit) */
+.screen {
+  position: fixed; inset: 0;
+  overflow: auto;
+  padding: 32px 16px;
+  background:
+    radial-gradient(ellipse at 20% 15%, rgba(80,140,255,.18), transparent 45%),
+    radial-gradient(ellipse at 80% 20%, rgba(255,60,160,.18), transparent 45%),
+    linear-gradient(#1a0f2e, #0b0612);
+  color: #f3eefc;
+  font-family: "Segoe UI", Arial, sans-serif;
+  user-select: text;
+}
+
+.panel {
+  max-width: 760px;
+  margin: 0 auto;
+  display: flex; flex-direction: column; gap: 24px;
+}
+
+.header {
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px;
+}
+
+.title {
+  font-family: "Arial Black", "Segoe UI", Arial, sans-serif;
+  font-size: 32px; letter-spacing: 2px;
+  color: #ffcf6a;
+  text-shadow: 0 0 10px rgba(255,174,0,.6);
+}
+
+.muted { color: #b9aed0; font-size: 14px; }
+
+.card {
+  padding: 20px;
+  border: 1px solid rgba(255,255,255,.12);
+  border-radius: 12px;
+  background: rgba(255,255,255,.05);
+}
+
+.card h2 { font-size: 18px; margin-bottom: 8px; color: #ffcf6a; }
+
+.error {
+  padding: 12px 16px;
+  border: 1px solid #ff6b6b;
+  border-radius: 8px;
+  background: rgba(255,80,80,.12);
+  color: #ffd0d0;
+}
+
+.button {
+  padding: 10px 18px;
+  border: 0; border-radius: 8px;
+  background: #ffcf6a;
+  color: #2a1400;
+  font: inherit; font-weight: 700;
+  cursor: pointer;
+}
+.button:hover { background: #ffdb8c; }
+.button:focus-visible { outline: 3px solid #fff; outline-offset: 2px; }
+
+.secondary { background: transparent; color: #f3eefc; border: 1px solid rgba(255,255,255,.3); }
+.secondary:hover { background: rgba(255,255,255,.1); }
+
+.link { color: #9fc3ff; }
+
+.card .error { margin-top: 16px; }
+.card form { margin-top: 16px; }

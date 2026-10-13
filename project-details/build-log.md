@@ -566,6 +566,40 @@ Resultaat:
 1. Taak 7 afgevinkt in `to-do.md`; status Complete; feature gecommit (`794b201`, geen connection strings in de diff) en de branch gepusht.
 2. Run op de branch geslaagd: tests, migratiestap ("No pending migrations" op `dev`, de migratie stond er al) en preview-deploy. Preview https://gokkast-3pnotdzya-jeroenkleuters-9584s-projects.vercel.app: titel "Eenarmige Bandiet", bron `database`.
 3. Fast-forward gemerged in `main`, lokale branch verwijderd; `current-feature.md` teruggezet en de feature toegevoegd aan History; reset gecommit.
+4. `main` gepusht, remote branch verwijderd. Dev-server eerst gestopt, dan `.next` verwijderd (bij taak 6 gebeurde dat terwijl de server draaide) en `npm run dev` opnieuw gestart: http://localhost:3000 antwoordt.
+5. Productie-run geslaagd: migratie `20261013163330_games_name_optional` toegepast op Neon `main` vóór de deploy. https://gokkast.vercel.app: titel "Eenarmige Bandiet", bron `.env` (tabel `game_settings` in productie nog leeg).
+
+---
+
+## Stap 39 — Feature geladen: Game-manager pagina met OAuth (13 oktober 2026)
+
+**Vraag:**
+> /feature load 8
+
+**Uitgevoerde handelingen:**
+1. Taak 8 uit `to-do.md` gelezen (er is geen map `context/features/`); Next.js-gids `authentication.md` doorgenomen (proxy alleen voor optimistische controle, echte controle in een Data Access Layer).
+2. `current-feature.md` gevuld met doelen (`/game-manager` alleen na inloggen, OAuth via Auth.js, beheerderslijst in `.env`, controle op de server, uitloggen, spel blijft openbaar, variabelen in `.env.example`/README/Vercel, tests, controle lokaal en in de preview) en notities (open vraag over de provider, `proxy.ts` in Next.js 16, callback-URL's bij preview-deploys, lege lijst = niemand, JWT-sessie); status Not Started.
+
+---
+
+## Stap 40 — Feature gestart: Game-manager pagina met OAuth (13 oktober 2026)
+
+**Vraag:**
+> /feature start
+
+**Keuze van de gebruiker:** OAuth-provider Google; inloggen alleen lokaal en in productie (in previews alleen controleren dat `/game-manager` doorstuurt).
+
+**Uitgevoerde handelingen:**
+1. Branch `feature/game-manager-pagina-met-oauth` aangemaakt; status In Progress; keuzes vastgelegd in `current-feature.md` en `to-do.md` (open vraag over de provider beantwoord).
+2. `next-auth@5.0.0-beta.32` (Auth.js v5, ondersteunt Next 16; versie vastgezet omdat het een beta is) en `server-only` geïnstalleerd.
+3. `src/lib/admins.ts`: `parseAdminEmails` en `isAdmin` lezen `GAME_MANAGER_ADMINS` (komma's/puntkomma's/spaties, hoofdletters genegeerd, lege lijst = niemand).
+4. `src/auth.ts`: Google-provider, JWT-sessie in een cookie, eigen inlog- en foutpagina; `signIn`-callback geeft alleen een sessie bij een door Google bevestigd adres uit de beheerderslijst. Route `src/app/api/auth/[...nextauth]/route.ts`.
+5. `src/lib/dal.ts`: `checkAdmin` (server-only, één keer per verzoek): geen sessie → doorsturen naar `/game-manager/inloggen`; adres niet (meer) in de lijst → "geen toegang". Geen `proxy.ts`: de controle zit dicht bij de data, zoals de Next.js-gids aanraadt.
+6. Pagina's: `/game-manager` (ingelogde beheerder, uitloggen, plekken voor taak 9, 13 en 14) en `/game-manager/inloggen` (knop "Inloggen met Google", melding bij `?error=AccessDenied`), met eigen layout en CSS-module (scrollbaar, `noindex`).
+7. Tests: `admins.test.ts` (7 tests); `e2e/game-manager.spec.ts` (5 tests: doorsturen zonder sessie, vervalste cookie, doorsturen naar Google met juiste `client_id`/`redirect_uri` (onderschept), melding voor niet-beheerder, spel zonder inloggen). Playwright-server krijgt nep-sleutels en `AUTH_TRUST_HOST`. Foutcontrole: met tijdelijk uitgeschakeld doorsturen faalt de test. 64 Vitest- en 13 Playwright-tests, lint en typecheck zonder fouten.
+8. `.env.example` en README (sectie Game-manager met stappen voor de Google OAuth-client, Vercel-tabel, projectstructuur) bijgewerkt; lokale `AUTH_SECRET` in `.env.local` gezet.
+9. Gebruiker heeft de Google OAuth-client gemaakt en `AUTH_GOOGLE_ID`, `AUTH_GOOGLE_SECRET` en `GAME_MANAGER_ADMINS` in `.env.local` gezet. Dev-server herstart; met curl gecontroleerd: `/game-manager` → 307 naar `/game-manager/inloggen`, spel 200, inloggen → 302 naar Google met de echte client-ID en `redirect_uri` `http://localhost:3000/api/auth/callback/google`. Variabelen in Vercel zetten wacht op toestemming van de gebruiker.
+10. Gebruiker heeft een nieuw Google Cloud-project met een nieuwe OAuth-client gemaakt (nieuwe ID en secret in `.env.local`). Dev-server herstart en opnieuw gecontroleerd: doorsturen werkt, de inlogknop gebruikt de nieuwe client-ID, de Google-inlogpagina toont geen fout (geen `invalid_client` of `redirect_uri_mismatch`), en het token-endpoint geeft met een nepcode `invalid_grant` (dus client-ID en secret kloppen; bij foute gegevens zou het `invalid_client` zijn).
 
 ---
 
@@ -581,11 +615,14 @@ Gokkast/
 ├── public/images/        beker.png, kakkerlak.png, vraagteken.png
 ├── src/
 │   ├── app/              layout.tsx, page.tsx, actions.ts, globals.css
+│   │   ├── game-manager/ layout.tsx, page.tsx, actions.ts, game-manager.module.css, inloggen/page.tsx
+│   │   └── api/auth/[...nextauth]/route.ts
+│   ├── auth.ts           Auth.js (Google, alleen beheerders)
 │   ├── components/       SlotMachine, Reel, Lever, InfoPanel, Stats, SettingsDialog, GameClient
-│   ├── lib/              game.ts, settings.ts, settingsStore.ts, db.ts, gameStore.ts, sound.ts, storage.ts, coinShower.ts, game.test.ts, settings.test.ts, settingsStore.test.ts, gameStore.test.ts
+│   ├── lib/              game.ts, settings.ts, settingsStore.ts, db.ts, gameStore.ts, admins.ts, dal.ts, sound.ts, storage.ts, coinShower.ts, game.test.ts, settings.test.ts, settingsStore.test.ts, gameStore.test.ts, admins.test.ts
 │   └── generated/prisma/ Prisma Client (gegenereerd, niet in git)
 ├── prisma/               schema.prisma, seed.ts, migrations/ (20261013000000_init, 20261013163330_games_name_optional, migration_lock.toml)
-├── e2e/                  gokkast.spec.ts, helpers.ts
+├── e2e/                  gokkast.spec.ts, game-manager.spec.ts, helpers.ts
 ├── v1/                   index.html, style.css, game.js (versie 1)
 ├── voorbeeld/            fruitmachine.jpg
 └── project-details/      build-log.md, current-feature.md, goals.md, to-do.md

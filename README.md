@@ -157,6 +157,36 @@ De Prisma Client wordt gegenereerd in `src/generated/prisma` (niet in git) bij e
 Het schema wijzigen: `prisma/schema.prisma` aanpassen en `npm run db:migrate -- --name <naam>`.
 Herstart daarna de dev-server: een draaiende server houdt de oude Prisma Client vast.
 
+## Game-manager
+
+Beheerpagina op [`/game-manager`](http://localhost:3000/game-manager), alleen voor beheerders.
+Inloggen gaat met Google via [Auth.js](https://authjs.dev/) ([`src/auth.ts`](src/auth.ts)); de
+sessie is een versleutelde cookie (geen databasetabellen). Het spel zelf blijft zonder inloggen speelbaar.
+
+- Alleen e-mailadressen uit `GAME_MANAGER_ADMINS` krijgen een sessie (en alleen als Google het adres
+  heeft bevestigd). Een lege lijst betekent: niemand.
+- De pagina controleert het zelf nog eens op de server ([`src/lib/dal.ts`](src/lib/dal.ts)). Haal je
+  iemand uit de lijst, dan ziet die direct "geen toegang", ook met een oude sessie.
+- Zonder sessie stuurt `/game-manager` door naar `/game-manager/inloggen`.
+
+| Variabele             | Betekenis                                                         |
+| --------------------- | ----------------------------------------------------------------- |
+| `AUTH_SECRET`         | Sleutel voor de sessiecookie; per omgeving een andere (`npx auth secret` of `openssl rand -base64 33`) |
+| `AUTH_GOOGLE_ID`      | Client-ID van de Google OAuth-client                              |
+| `AUTH_GOOGLE_SECRET`  | Client-secret van de Google OAuth-client                          |
+| `GAME_MANAGER_ADMINS` | E-mailadressen van beheerders, gescheiden door komma's            |
+
+Google OAuth-client aanmaken (eenmalig): in de [Google Cloud Console](https://console.cloud.google.com/)
+een project kiezen, *APIs & Services → OAuth consent screen* invullen (type *External*, scopes
+`openid`, `email`, `profile`) en bij *Credentials → Create credentials → OAuth client ID* een
+*Web application* maken met deze *Authorized redirect URIs*:
+
+- `http://localhost:3000/api/auth/callback/google` (lokaal)
+- `https://gokkast.vercel.app/api/auth/callback/google` (productie)
+
+Inloggen werkt alleen lokaal en in productie. Preview-URL's wisselen per deploy en staan niet bij
+Google; daar stuurt `/game-manager` wel door naar de inlogpagina, maar Google weigert de terugkeer-URL.
+
 ## Deployen (Vercel)
 
 Het spel draait op [Vercel](https://vercel.com/). Deployen gaat automatisch via GitHub Actions
@@ -192,6 +222,9 @@ De spelinstellingen (zie [Instellingen](#instellingen)) staan in Vercel onder
 | `GAME_ROUNDS_PER_PAYMENT` | `1`        | `1`     | `1`         |
 | `GAME_ALLOW_ODDS_URL`     | `false`    | `true`  | `true`      |
 | `DATABASE_URL` (+ `_UNPOOLED`) | Neon `main` | Neon `dev` | Neon `dev` |
+| `AUTH_SECRET`             | eigen sleutel | eigen sleutel | eigen sleutel |
+| `AUTH_GOOGLE_ID` / `AUTH_GOOGLE_SECRET` | Google OAuth-client | idem | idem |
+| `GAME_MANAGER_ADMINS`     | beheerders | beheerders | beheerders |
 
 In previews werkt `?kans=` dus wel, in productie niet. Een wijziging geldt vanaf de volgende deploy
 (workflow opnieuw draaien via *Actions → CI/CD → Run workflow*). Development-waarden lokaal ophalen:
@@ -227,8 +260,11 @@ Gokkast/
 ├── public/images/      plaatjes voor de rollen (beker, kakkerlak, vraagteken)
 ├── src/
 │   ├── app/            layout, pagina, server actions (actions.ts) en globale CSS (Next.js App Router)
+│   │   ├── game-manager/  beheerpagina en inlogpagina (inloggen/)
+│   │   └── api/auth/      Auth.js-routes (inloggen, terugkeer van Google, uitloggen)
+│   ├── auth.ts         Auth.js-instellingen (Google, alleen beheerders)
 │   ├── components/     SlotMachine, Reel, Lever, InfoPanel, Stats, SettingsDialog, GameClient
-│   ├── lib/            spellogica (game.ts), instellingen (settings.ts, settingsStore.ts), database (db.ts), rondes opslaan (gameStore.ts), geluid, opslag, muntenregen, tests (*.test.ts)
+│   ├── lib/            spellogica (game.ts), instellingen (settings.ts, settingsStore.ts), database (db.ts), rondes opslaan (gameStore.ts), beheerders (admins.ts, dal.ts), geluid, opslag, muntenregen, tests (*.test.ts)
 │   └── generated/      Prisma Client (gegenereerd, niet in git)
 ├── prisma/             schema.prisma, migrations/, seed.ts
 ├── prisma.config.ts    instellingen voor de Prisma CLI
