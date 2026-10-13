@@ -91,20 +91,21 @@ jobs:
             if [ -z "${!name}" ]; then echo "::error::GitHub-secret $name ontbreekt (zie README, Deployen)"; exit 1; fi
           done
 
-      # Haalt de projectinstellingen en de omgevingsvariabelen van deze omgeving op
+      # Haalt de projectinstellingen en de omgevingsvariabelen van deze omgeving op.
+      # Bij "Re-run with debug logging" logt de Vercel CLI uitgebreid (--debug).
       # (voor previews ook de variabelen die alleen voor deze branch gelden)
       - name: Vercel-instellingen ophalen
         run: |
           branch_flag=""
           if [ "$TARGET" = preview ]; then branch_flag="--git-branch=$GITHUB_REF_NAME"; fi
-          npx --yes $VERCEL_CLI pull --yes --environment=$TARGET $branch_flag --token="$VERCEL_TOKEN"
+          npx --yes $VERCEL_CLI pull ${RUNNER_DEBUG:+--debug} --yes --environment=$TARGET $branch_flag --token="$VERCEL_TOKEN"
 
       - name: Bouwen
-        run: npx --yes $VERCEL_CLI build $PROD_FLAG --token="$VERCEL_TOKEN"
+        run: npx --yes $VERCEL_CLI build ${RUNNER_DEBUG:+--debug} $PROD_FLAG --token="$VERCEL_TOKEN"
 
       - name: Deployen
         id: deploy
         run: |
-          url=$(npx --yes $VERCEL_CLI deploy --prebuilt $PROD_FLAG --token="$VERCEL_TOKEN")
+          url=$(npx --yes $VERCEL_CLI deploy ${RUNNER_DEBUG:+--debug} --prebuilt $PROD_FLAG --token="$VERCEL_TOKEN")
           echo "url=$url" >> "$GITHUB_OUTPUT"
           echo "Gedeployd ($TARGET): $url" >> "$GITHUB_STEP_SUMMARY"
