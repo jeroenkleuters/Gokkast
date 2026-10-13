@@ -22,7 +22,7 @@ De taken staan in volgorde: latere taken bouwen voort op eerdere.
   - Vitest installeren en `npm test` instellen
   - Tests voor de spellogica: winkans per aantal vastgezette rollen, nooit drie gelijke bij verlies, pogingen, maximaal 2 rollen vast
 
-- [ ] **4. Visuele tests met Playwright**
+- [x] **4. Visuele tests met Playwright**
   - Playwright installeren en instellen
   - Tests: spel laadt op 1024x768, draaien, rol vastzetten, winst- en verliesmelding, nieuw spel
   - Uitkomst forceren in de test (bijv. winkans 1 via testinstelling) zodat de tests voorspelbaar zijn

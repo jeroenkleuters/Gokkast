@@ -342,17 +342,47 @@ Resultaat:
 
 ---
 
+## Stap 24 — Feature geladen: Visuele tests met Playwright (13 oktober 2026)
+
+**Vraag:**
+> /feature load 4 uit to-do.md
+
+**Uitgevoerde handelingen:**
+1. Taak 4 uit `to-do.md` gelezen, samen met `.env.example` en `src/lib/settings.ts` (voor het forceren van de uitkomst via `GAME_ALLOW_ODDS_URL` en `?kans=`).
+2. `current-feature.md` gevuld met doelen (Playwright + npm-script, tests op 1024x768 voor laden, draaien, vastzetten, winst, verlies en nieuw spel, voorspelbare uitkomst) en notities; status Not Started.
+3. `/feature load 4` opnieuw uitgevoerd: spec vergeleken met taak 4 in `to-do.md`, al actueel, niets gewijzigd.
+
+---
+
+## Stap 25 — Feature gestart: Visuele tests met Playwright (13 oktober 2026)
+
+**Vraag:**
+> /feature start
+
+**Uitgevoerde handelingen:**
+1. Branch `feature/visuele-tests-met-playwright` aangemaakt; status in `current-feature.md` op In Progress.
+2. Next.js-docs over Playwright gelezen (`node_modules/next/dist/docs/.../playwright.md`): testen tegen de productiebuild, `webServer` laat Playwright de server starten.
+3. `@playwright/test` (1.64.0) geïnstalleerd als devDependency en Chromium gedownload (`npx playwright install chromium`).
+4. `playwright.config.ts`: tests in `e2e/*.spec.ts`, Chromium op 1024x768, `webServer` draait `npm run build && npm run start -- -p 3100` met testinstellingen (`GAME_ODDS=30`, `GAME_MAX_TRIES=3`, `GAME_ALLOW_ODDS_URL=true`) die alleen voor die server gelden; expect-timeout 10 s vanwege de draai-animatie.
+5. `e2e/helpers.ts`: `openGame` zet het geluid uit en maakt de uitkomst voorspelbaar — winst met `?kans=1`, verlies met `?kans=100000` plus een `Math.random` (via `page.addInitScript`) die nooit onder 0,05 komt, zodat ook met 2 vastgezette rollen (kans ≈ 0,02) nooit gewonnen wordt. `spin` wacht tot de SPEEL-knop weer actief is in plaats van vaste pauzes.
+6. `e2e/gokkast.spec.ts` met 6 tests: laden op 1024x768, draaien met de hendel (poging weg, rollen draaien), vastzetten (maximaal 2, losmaken, vaste rol blijft staan), winstmelding, verliesmelding na 3 pogingen, NIEUW SPEL terug naar de beginstand.
+7. npm-scripts `test:e2e` en `test:e2e:ui`; `test-results/`, `playwright-report/`, `blob-report/` in `.gitignore`; README en commentaar in `vitest.config.mts` bijgewerkt.
+8. Gecontroleerd: 6 Playwright-tests geslaagd, ook 5x herhaald (30/30); foutcontrole met tijdelijk `MAX_HELD = 3` — de vastzet-test faalt zoals bedoeld, daarna hersteld en opnieuw gebouwd. Lint, typecheck, build en 39 Vitest-tests zonder fouten.
+
+---
+
 ## Huidige bestandsstructuur
 
 ```
 Gokkast/
-├── AGENTS.md, README.md, .env.example, vitest.config.mts
+├── AGENTS.md, README.md, .env.example, vitest.config.mts, playwright.config.ts
 ├── package.json, tsconfig.json, next.config.ts, eslint.config.mjs
 ├── public/images/        beker.png, kakkerlak.png, vraagteken.png
 ├── src/
 │   ├── app/              layout.tsx, page.tsx, globals.css
 │   ├── components/       SlotMachine, Reel, Lever, InfoPanel, Stats, SettingsDialog, GameClient
 │   └── lib/              game.ts, settings.ts, sound.ts, storage.ts, coinShower.ts, game.test.ts, settings.test.ts
+├── e2e/                  gokkast.spec.ts, helpers.ts
 ├── v1/                   index.html, style.css, game.js (versie 1)
 ├── voorbeeld/            fruitmachine.jpg
 └── project-details/      build-log.md, current-feature.md, goals.md, to-do.md

@@ -41,6 +41,8 @@ npm run dev -- -p 3001
 | `npm run lint`  | Code controleren met ESLint                              |
 | `npm test`      | Automatische tests (Vitest) één keer draaien             |
 | `npm run test:watch` | Tests opnieuw draaien bij elke wijziging            |
+| `npm run test:e2e` | Visuele tests (Playwright) in de browser draaien      |
+| `npm run test:e2e:ui` | Visuele tests in de Playwright-UI bekijken         |
 
 Productieversie lokaal testen:
 
@@ -60,6 +62,28 @@ npm test
 De tests staan naast de code in `src/lib/` (`game.test.ts`, `settings.test.ts`) en controleren onder
 andere de winkans per aantal vastgezette rollen, dat een verlies nooit drie gelijke plaatjes geeft,
 het aantal pogingen, maximaal 2 rollen vastzetten en het inlezen van de `.env`-instellingen.
+
+### Visuele tests (Playwright)
+
+Het spel zelf wordt in een echte browser (Chromium, 1024x768) getest met
+[Playwright](https://playwright.dev/). Eenmalig de browser installeren:
+
+```bash
+npx playwright install chromium
+```
+
+Daarna:
+
+```bash
+npm run test:e2e
+```
+
+Playwright bouwt de app en start die zelf op poort 3100 (zie `playwright.config.ts`), met
+testinstellingen die alleen voor die server gelden (`GAME_ALLOW_ODDS_URL=true`). De tests in `e2e/`
+controleren het laden, draaien met de hendel, rollen vastzetten (maximaal 2), de winst- en
+verliesmelding en NIEUW SPEL. De uitkomst is voorspelbaar: `?kans=1` geeft altijd winst, en voor
+verlies gebruiken de tests `?kans=100000` met een `Math.random` die nooit onder 0,05 komt.
+Draait er al iets op poort 3100, dan gebruikt Playwright die server (behalve op CI).
 
 ## Spelen
 
@@ -97,7 +121,9 @@ Gokkast/
 │   ├── components/     SlotMachine, Reel, Lever, InfoPanel, Stats, SettingsDialog, GameClient
 │   └── lib/            spellogica (game.ts), instellingen (settings.ts), geluid, opslag, muntenregen, tests (*.test.ts)
 ├── .env.example        alle instellingen met uitleg (kopiëren naar .env.local)
-├── vitest.config.mts   instellingen voor de tests
+├── e2e/                visuele tests met Playwright (*.spec.ts)
+├── playwright.config.ts instellingen voor de visuele tests
+├── vitest.config.mts   instellingen voor de unit-tests
 ├── v1/                 versie 1: losse HTML/CSS/JS, opent direct in de browser
 ├── voorbeeld/          ontwerpvoorbeeld (fruitmachine.jpg)
 └── project-details/    doelen, to-do, huidige feature en build-log
