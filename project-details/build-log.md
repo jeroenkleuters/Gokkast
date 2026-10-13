@@ -423,6 +423,22 @@ Resultaat:
 
 ---
 
+## Stap 30 — Vercel ingesteld en eerste preview-deploy (13 oktober 2026)
+
+**Vraag:**
+> done with 1-3 (gh-scope `workflow`, Vercel login/link, secrets gezet)
+
+**Uitgevoerde handelingen:**
+1. Gecontroleerd: `gh` heeft scope `workflow`; link in `.vercel/repo.json` (project `gokkast`, team `jeroenkleuters-9584's projects`); drie secrets aanwezig.
+2. Bestaande Vercel-variabelen stonden als *sensitive* op Production + Preview samen (dus `GAME_ALLOW_ODDS_URL` overal gelijk, geen Development). Na akkoord van de gebruiker alle vier verwijderd en per omgeving opnieuw aangemaakt als Config: `GAME_ODDS=30`, `GAME_MAX_TRIES=3`, `GAME_ROUNDS_PER_PAYMENT=1` overal; `GAME_ALLOW_ODDS_URL` `false` in Production, `true` in Preview en Development. Gecontroleerd met `vercel env pull` per omgeving (naar een tijdelijk bestand, daarna verwijderd).
+3. Commit `feat: CI/CD met GitHub Actions en Vercel` gepusht naar `feature/ci-cd-met-vercel`. Job `test` slaagde op CI (lint, typecheck, Vitest, Playwright); `deploy` faalde bij `vercel pull` ("Could not retrieve Project Settings").
+4. `VERCEL_ORG_ID` en `VERCEL_PROJECT_ID` opnieuw gezet met de ID's uit `.vercel/repo.json`; bleef falen. Workflow uitgebreid: bij een debug-run (`RUNNER_DEBUG`) krijgen de Vercel-commando's `--debug`. Debug-log: `GET /v2/user` → 404 en team → 403, dus de token werd niet herkend.
+5. Gebruiker heeft een nieuwe token gemaakt en gezet; deploy-job opnieuw gedraaid: geslaagd. Preview: https://gokkast-ma2cptgn1-jeroenkleuters-9584s-projects.vercel.app (ook als GitHub-environment Preview).
+6. Preview gecontroleerd met `vercel curl` (previews staan achter Vercel Deployment Protection, zonder login een redirect naar vercel.com): titel "Eenarmige Bandiet", odds 30, 3 pogingen; met `?kans=7` odds 7, dus `GAME_ALLOW_ODDS_URL` werkt in Preview.
+7. README: notitie over Deployment Protection en debug-runs.
+
+---
+
 ## Huidige bestandsstructuur
 
 ```

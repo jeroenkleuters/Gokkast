@@ -122,6 +122,11 @@ Het spel draait op [Vercel](https://vercel.com/). Deployen gaat automatisch via 
    - push op `main` → **productie**;
    - push op een andere branch → **preview** met een eigen URL. Die staat bij de commit en in de
      pull request (onder *Deployments*), en in de samenvatting van de workflow-run.
+     Previews zijn beschermd met Vercel Deployment Protection: alleen te openen als je bij Vercel
+     bent ingelogd (of met `npx vercel@60.1.3 curl / --deployment <url>`).
+
+Een mislukte deploy onderzoeken: in GitHub *Re-run jobs → Enable debug logging*; de Vercel CLI
+logt dan uitgebreid (`--debug`).
 
 Vercels eigen Git-deploys staan uit (`git.deploymentEnabled: false` in [`vercel.json`](vercel.json)),
 zodat er nooit iets live gaat zonder geslaagde tests.
