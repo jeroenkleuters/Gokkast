@@ -603,6 +603,20 @@ Resultaat:
 
 ---
 
+## Stap 41 — Feature afgerond: Game-manager pagina met OAuth (13 oktober 2026)
+
+**Vraag:**
+> /feature complete
+
+**Uitgevoerde handelingen:**
+1. Lokaal ingelogd en uitgelogd door de gebruiker (serverlog: callback 302 → `/game-manager` 200, `signOutAdmin`, tweede login terug op de inlogpagina). Lint, typecheck, 64 Vitest- en 13 Playwright-tests zonder fouten.
+2. Keuze gebruiker: de Vercel-variabelen zelf zetten. Met `vercel env ls` gecontroleerd (alleen namen): `AUTH_SECRET`, `AUTH_GOOGLE_ID`, `AUTH_GOOGLE_SECRET` en `GAME_MANAGER_ADMINS` staan alleen in **Production**, nog niet in Preview en Development.
+3. Taak 8 afgevinkt in `to-do.md`; status Complete; diff gecontroleerd op geheimen (geen); feature gecommit (`c6b1e43`) en de branch gepusht.
+4. Run op de branch geslaagd (tests + preview-deploy). Preview https://gokkast-245kqcksr-jeroenkleuters-9584s-projects.vercel.app met `vercel curl` (in Git Bash met `MSYS_NO_PATHCONV=1`, anders wordt `/` een Windows-pad): titel "Eenarmige Bandiet", `/game-manager` → 307.
+5. Fast-forward gemerged in `main`, lokale branch verwijderd; `current-feature.md` teruggezet en de feature toegevoegd aan History; reset gecommit; `main` gepusht en de remote branch verwijderd.
+
+---
+
 ## Huidige bestandsstructuur
 
 ```

@@ -1,31 +1,16 @@
-# Current Feature: Game-manager pagina met OAuth
+# Current Feature
 
 ## Status
 
-Complete
+Not Started
 
 ## Goals
 
-- Pagina `/game-manager` bestaat en is alleen toegankelijk na inloggen; zonder sessie → doorsturen naar inloggen
-- Inloggen via OAuth met Auth.js en Google (keuze gebruiker)
-- Alleen beheerders uit een lijst in `.env` (`GAME_MANAGER_ADMINS`, komma-gescheiden) krijgen toegang; andere ingelogde gebruikers krijgen "geen toegang"
-- Controle op de server, dicht bij de data (pagina en latere server actions/data-functies), niet alleen in `proxy.ts`
-- Uitloggen werkt; de pagina toont wie er is ingelogd
-- Eerste opzet van de pagina (titel, ingelogde beheerder, plek voor instellingen/statistieken uit taak 9, 13, 14) — nog zonder beheerfuncties
-- Het spel zelf blijft zonder inloggen speelbaar
-- Nieuwe variabelen (`AUTH_SECRET`, provider-id/-secret, beheerderslijst) in `.env.example`, README en Vercel per omgeving (Production, Preview, Development)
-- Tests: Vitest voor de beheerderscontrole (lijst lezen, hoofdletters/spaties, lege lijst = niemand); Playwright: `/game-manager` zonder sessie stuurt door en het spel blijft werken
-- Lint, typecheck, build, Vitest en Playwright zonder fouten; in de browser gecontroleerd (lokaal en preview)
+<!-- Doelen van de feature, in te vullen met /feature load -->
 
 ## Notes
 
-- Keuze gebruiker: Google; inloggen alleen lokaal en in productie (geen redirect-proxy voor previews). Beheerderslijst: `GAME_MANAGER_ADMINS`.
-- Next.js 16: `middleware.ts` heet nu `proxy.ts`. Geen proxy gebruikt: de echte controle zit in de Data Access Layer (`src/lib/dal.ts`, `checkAdmin`), zoals `authentication.md` aanraadt; het spel hoeft er niet langs. Auth.js `next-auth@5.0.0-beta.32` (peer `next ^16`), versie vastgezet.
-- Callback-URL's: OAuth-app moet `localhost:3000`, `gokkast.vercel.app` en preview-URL's toestaan. Preview-URL's wisselen per deploy en Deployment Protection staat aan; mogelijk een vaste redirect-proxy (`AUTH_REDIRECT_PROXY_URL`) of inloggen alleen controleren lokaal en in productie.
-- Lege of ontbrekende beheerderslijst = niemand heeft toegang (veilig standaard).
-- Sessie liefst als JWT in een cookie, zodat er geen extra databasetabellen nodig zijn; anders Prisma-adapter met migratie.
-- Playwright draait zonder database en zonder echte OAuth: test alleen het doorsturen en dat het spel ongewijzigd werkt.
-- Volgende taken bouwen hierop voort: 9 (winkans instellen), 13 (statistieken), 14 (betalingen).
+<!-- Extra context, beperkingen of details uit de spec -->
 
 ## History
 
@@ -38,3 +23,4 @@ Complete
 - **CI/CD met Vercel** (13 oktober 2026, taak 5) — aanpak A: `.github/workflows/ci-cd.yml` draait bij elke push lint, typecheck, Vitest en Playwright en deployt daarna pas met de Vercel CLI 60.1.3 (`pull`/`build`/`deploy --prebuilt`; preview per branch, `--prod` op `main`, URL als GitHub-environment); `vercel.json` zet Vercels eigen Git-deploys uit. Secrets `VERCEL_TOKEN`, `VERCEL_ORG_ID`, `VERCEL_PROJECT_ID`; Vercel-variabelen per omgeving (`GAME_ALLOW_ODDS_URL` alleen aan in Preview/Development). Debug-runs geven `--debug` aan de CLI. Preview gecontroleerd met `vercel curl` (Deployment Protection aan). README-sectie Deployen. Commit `698444a`.
 - **Database met Neon en Prisma** (13 oktober 2026, taak 6) — Prisma 7.10 met `@prisma/adapter-neon`; schema `game_settings` (één rij), `games` (naam, `WON`/`LOST`, pogingen, datum) en `payments` (naam, bedrag in centen); migratie `20261013000000_init` en seed (instellingen + 4 voorbeeldrondes). `loadSettings` leest de database met terugval op `.env` (geen rij, ongeldige waarde, fout of 5 s timeout); tandwiel toont de bron. Neon-project `neon-gokkast`: `main` voor Production (Vercel-integratie), `dev` voor Preview/Development. Workflow past migraties toe vóór de deploy met GitHub-environment-secret `DATABASE_URL_UNPOOLED` (sensitive Vercel-variabelen komen niet mee met `vercel pull`); Playwright zonder database. Neon CLI 6.2.4, MCP-server (OAuth, `.mcp.json`) en skills `neon`, `neon-postgres`, `neon-postgres-branches`. 48 Vitest- en 6 Playwright-tests; lokaal en in de preview gecontroleerd dat de instellingen uit de database komen. Commit `2da2855`.
 - **Spelletjes opslaan in de database** (13 oktober 2026, taak 7) — server action `saveGame` (`src/app/actions.ts`) slaat aan het eind van elk spel de ronde op in `games` (uitkomst, pogingen, datum); aanroep één keer vanuit `play()` in `SlotMachine.tsx`. `src/lib/gameStore.ts` controleert de invoer (`WON`/`LOST`, pogingen 1 t/m `maxTries`, verlies alleen na alle pogingen) en slaat op; zonder database of bij een fout gaat het spel door met een waarschuwing in de serverlog. Besluit gebruiker: geen naam in het spel (komt uit de QR-betaling, taak 10/11), highscores alleen in de game-manager; daarom `games.name` optioneel (migratie `20261013163330_games_name_optional`). 57 Vitest- en 8 Playwright-tests; in de `dev`-database gecontroleerd met een gespeelde winst en verlies. Commit `794b201`.
+- **Game-manager pagina met OAuth** (13 oktober 2026, taak 8) — `/game-manager` alleen voor beheerders; inloggen met Google via Auth.js (`next-auth@5.0.0-beta.32`, vastgezet), JWT-sessie in een cookie (`src/auth.ts`, route `src/app/api/auth/[...nextauth]`). Beheerderslijst `GAME_MANAGER_ADMINS` (`src/lib/admins.ts`, leeg = niemand); `signIn`-callback geeft alleen een sessie bij een bevestigd adres uit de lijst, en `checkAdmin` in `src/lib/dal.ts` controleert elke pagina op de server (geen sessie → `/game-manager/inloggen`, niet meer in de lijst → geen toegang). Geen `proxy.ts`. Inlogpagina met melding bij `AccessDenied`, uitloggen, plekken voor taak 9, 13 en 14. Keuze gebruiker: Google, inloggen alleen lokaal en in productie. 64 Vitest- en 13 Playwright-tests (Google onderschept, nep-sleutels); lokaal ingelogd en uitgelogd door de gebruiker. Vercel-variabelen door de gebruiker gezet, alleen voor Production. Commit `c6b1e43`.
