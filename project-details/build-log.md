@@ -508,6 +508,22 @@ Resultaat:
 
 ---
 
+## Stap 35 — Feature afgerond: Database met Neon en Prisma (13 oktober 2026)
+
+**Vraag:**
+> 1 is done (Neon-integratie in Vercel alleen nog voor Production)
+>
+> /feature complete
+
+**Uitgevoerde handelingen:**
+1. `DATABASE_URL` (pooled) en `DATABASE_URL_UNPOOLED` (direct) van Neon `dev` toegevoegd aan Vercel Preview (sensitive) en Development; Production blijft de Neon-integratie (`main`). README-stappen Eenmalig instellen bijgewerkt.
+2. De gebruiker kreeg eerst een `!`-commando dat in PowerShell niet werkt; vervangen door een PowerShell-versie. Gebruiker zette daarmee het GitHub-secret `DATABASE_URL_UNPOOLED` voor environment Production.
+3. Taak 6 afgevinkt in `to-do.md`; status Complete; feature gecommit (`2da2855`, geen connection strings in de diff) en de branch gepusht.
+4. Run op de branch: tests, migratiestap ("No pending migrations" op `dev`) en preview-deploy geslaagd. Preview https://gokkast-m5uhhkxrj-jeroenkleuters-9584s-projects.vercel.app via `vercel curl` (in Git Bash met `MSYS_NO_PATHCONV=1`, anders wordt `/` een Windows-pad): titel "Eenarmige Bandiet", bron `database`, odds 30; `?kans=7` geeft odds 7.
+5. Fast-forward gemerged in `main`, lokale branch verwijderd; `current-feature.md` teruggezet en de feature toegevoegd aan History; reset gecommit.
+
+---
+
 ## Huidige bestandsstructuur
 
 ```
