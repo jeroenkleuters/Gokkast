@@ -27,7 +27,7 @@ De taken staan in volgorde: latere taken bouwen voort op eerdere.
   - Tests: spel laadt op 1024x768, draaien, rol vastzetten, winst- en verliesmelding, nieuw spel
   - Uitkomst forceren in de test (bijv. winkans 1 via testinstelling) zodat de tests voorspelbaar zijn
 
-- [ ] **5. CI/CD met Vercel**
+- [x] **5. CI/CD met Vercel**
   - Repository koppelen aan Vercel
   - Preview-deploy per branch, productie-deploy vanaf `main`
   - Vitest (en Playwright) draaien vóór een deploy
