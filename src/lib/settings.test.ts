@@ -5,9 +5,11 @@ import {
   MAX_ROUNDS_PER_PAYMENT,
   MAX_TRIES_LIMIT,
   mergeSettings,
+  ODDS_LEVELS,
   oddsFromUrlAllowed,
   parseFlag,
   parsePositiveInt,
+  parseSettingsForm,
   readSettings,
 } from "@/lib/settings";
 
@@ -102,7 +104,7 @@ describe("mergeSettings", () => {
   it("negeert ongeldige databasewaarden per veld, met dezelfde grenzen als .env", () => {
     expect(mergeSettings({ odds: 0, maxTries: MAX_TRIES_LIMIT + 1, roundsPerPayment: 2.5 }, defaults)).toEqual({
       ...defaults,
-      source: "database",
+      source: "env",
     });
     expect(mergeSettings({ odds: MAX_ODDS + 1, maxTries: 2, roundsPerPayment: MAX_ROUNDS_PER_PAYMENT + 1 }, defaults)).toEqual({
       odds: 30,
@@ -110,5 +112,60 @@ describe("mergeSettings", () => {
       roundsPerPayment: 1,
       source: "database",
     });
+  });
+
+  it("gebruikt de standaard voor lege velden (null = terug naar standaard)", () => {
+    expect(mergeSettings({ odds: null, maxTries: 4, roundsPerPayment: null }, defaults)).toEqual({
+      odds: 30,
+      maxTries: 4,
+      roundsPerPayment: 1,
+      source: "database",
+    });
+    expect(mergeSettings({ odds: null, maxTries: null, roundsPerPayment: null }, defaults)).toEqual({
+      ...defaults,
+      source: "env",
+    });
+  });
+});
+
+describe("parseSettingsForm", () => {
+  const form = (fields: Record<string, string>) => new Map(Object.entries(fields));
+
+  it("leest de drie velden als gehele getallen", () => {
+    expect(parseSettingsForm(form({ odds: "100", maxTries: " 5 ", roundsPerPayment: "1" }))).toEqual({
+      ok: true,
+      values: { odds: 100, maxTries: 5, roundsPerPayment: 1 },
+    });
+  });
+
+  it("maakt van lege of ontbrekende velden null (standaard)", () => {
+    expect(parseSettingsForm(form({ odds: "", maxTries: "  " }))).toEqual({
+      ok: true,
+      values: { odds: null, maxTries: null, roundsPerPayment: null },
+    });
+  });
+
+  it("accepteert de grenzen en weigert alles daarbuiten, per veld", () => {
+    expect(parseSettingsForm(form({ odds: String(MAX_ODDS), maxTries: "1", roundsPerPayment: String(MAX_ROUNDS_PER_PAYMENT) })).ok).toBe(true);
+    const result = parseSettingsForm(form({ odds: "0", maxTries: String(MAX_TRIES_LIMIT + 1), roundsPerPayment: "2" }));
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(Object.keys(result.errors).sort()).toEqual(["maxTries", "odds"]);
+      expect(result.errors.odds).toContain(`1 t/m ${MAX_ODDS}`);
+    }
+  });
+
+  it("weigert tekst, kommagetallen en negatieve getallen", () => {
+    for (const odds of ["abc", "2.5", "-3", "1e3"]) {
+      expect(parseSettingsForm(form({ odds })).ok).toBe(false);
+    }
+  });
+});
+
+describe("ODDS_LEVELS", () => {
+  it("loopt van makkelijk naar moeilijk binnen de grenzen", () => {
+    const odds = ODDS_LEVELS.map((level) => level.odds);
+    expect(odds).toEqual([...odds].sort((a, b) => a - b));
+    expect(odds.every((n) => n >= 1 && n <= MAX_ODDS)).toBe(true);
   });
 });

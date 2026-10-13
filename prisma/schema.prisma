@@ -10,13 +10,14 @@ datasource db {
   provider = "postgresql"
 }
 
-// Spelinstellingen: één rij (id 1). Ontbreekt die of is een waarde ongeldig,
-// dan gebruikt het spel de waarde uit .env (zie src/lib/settings.ts).
+// Spelinstellingen: één rij (id 1), aan te passen in de game-manager. Ontbreekt de rij,
+// is een waarde leeg (null = "standaard") of ongeldig, dan gebruikt het spel de waarde
+// uit .env (zie src/lib/settings.ts).
 model GameSettings {
   id               Int      @id @default(1)
-  odds             Int // winkans 1 op odds per draai zonder vastgezette rollen
-  maxTries         Int      @map("max_tries")
-  roundsPerPayment Int      @map("rounds_per_payment")
+  odds             Int? // winkans 1 op odds per draai zonder vastgezette rollen
+  maxTries         Int?     @map("max_tries")
+  roundsPerPayment Int?     @map("rounds_per_payment")
   updatedAt        DateTime @updatedAt @map("updated_at")
 
   @@map("game_settings")

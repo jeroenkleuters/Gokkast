@@ -1,4 +1,5 @@
-// Instellingen uit de database lezen, met .env als terugval (alleen op de server).
+// Instellingen uit de database lezen (met .env als terugval) en opslaan vanuit de game-manager.
+// Alleen op de server.
 import { getDb } from "@/lib/db";
 import { mergeSettings, readSettings, type GameSettings, type SettingsRow } from "@/lib/settings";
 
@@ -39,5 +40,52 @@ export async function loadSettings(
   } catch (error) {
     console.warn("Instellingen niet uit de database gelezen, .env wordt gebruikt:", error);
     return { ...defaults, source: "env" };
+  }
+}
+
+// Voor de game-manager: de ruwe rij (lege velden = standaard), zonder terugval op .env,
+// zodat de pagina kan laten zien wat er in de database staat en of die bereikbaar is.
+export type StoredSettings =
+  | { status: "ok"; row: SettingsRow | null }
+  | { status: "no-database" }
+  | { status: "error" };
+
+export async function readStoredSettings(
+  fetchRow: FetchSettingsRow | null = fetchFromDb(),
+  timeoutMs = DB_TIMEOUT_MS,
+): Promise<StoredSettings> {
+  if (!fetchRow) return { status: "no-database" };
+  try {
+    return { status: "ok", row: await withTimeout(fetchRow(), timeoutMs) };
+  } catch (error) {
+    console.warn("Instellingen niet uit de database gelezen:", error);
+    return { status: "error" };
+  }
+}
+
+export type SaveSettingsRow = (values: SettingsRow) => Promise<unknown>;
+
+// Rij id 1 aanmaken of bijwerken; null in een veld = terug naar de .env-waarde
+function saveToDb(): SaveSettingsRow | null {
+  const db = getDb();
+  if (!db) return null;
+  return (values) =>
+    db.gameSettings.upsert({ where: { id: 1 }, create: { id: 1, ...values }, update: values });
+}
+
+export type SaveSettingsResult = "saved" | "no-database" | "error";
+
+export async function saveStoredSettings(
+  values: SettingsRow,
+  saveRow: SaveSettingsRow | null = saveToDb(),
+  timeoutMs = DB_TIMEOUT_MS,
+): Promise<SaveSettingsResult> {
+  if (!saveRow) return "no-database";
+  try {
+    await withTimeout(saveRow(values), timeoutMs);
+    return "saved";
+  } catch (error) {
+    console.error("Instellingen niet opgeslagen:", error);
+    return "error";
   }
 }

@@ -11,8 +11,11 @@ export interface GameSettings {
 
 export type SettingsSource = "database" | "env";
 
-// De velden zoals ze in de tabel game_settings staan
-export type SettingsRow = Pick<GameSettings, "odds" | "maxTries" | "roundsPerPayment">;
+export type SettingKey = "odds" | "maxTries" | "roundsPerPayment";
+export const SETTING_KEYS: SettingKey[] = ["odds", "maxTries", "roundsPerPayment"];
+
+// De velden zoals ze in de tabel game_settings staan; null = "standaard" (de .env-waarde)
+export type SettingsRow = Record<SettingKey, number | null>;
 
 export const DEFAULT_SETTINGS: GameSettings = {
   odds: 30,
@@ -24,6 +27,19 @@ export const DEFAULT_SETTINGS: GameSettings = {
 export const MAX_ODDS = 100000;
 export const MAX_TRIES_LIMIT = 5;
 export const MAX_ROUNDS_PER_PAYMENT = 100;
+
+export const SETTING_LIMITS: Record<SettingKey, number> = {
+  odds: MAX_ODDS,
+  maxTries: MAX_TRIES_LIMIT,
+  roundsPerPayment: MAX_ROUNDS_PER_PAYMENT,
+};
+
+// Snelkeuzes voor de winkans in de game-manager (een eigen getal mag ook)
+export const ODDS_LEVELS = [
+  { label: "Makkelijk", odds: 10 },
+  { label: "Normaal", odds: 30 },
+  { label: "Moeilijk", odds: 100 },
+] as const;
 
 type Env = Record<string, string | undefined>;
 
@@ -51,18 +67,42 @@ function inRange(value: unknown, max: number): value is number {
   return Number.isInteger(value) && (value as number) >= 1 && (value as number) <= max;
 }
 
-// Databaserij over de standaardwaarden heen; ongeldige waarden (buiten dezelfde grenzen
-// als in .env) worden genegeerd. Geen rij → de standaardwaarden met bron "env".
+// Databaserij over de standaardwaarden heen, per veld: leeg (null = "standaard") of ongeldig
+// (buiten dezelfde grenzen als in .env) → de standaardwaarde. De bron is "database" zodra
+// minstens één waarde uit de rij komt; geen rij → de standaardwaarden met bron "env".
 export function mergeSettings(row: Partial<SettingsRow> | null, defaults: GameSettings): GameSettings {
-  if (!row) return { ...defaults, source: "env" };
-  return {
-    odds: inRange(row.odds, MAX_ODDS) ? row.odds : defaults.odds,
-    maxTries: inRange(row.maxTries, MAX_TRIES_LIMIT) ? row.maxTries : defaults.maxTries,
-    roundsPerPayment: inRange(row.roundsPerPayment, MAX_ROUNDS_PER_PAYMENT)
-      ? row.roundsPerPayment
-      : defaults.roundsPerPayment,
-    source: "database",
-  };
+  const settings: GameSettings = { ...defaults, source: "env" };
+  if (!row) return settings;
+  for (const key of SETTING_KEYS) {
+    const value = row[key];
+    if (inRange(value, SETTING_LIMITS[key])) {
+      settings[key] = value;
+      settings.source = "database";
+    }
+  }
+  return settings;
+}
+
+export type SettingsFormResult =
+  | { ok: true; values: SettingsRow }
+  | { ok: false; errors: Partial<Record<SettingKey, string>> };
+
+// Formulier van de game-manager: per veld een geheel getal binnen de grenzen, of leeg = standaard
+export function parseSettingsForm(form: { get(name: string): unknown }): SettingsFormResult {
+  const values = {} as SettingsRow;
+  const errors: Partial<Record<SettingKey, string>> = {};
+  for (const key of SETTING_KEYS) {
+    const raw = form.get(key);
+    const text = typeof raw === "string" ? raw.trim() : "";
+    if (text === "") {
+      values[key] = null;
+      continue;
+    }
+    const n = parsePositiveInt(text, SETTING_LIMITS[key]);
+    if (n === null) errors[key] = `Vul een geheel getal van 1 t/m ${SETTING_LIMITS[key]} in, of laat het leeg voor de standaard.`;
+    else values[key] = n;
+  }
+  return Object.keys(errors).length ? { ok: false, errors } : { ok: true, values };
 }
 
 // ?kans= in de adresbalk mag de winkans alleen overschrijven als dit aan staat

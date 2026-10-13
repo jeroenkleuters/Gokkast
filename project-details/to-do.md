@@ -53,7 +53,7 @@ De taken staan in volgorde: latere taken bouwen voort op eerdere.
   - OAuth via Auth.js (provider kiezen, bijv. Google of GitHub)
   - Alleen toegestane beheerders (lijst in `.env`)
 
-- [ ] **9. Moeilijkheidsgraad aanpassen in de game-manager**
+- [x] **9. Moeilijkheidsgraad aanpassen in de game-manager**
   - Winkans instellen vanuit de game-manager
   - Waarde opslaan in de database; `.env` blijft de standaardwaarde
   - Spel gebruikt de ingestelde waarde

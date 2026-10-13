@@ -27,8 +27,8 @@ export default function SettingsDialog({ settings, onClose }: SettingsDialogProp
           Kans per draai op drie dezelfde plaatjes als er geen rollen vastgezet zijn. Vastgezette rollen met
           hetzelfde plaatje vergroten de kans.
           <br />
-          Deze waarden staan in de database (tabel <code>game_settings</code>); zonder database gelden de
-          waarden uit het <code>.env</code>-bestand op de server.
+          Een beheerder stelt deze waarden in via de game-manager (database, tabel <code>game_settings</code>);
+          wat daar leeg is, of zonder database, komt uit het <code>.env</code>-bestand op de server.
         </div>
         <div className="row">
           <button className="ok" autoFocus onClick={onClose}>

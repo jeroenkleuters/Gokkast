@@ -66,3 +66,23 @@
 
 .card .error { margin-top: 16px; }
 .card form { margin-top: 16px; }
+
+/* Formulier moeilijkheidsgraad */
+.form { display: flex; flex-direction: column; gap: 20px; }
+.field { border: 0; display: flex; flex-direction: column; gap: 8px; }
+.field label { font-weight: 700; }
+.levels, .inputRow { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.levels .button[aria-pressed="true"] { background: #ffcf6a; color: #2a1400; border-color: #ffcf6a; }
+.input {
+  width: 140px;
+  padding: 9px 12px;
+  border: 1px solid rgba(255,255,255,.3); border-radius: 8px;
+  background: rgba(0,0,0,.3);
+  color: inherit; font: inherit;
+}
+.input:focus-visible { outline: 3px solid #fff; outline-offset: 2px; }
+.input[aria-invalid="true"] { border-color: #ff6b6b; }
+.button:disabled { opacity: .5; cursor: default; }
+.fieldError { color: #ffb3b3; font-size: 14px; }
+.success { color: #9be89b; font-size: 14px; }
+.fieldError:empty, .success:empty { display: none; }

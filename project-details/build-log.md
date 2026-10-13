@@ -614,6 +614,60 @@ Resultaat:
 3. Taak 8 afgevinkt in `to-do.md`; status Complete; diff gecontroleerd op geheimen (geen); feature gecommit (`c6b1e43`) en de branch gepusht.
 4. Run op de branch geslaagd (tests + preview-deploy). Preview https://gokkast-245kqcksr-jeroenkleuters-9584s-projects.vercel.app met `vercel curl` (in Git Bash met `MSYS_NO_PATHCONV=1`, anders wordt `/` een Windows-pad): titel "Eenarmige Bandiet", `/game-manager` → 307.
 5. Fast-forward gemerged in `main`, lokale branch verwijderd; `current-feature.md` teruggezet en de feature toegevoegd aan History; reset gecommit; `main` gepusht en de remote branch verwijderd.
+6. Dev-server gestopt, `.next` verwijderd en `npm run dev` opnieuw gestart: http://localhost:3000 antwoordt.
+7. Productie-run geslaagd (`9978f82`). https://gokkast.vercel.app: titel "Eenarmige Bandiet", `/game-manager` → 307, `/game-manager/inloggen` 200, inloggen → 302 naar Google met `redirect_uri` `https://gokkast.vercel.app/api/auth/callback/google`.
+
+---
+
+## Stap 42 — Feature geladen: Moeilijkheidsgraad aanpassen in de game-manager (13 oktober 2026)
+
+**Vraag:**
+> /feature load 9
+
+**Uitgevoerde handelingen:**
+1. Taak 9 uit `to-do.md` gelezen (er is geen map `context/features/`); bestaande code bekeken: `settings.ts`, `settingsStore.ts`, `game-manager/page.tsx` en het Prisma-model `GameSettings`.
+2. `current-feature.md` gevuld met doelen (winkans tonen met bron en `.env`-standaard, formulier met server action en `checkAdmin`, controle op de server met dezelfde grenzen, upsert in `game_settings`, terug naar standaard, spel gebruikt de nieuwe waarde, nette melding zonder database, Vitest- en Playwright-tests, lokale controle) en notities (open vragen: alleen winkans of ook pogingen/rondes, vrij getal of niveaus; hoe "terug naar standaard"; inloggen niet in de preview; productie-database geldt direct); status Not Started.
+
+---
+
+## Stap 43 — Feature gestart: Moeilijkheidsgraad aanpassen in de game-manager (13 oktober 2026)
+
+**Vraag:**
+> /feature start
+
+**Uitgevoerde handelingen:**
+1. Keuzes gebruiker: alle drie de instellingen aanpasbaar (winkans, pogingen, speelrondes per betaling); winkans met niveaus (makkelijk 1 op 10, normaal 1 op 30, moeilijk 1 op 100) plus een vrij veld; "terug naar standaard" maakt alleen dat veld leeg. Toegepast per veld: alle drie de kolommen optioneel.
+2. Branch `feature/moeilijkheidsgraad-game-manager`; status In Progress. Next.js-gidsen `forms.md` en `mutating-data.md` gelezen (`useActionState`, autorisatie in elke server action, `revalidatePath`).
+3. Schema: `odds`, `max_tries`, `rounds_per_payment` in `game_settings` optioneel (null = `.env`-waarde); migratie `20261013200000_game_settings_optional` met de hand geschreven (`migrate diff` vanaf de map vraagt een shadow-database); `prisma generate`. Gecontroleerd dat `.env.local` naar Neon-branch `dev` wijst (endpoint `ep-silent-tooth`). **Migratie toepassen op `dev` geweigerd door de toestemmingscontrole: moet de gebruiker doen.**
+4. `settings.ts`: `SETTING_KEYS`, `SETTING_LIMITS`, `ODDS_LEVELS`, `mergeSettings` per veld (null/ongeldig → `.env`; bron "database" zodra minstens één waarde uit de rij komt), `parseSettingsForm` (leeg = null, anders geheel getal binnen de grenzen, foutmelding per veld). `settingsStore.ts`: `readStoredSettings` (ruwe rij; `no-database`/`error`) en `saveStoredSettings` (upsert rij 1, 5 s timeout, fout → "error").
+5. Server action `updateSettings` in `game-manager/actions.ts`: `checkAdmin`, controle, opslaan, `revalidatePath("/")` en `("/game-manager")`, melding. Client-component `SettingsForm.tsx` (`useActionState`, niveauknoppen met `aria-pressed`, per veld "Terug naar standaard", placeholder met de `.env`-waarde, foutmeldingen per veld, statusregel). Sectie op `/game-manager` toont "Nu in het spel" met bron; zonder database een melding (formulier blijft, opslaan geeft een nette fout); database onbereikbaar → formulier verborgen (lege velden zouden alles terugzetten). Tekst in het tandwiel bijgewerkt.
+6. Tests: Vitest +13 (`parseSettingsForm`, lege velden in `mergeSettings`, `ODDS_LEVELS`, `readStoredSettings`, `saveStoredSettings`); bestaande test aangepast (alleen ongeldige waarden → bron "env"). Playwright: `e2e/auth.ts` maakt met de nep-`AUTH_SECRET` een Auth.js-sessiecookie (`next-auth/jwt` `encode`); testbeheerder `beheerder@example.test` in `playwright.config.ts`; 4 nieuwe tests (ingelogde niet-beheerder, beheerder ziet `.env`-waarden en melding geen database, niveaus en terug naar standaard, servercontrole met `novalidate` + melding geen database). Route-announcer van Next heeft ook `role="alert"`: locator gefilterd.
+7. Typecheck en lint zonder fouten, 77 Vitest-tests, 17 Playwright-tests (51/51 bij 3x herhalen, incl. build). README (Instellingen, Database, Game-manager, structuur) en `.env.example` bijgewerkt.
+
+---
+## Stap 44 — Feature getest: Moeilijkheidsgraad aanpassen in de game-manager (13 oktober 2026)
+
+**Vraag:**
+> /feature test
+
+**Uitgevoerde handelingen:**
+1. Lokale controle door de gebruiker (log van de dev-server): `updateSettings` drie keer "Opgeslagen", daarna `GET /` met de nieuwe waarden en gewone `saveGame`-rondes; geen fouten. De dev-server stopte daarna met code 1 (herstart door de gebruiker); http://localhost:3000 antwoordt.
+2. Nagelopen welke nieuwe logica al getest was: `parseSettingsForm`, `mergeSettings` met lege velden, `ODDS_LEVELS`, `readStoredSettings`, `saveStoredSettings` (Vitest) en het formulier (Playwright). Nog niet getest: de server action `updateSettings`.
+3. Nieuw: `src/app/game-manager/actions.test.ts` (7 tests, met `vi.mock` voor `@/lib/dal`, `@/lib/settingsStore`, `next/cache` en `@/auth`): geldige waarden opslaan en `/` en `/game-manager` verversen, lege velden → null, niet-beheerder slaat niets op, zonder sessie (doorsturen) slaat niets op, ongeldige invoer met fouten per veld, `no-database` en `error` zonder verversen. Plus 1 test in `settingsStore.test.ts`: `loadSettings` vult lege databasevelden aan met `.env`.
+4. Foutcontrole: met tijdelijk weggehaalde beheerderscontrole in `updateSettings` faalt "slaat niets op voor een niet-beheerder"; daarna teruggezet.
+5. 85 Vitest-tests (6 bestanden), typecheck en lint zonder fouten.
+
+---
+## Stap 45 — Feature gereviewd: Moeilijkheidsgraad aanpassen in de game-manager (13 oktober 2026)
+
+**Vraag:**
+> /feature review
+
+**Uitgevoerde handelingen:**
+1. Doelen en alle wijzigingen nagelopen (schema/migratie, `settings.ts`, `settingsStore.ts`, `actions.ts`, `SettingsForm.tsx`, `page.tsx`, CSS, tandwiel, tests, Playwright-config, README, `.env.example`).
+2. Alle doelen gehaald. Afwijkingen van de tekst, bewust: doel 12 (aanvullen bij geen rij) vervangen door optionele kolommen (leeg = `.env`, keuze gebruiker); Playwright-login met een ondertekende sessiecookie in plaats van onderschepte Google-login; pogingen en speelrondes ook instelbaar (keuze gebruiker, geen scope creep).
+3. Geen bugs gevonden die blokkeren. Opmerkingen: (a) wijzigt een beheerder het aantal pogingen terwijl iemand speelt, dan wordt dat ene spel door `saveGame` geweigerd (waarschuwing in de serverlog, spel gaat door); (b) het tandwiel toont bron "database" zodra minstens één waarde uit de database komt; (c) een time-out bij opslaan meldt "fout", terwijl de schrijfactie later toch kan slagen; (d) migratie `DROP NOT NULL` is veilig voor productie: oude code behandelt null als ongeldig en valt terug op `.env`.
+4. Oordeel: klaar om af te ronden.
 
 ---
 

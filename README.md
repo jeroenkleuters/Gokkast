@@ -99,9 +99,10 @@ Draait er al iets op poort 3100, dan gebruikt Playwright die server (behalve op 
 
 ## Instellingen
 
-De spelinstellingen staan in de database (tabel `game_settings`, zie [Database](#database)).
-Zonder database, of als de tabel leeg of onbereikbaar is, gelden de omgevingsvariabelen hieronder;
-ook een ongeldige waarde in de database valt terug op de variabele. Het tandwiel toont welke bron
+De spelinstellingen staan in de database (tabel `game_settings`, zie [Database](#database)) en
+stel je in via de [game-manager](#game-manager). Zonder database, of als de tabel leeg of
+onbereikbaar is, gelden de omgevingsvariabelen hieronder; ook een lege ("standaard") of ongeldige
+waarde in de database valt per instelling terug op de variabele. Het tandwiel toont welke bron
 gebruikt wordt. `GAME_ALLOW_ODDS_URL` staat alleen in de omgevingsvariabelen.
 
 De omgevingsvariabelen: kopieer [`.env.example`](.env.example) naar
@@ -127,7 +128,7 @@ Het schema staat in [`prisma/schema.prisma`](prisma/schema.prisma), de migraties
 
 | Tabel           | Inhoud                                                                 |
 | --------------- | ---------------------------------------------------------------------- |
-| `game_settings` | Eén rij (id 1): winkans, pogingen, speelrondes per betaling             |
+| `game_settings` | Eén rij (id 1): winkans, pogingen, speelrondes per betaling; leeg = `.env`-waarde |
 | `games`         | Gespeelde rondes: uitkomst (`WON`/`LOST`), gebruikte pogingen, datum; naam leeg tot betalen (taak 10/11) |
 | `payments`      | Betalingen: naam, bedrag in centen, datum (Mollie en versleuteling volgen in taak 10/11) |
 
@@ -168,6 +169,14 @@ sessie is een versleutelde cookie (geen databasetabellen). Het spel zelf blijft 
 - De pagina controleert het zelf nog eens op de server ([`src/lib/dal.ts`](src/lib/dal.ts)). Haal je
   iemand uit de lijst, dan ziet die direct "geen toegang", ook met een oude sessie.
 - Zonder sessie stuurt `/game-manager` door naar `/game-manager/inloggen`.
+
+**Moeilijkheidsgraad.** Op de pagina stel je de winkans (snelkeuze makkelijk 1 op 10, normaal 1 op 30,
+moeilijk 1 op 100, of een eigen getal), de pogingen per spel en de speelrondes per betaling in.
+Opslaan gaat via een server action die opnieuw controleert of je beheerder bent en de invoer op de
+server controleert (zelfde grenzen als `.env`). **Terug naar standaard** maakt een veld leeg: dan
+geldt weer de `.env`-waarde. Het spel gebruikt de nieuwe waarden bij het volgende laden. Let op: in
+productie geldt een wijziging direct voor het echte spel. Zonder database toont de pagina een melding
+(opslaan lukt dan niet); is de database even onbereikbaar, dan is het formulier verborgen.
 
 | Variabele             | Betekenis                                                         |
 | --------------------- | ----------------------------------------------------------------- |
@@ -260,7 +269,7 @@ Gokkast/
 ├── public/images/      plaatjes voor de rollen (beker, kakkerlak, vraagteken)
 ├── src/
 │   ├── app/            layout, pagina, server actions (actions.ts) en globale CSS (Next.js App Router)
-│   │   ├── game-manager/  beheerpagina en inlogpagina (inloggen/)
+│   │   ├── game-manager/  beheerpagina met moeilijkheidsgraad (SettingsForm), server actions en inlogpagina (inloggen/)
 │   │   └── api/auth/      Auth.js-routes (inloggen, terugkeer van Google, uitloggen)
 │   ├── auth.ts         Auth.js-instellingen (Google, alleen beheerders)
 │   ├── components/     SlotMachine, Reel, Lever, InfoPanel, Stats, SettingsDialog, GameClient

@@ -1,16 +1,30 @@
-# Current Feature
+# Current Feature: Moeilijkheidsgraad aanpassen in de game-manager
 
 ## Status
 
-Not Started
+Complete
 
 ## Goals
 
-<!-- Doelen van de feature, in te vullen met /feature load -->
+- Sectie "Moeilijkheidsgraad" op `/game-manager` (vervangt de plek van taak 8) toont de huidige winkans (1 op N) en waar die vandaan komt (database of `.env`), plus de `.env`-standaardwaarde
+- Beheerder kan de winkans wijzigen via een formulier; opslaan via een server action die opnieuw `checkAdmin` doet (niet alleen de pagina beveiligen)
+- Invoer gecontroleerd op de server met dezelfde grenzen als nu (geheel getal 1 t/m `MAX_ODDS` = 100000, `parsePositiveInt`); duidelijke foutmelding bij ongeldige invoer, bevestiging na opslaan
+- Waarde opgeslagen in `game_settings` (rij id 1, upsert); bestaat de rij niet, dan worden `maxTries`/`roundsPerPayment` aangevuld met de huidige waarden
+- `.env` blijft de standaardwaarde: knop "Terug naar standaard" zodat het spel weer de `.env`-waarde gebruikt
+- Het spel gebruikt de ingestelde waarde bij het volgende laden van de pagina (instellingen worden per verzoek gelezen; eventueel `revalidatePath("/")`), tandwiel toont bron "database"
+- Zonder database (of bij een databasefout) een nette melding in de game-manager in plaats van een crash
+- Vitest-tests voor de opslag-/validatielogica (bijv. `src/lib/settingsStore.test.ts` uitbreiden of een nieuwe module), Playwright-test voor het formulier (met onderschepte login zoals in `e2e/game-manager.spec.ts`)
+- Lint, typecheck, build, Vitest en Playwright zonder fouten; lokaal gecontroleerd dat een gewijzigde winkans in het spel aankomt
 
 ## Notes
 
-<!-- Extra context, beperkingen of details uit de spec -->
+- Bron: taak 9 in `project-details/to-do.md` (geen map `context/features/`). Eisen versie 2: "op deze pagina is het mogelijk de moeilijkheidsgraad aan te passen".
+- Bestaande code: `src/lib/settings.ts` (grenzen, `parsePositiveInt`, `mergeSettings`), `src/lib/settingsStore.ts` (`loadSettings`: database → `.env` → standaard, 5 s timeout), `src/lib/dal.ts` (`checkAdmin`), `src/app/game-manager/page.tsx` + `actions.ts` + `game-manager.module.css`, Prisma-model `GameSettings` (alle kolommen verplicht, `updatedAt` automatisch).
+- Open vraag voor de gebruiker: alleen de winkans instelbaar maken (zoals de taak zegt), of ook het aantal pogingen (max 5) en speelrondes per betaling? En: winkans als vrij getal, of als keuze uit niveaus (bijv. makkelijk/normaal/moeilijk) met een vrij veld?
+- "Terug naar standaard": kolommen zijn verplicht, dus de rij verwijderen (dan geldt `.env` voor alle velden) of een migratie die `odds` optioneel maakt — keuze bij start.
+- Inloggen werkt alleen lokaal en in productie (taak 8); in de preview is de game-manager niet met Google te testen. Productie gebruikt Neon-branch `main`: een wijziging daar geldt direct voor het echte spel.
+- `?kans=` in de adresbalk (alleen met `GAME_ALLOW_ODDS_URL`) blijft voorrang houden voor tests.
+- Next.js 16: vóór het schrijven de gidsen in `node_modules/next/dist/docs/` lezen over server actions/formulieren (`useActionState`) en `revalidatePath`.
 
 ## History
 
