@@ -371,6 +371,19 @@ Resultaat:
 
 ---
 
+## Stap 26 — Feature afgerond: Visuele tests met Playwright (13 oktober 2026)
+
+**Vraag:**
+> /feature complete
+
+**Uitgevoerde handelingen:**
+1. Taak 4 afgevinkt in `to-do.md`; status Complete.
+2. Commit `7762a9a` (feat: visuele tests met Playwright) op `feature/visuele-tests-met-playwright`, fast-forward gemerged in `main`, lokale branch verwijderd (nooit gepusht).
+3. `current-feature.md` teruggezet en de feature toegevoegd aan History; reset gecommit.
+4. `main` gepusht naar origin, `.next` verwijderd en `npm run dev` gestart.
+
+---
+
 ## Huidige bestandsstructuur
 
 ```
