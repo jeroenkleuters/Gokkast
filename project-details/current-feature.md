@@ -1,24 +1,16 @@
-# Current Feature: Gewonnen plaatje opslaan in de uitkomst
+# Current Feature
 
 ## Status
 
-Complete
+Not Started
 
 ## Goals
 
-- Bij winst staat in `games.outcome` welk plaatje er gewonnen is: `WON shot`, `WON kakkerlak` of `WON vraagteken`
-- Verlies blijft `LOST`
-- Server action `saveGame` geeft het gewonnen plaatje mee; `parseGameResult` in `src/lib/gameStore.ts` accepteert alleen deze vier waarden (plus de bestaande regels voor pogingen)
-- Prisma-schema en migratie aangepast; oude `WON`-rijen (plaatje onbekend) worden verwijderd (besluit gebruiker: geschiedenis niet belangrijk)
-- Vitest-tests voor de nieuwe uitkomsten (en afwijzen van onbekende waarden); Playwright-winsttest blijft slagen
+<!-- Doelen van de feature, in te vullen met /feature load -->
 
 ## Notes
 
-- Taak 9b in `project-details/to-do.md` (na taak 9).
-- Nu is `outcome` een Postgres-enum `GameOutcome` (`WON`, `LOST`). Prisma-enumnamen mogen geen spatie hebben; met `@map` kan de databasewaarde toch letterlijk `WON shot` zijn (bijv. `WON_SHOT @map("WON shot")`).
-- De plaatjesnaam volgt uit `SYMBOLS` in `src/lib/game.ts` (`shot`, `kakkerlak`, `vraagteken`); `beker` is net hernoemd naar `shot`.
-- Besloten bij start: oude `WON`-rijen worden in de migratie verwijderd; dat gebeurt bij de deploy ook in productie.
-- De uitkomst komt uit de browser; de server kan alleen controleren dat de waarde geldig is, niet dat hij klopt (zelfde als nu).
+<!-- Extra context, beperkingen of details uit de spec -->
 
 ## History
 
@@ -33,3 +25,4 @@ Complete
 - **Spelletjes opslaan in de database** (13 oktober 2026, taak 7) — server action `saveGame` (`src/app/actions.ts`) slaat aan het eind van elk spel de ronde op in `games` (uitkomst, pogingen, datum); aanroep één keer vanuit `play()` in `SlotMachine.tsx`. `src/lib/gameStore.ts` controleert de invoer (`WON`/`LOST`, pogingen 1 t/m `maxTries`, verlies alleen na alle pogingen) en slaat op; zonder database of bij een fout gaat het spel door met een waarschuwing in de serverlog. Besluit gebruiker: geen naam in het spel (komt uit de QR-betaling, taak 10/11), highscores alleen in de game-manager; daarom `games.name` optioneel (migratie `20261013163330_games_name_optional`). 57 Vitest- en 8 Playwright-tests; in de `dev`-database gecontroleerd met een gespeelde winst en verlies. Commit `794b201`.
 - **Game-manager pagina met OAuth** (13 oktober 2026, taak 8) — `/game-manager` alleen voor beheerders; inloggen met Google via Auth.js (`next-auth@5.0.0-beta.32`, vastgezet), JWT-sessie in een cookie (`src/auth.ts`, route `src/app/api/auth/[...nextauth]`). Beheerderslijst `GAME_MANAGER_ADMINS` (`src/lib/admins.ts`, leeg = niemand); `signIn`-callback geeft alleen een sessie bij een bevestigd adres uit de lijst, en `checkAdmin` in `src/lib/dal.ts` controleert elke pagina op de server (geen sessie → `/game-manager/inloggen`, niet meer in de lijst → geen toegang). Geen `proxy.ts`. Inlogpagina met melding bij `AccessDenied`, uitloggen, plekken voor taak 9, 13 en 14. Keuze gebruiker: Google, inloggen alleen lokaal en in productie. 64 Vitest- en 13 Playwright-tests (Google onderschept, nep-sleutels); lokaal ingelogd en uitgelogd door de gebruiker. Vercel-variabelen door de gebruiker gezet, alleen voor Production. Commit `c6b1e43`.
 - **Moeilijkheidsgraad aanpassen in de game-manager** (13 oktober 2026, taak 9) — sectie Moeilijkheidsgraad op `/game-manager` (`SettingsForm.tsx`, `useActionState`): winkans met snelkeuze (makkelijk 1 op 10, normaal 1 op 30, moeilijk 1 op 100) of eigen getal, plus pogingen en speelrondes per betaling (keuze gebruiker: alle drie); per veld "Terug naar standaard". Server action `updateSettings` doet `checkAdmin`, controleert met `parseSettingsForm` (zelfde grenzen als `.env`), slaat op met `saveStoredSettings` (upsert rij 1) en ververst `/` en `/game-manager`. Kolommen van `game_settings` optioneel, leeg = `.env`-waarde (migratie `20261013200000_game_settings_optional`); `mergeSettings` per veld. Zonder database een melding, database onbereikbaar → formulier verborgen. 85 Vitest- en 17 Playwright-tests (ondertekende testsessie in `e2e/auth.ts`); lokaal opgeslagen door de gebruiker in de `dev`-database. Commit `3f1a2d0`.
+- **Gewonnen plaatje opslaan in de uitkomst** (13 oktober 2026, taak 9b) — enum `GameOutcome` = `WON_SHOT`/`WON_KAKKERLAK`/`WON_VRAAGTEKEN` (in de database letterlijk `WON shot`, `WON kakkerlak`, `WON vraagteken` via `@map`) en `LOST`; migratie `20261013230000_games_outcome_symbol` verwijdert oude `WON`-rijen zonder plaatje (besluit gebruiker: geschiedenis niet belangrijk). `SYMBOL_NAMES` in `src/lib/game.ts`; `SlotMachine.tsx` stuurt `WON <plaatje>` mee; `parseGameResult` accepteert alleen de vier waarden, `DB_OUTCOMES` zet om naar de Prisma-enum. Plaatje beker hernoemd naar shot. 86 Vitest- en 17 Playwright-tests; in `dev` gecontroleerd met gespeelde winsten (`WON shot`, `WON vraagteken`) na herstart van de dev-server (oude Prisma Client in het geheugen). Commit `00f52cc`.

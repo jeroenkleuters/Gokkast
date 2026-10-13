@@ -724,6 +724,20 @@ Melding gebruiker: in de database alleen `LOST`, ook na winst. Oorzaak: de dev-s
 
 ---
 
+## Stap 52 — Feature afgerond: Gewonnen plaatje opslaan in de uitkomst (13 oktober 2026)
+
+**Vraag:**
+> /feature complete
+
+**Uitgevoerde handelingen:**
+1. Eerst gecontroleerd in `dev`: na de herstart van de dev-server staan winsten erin (`WON shot`, `WON vraagteken`).
+2. Taak 9b afgevinkt in `to-do.md`; status Complete; diff gecontroleerd op geheimen (geen); feature gecommit (`00f52cc`).
+3. Fast-forward gemerged in `main` en de lokale branch verwijderd (niet gepusht, dus geen remote branch).
+4. `current-feature.md` teruggezet en de feature toegevoegd aan History; reset gecommit; `main` één keer gepusht. De productie-run past de migratie `20261013230000_games_outcome_symbol` toe op Neon-branch `main` vóór de deploy; die verwijdert daar de oude `WON`-rijen.
+5. Dev-server gestopt, `.next` verwijderd en `npm run dev` opnieuw gestart.
+
+---
+
 ## Huidige bestandsstructuur
 
 ```
