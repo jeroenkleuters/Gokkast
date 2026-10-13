@@ -29,6 +29,8 @@ export default defineConfig({
       GAME_ODDS: "30",
       GAME_MAX_TRIES: "3",
       GAME_ALLOW_ODDS_URL: "true",
+      // Zonder database, ook als .env.local er een heeft: dan gelden de waarden hierboven
+      DATABASE_URL: "",
     },
   },
 });

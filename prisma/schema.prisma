@@ -1,0 +1,50 @@
+// Databaseschema van de gokkast (Neon Postgres via Prisma).
+// Verbinding: zie prisma.config.ts (migraties) en src/lib/db.ts (app).
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// Spelinstellingen: één rij (id 1). Ontbreekt die of is een waarde ongeldig,
+// dan gebruikt het spel de waarde uit .env (zie src/lib/settings.ts).
+model GameSettings {
+  id               Int      @id @default(1)
+  odds             Int // winkans 1 op odds per draai zonder vastgezette rollen
+  maxTries         Int      @map("max_tries")
+  roundsPerPayment Int      @map("rounds_per_payment")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+
+  @@map("game_settings")
+}
+
+enum GameOutcome {
+  WON
+  LOST
+}
+
+// Eén gespeelde ronde (opslaan volgt in taak 7, koppelen aan een betaling in taak 11)
+model Game {
+  id       Int         @id @default(autoincrement())
+  name     String
+  outcome  GameOutcome
+  tries    Int // aantal gebruikte pogingen
+  playedAt DateTime    @default(now()) @map("played_at")
+
+  @@index([name])
+  @@map("games")
+}
+
+// Betaling; versleuteling en Mollie-velden volgen in taak 10 en 11
+model Payment {
+  id          Int      @id @default(autoincrement())
+  name        String
+  amountCents Int      @map("amount_cents")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@map("payments")
+}

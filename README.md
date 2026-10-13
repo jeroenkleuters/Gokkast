@@ -43,6 +43,10 @@ npm run dev -- -p 3001
 | `npm run test:watch` | Tests opnieuw draaien bij elke wijziging            |
 | `npm run test:e2e` | Visuele tests (Playwright) in de browser draaien      |
 | `npm run test:e2e:ui` | Visuele tests in de Playwright-UI bekijken         |
+| `npm run db:migrate` | Nieuwe migratie maken en toepassen na een wijziging in `prisma/schema.prisma` |
+| `npm run db:deploy` | Bestaande migraties toepassen (zo doet de workflow het ook) |
+| `npm run db:seed` | Seed-data voor ontwikkeling (instellingen en voorbeeldrondes) |
+| `npm run db:studio` | De database bekijken en bewerken in Prisma Studio   |
 
 Productieversie lokaal testen:
 
@@ -95,7 +99,12 @@ Draait er al iets op poort 3100, dan gebruikt Playwright die server (behalve op 
 
 ## Instellingen
 
-De instellingen staan in omgevingsvariabelen. Kopieer [`.env.example`](.env.example) naar
+De spelinstellingen staan in de database (tabel `game_settings`, zie [Database](#database)).
+Zonder database, of als de tabel leeg of onbereikbaar is, gelden de omgevingsvariabelen hieronder;
+ook een ongeldige waarde in de database valt terug op de variabele. Het tandwiel toont welke bron
+gebruikt wordt. `GAME_ALLOW_ODDS_URL` staat alleen in de omgevingsvariabelen.
+
+De omgevingsvariabelen: kopieer [`.env.example`](.env.example) naar
 `.env.local` en pas de waarden aan. Echte `.env`-bestanden staan niet in git; op Vercel stel je
 dezelfde variabelen in bij de projectinstellingen. Ontbreekt een variabele of is de waarde
 ongeldig, dan geldt de standaardwaarde. Na een wijziging de server herstarten.
@@ -111,6 +120,35 @@ Met `GAME_ALLOW_ODDS_URL=true` geeft
 [http://localhost:3000/?kans=10](http://localhost:3000/?kans=10) een winkans van 1 op 10. Handig bij
 ontwikkelen en testen; laat dit in productie uit.
 
+## Database
+
+[Neon](https://neon.com/docs/introduction) (serverless Postgres), via [Prisma](https://www.prisma.io/docs) 7.
+Het schema staat in [`prisma/schema.prisma`](prisma/schema.prisma), de migraties in `prisma/migrations/`.
+
+| Tabel           | Inhoud                                                                 |
+| --------------- | ---------------------------------------------------------------------- |
+| `game_settings` | Eén rij (id 1): winkans, pogingen, speelrondes per betaling             |
+| `games`         | Gespeelde rondes: naam, uitkomst (`WON`/`LOST`), pogingen, datum (opslaan volgt in taak 7) |
+| `payments`      | Betalingen: naam, bedrag in centen, datum (Mollie en versleuteling volgen in taak 10/11) |
+
+Verbinding via omgevingsvariabelen (zie [`.env.example`](.env.example)):
+
+- `DATABASE_URL`: via de Neon-pooler, gebruikt door de app ([`src/lib/db.ts`](src/lib/db.ts)).
+- `DATABASE_URL_UNPOOLED`: directe verbinding, gebruikt door de Prisma CLI voor migraties en seed
+  ([`prisma.config.ts`](prisma.config.ts)). Ontbreekt die, dan wordt `DATABASE_URL` gebruikt.
+
+Neon heeft aparte branches: `main` voor productie, `dev` voor ontwikkeling en previews.
+Lokaal beginnen:
+
+```bash
+npx vercel@60.1.3 env pull .env.local   # haalt de Development-variabelen (dev-branch) op
+npm run db:deploy                       # migraties toepassen
+npm run db:seed                         # instellingen en voorbeeldrondes
+```
+
+De Prisma Client wordt gegenereerd in `src/generated/prisma` (niet in git) bij elke `npm install`.
+Het schema wijzigen: `prisma/schema.prisma` aanpassen en `npm run db:migrate -- --name <naam>`.
+
 ## Deployen (Vercel)
 
 Het spel draait op [Vercel](https://vercel.com/). Deployen gaat automatisch via GitHub Actions
@@ -118,7 +156,10 @@ Het spel draait op [Vercel](https://vercel.com/). Deployen gaat automatisch via 
 
 1. **Controles**: lint, typecheck, Vitest en Playwright. Faalt er één, dan wordt er niet gedeployd
    (bij falende Playwright-tests staat het rapport als artifact bij de workflow-run).
-2. **Deploy** met de Vercel CLI:
+   De controles draaien zonder database; het spel gebruikt dan de `.env`-waarden.
+2. **Migraties**: `prisma migrate deploy` op de database van de omgeving (GitHub-secret
+   `DATABASE_URL_UNPOOLED` van de environment). Zonder secret wordt deze stap overgeslagen.
+3. **Deploy** met de Vercel CLI:
    - push op `main` → **productie**;
    - push op een andere branch → **preview** met een eigen URL. Die staat bij de commit en in de
      pull request (onder *Deployments*), en in de samenvatting van de workflow-run.
@@ -142,6 +183,7 @@ De spelinstellingen (zie [Instellingen](#instellingen)) staan in Vercel onder
 | `GAME_MAX_TRIES`          | `3`        | `3`     | `3`         |
 | `GAME_ROUNDS_PER_PAYMENT` | `1`        | `1`     | `1`         |
 | `GAME_ALLOW_ODDS_URL`     | `false`    | `true`  | `true`      |
+| `DATABASE_URL` (+ `_UNPOOLED`) | Neon `main` | Neon `dev` | Neon `dev` |
 
 In previews werkt `?kans=` dus wel, in productie niet. Een wijziging geldt vanaf de volgende deploy
 (workflow opnieuw draaien via *Actions → CI/CD → Run workflow*). Development-waarden lokaal ophalen:
@@ -155,6 +197,20 @@ In previews werkt `?kans=` dus wel, in productie niet. Een wijziging geldt vanaf
 3. GitHub-secrets instellen (*Settings → Secrets and variables → Actions*, of met `gh secret set`):
    `VERCEL_TOKEN`, `VERCEL_ORG_ID` (= `orgId`) en `VERCEL_PROJECT_ID` (= `projectId`).
 4. De omgevingsvariabelen uit de tabel hierboven instellen.
+5. Neon koppelen via Vercel (*Storage → Neon*), alleen voor **Production** (Neon-branch `main`).
+   Vercel zet dan o.a. `DATABASE_URL` en `DATABASE_URL_UNPOOLED` als *sensitive* variabelen.
+6. Een Neon-branch `dev` maken en die voor Preview en Development instellen, bijv. met de
+   [Neon CLI](https://neon.com/docs/cli/install.md) (project `neon-gokkast`):
+   ```bash
+   neon branches create --project-id <project-id> --name dev
+   neon cs dev --project-id <project-id> --pooled | npx vercel@60.1.3 env add DATABASE_URL preview
+   neon cs dev --project-id <project-id> | npx vercel@60.1.3 env add DATABASE_URL_UNPOOLED preview
+   # en hetzelfde voor development
+   ```
+7. GitHub-environment-secret `DATABASE_URL_UNPOOLED` (directe verbinding) voor de migraties:
+   environment **Production** = Neon `main`, **Preview** = Neon `dev`
+   (`gh secret set DATABASE_URL_UNPOOLED --env Production`). Sensitive Vercel-variabelen komen
+   niet mee met `vercel pull`, daarom staat dit secret apart in GitHub.
 
 ## Projectstructuur
 
@@ -164,7 +220,11 @@ Gokkast/
 ├── src/
 │   ├── app/            layout, pagina en globale CSS (Next.js App Router)
 │   ├── components/     SlotMachine, Reel, Lever, InfoPanel, Stats, SettingsDialog, GameClient
-│   └── lib/            spellogica (game.ts), instellingen (settings.ts), geluid, opslag, muntenregen, tests (*.test.ts)
+│   ├── lib/            spellogica (game.ts), instellingen (settings.ts, settingsStore.ts), database (db.ts), geluid, opslag, muntenregen, tests (*.test.ts)
+│   └── generated/      Prisma Client (gegenereerd, niet in git)
+├── prisma/             schema.prisma, migrations/, seed.ts
+├── prisma.config.ts    instellingen voor de Prisma CLI
+├── .mcp.json           Neon MCP-server voor coding agents (aanmelden met OAuth, geen sleutel)
 ├── .env.example        alle instellingen met uitleg (kopiëren naar .env.local)
 ├── .github/workflows/  CI/CD: controles en deploy naar Vercel (ci-cd.yml)
 ├── vercel.json         Vercel-instellingen (eigen Git-deploys uit)

@@ -35,7 +35,7 @@ De taken staan in volgorde: latere taken bouwen voort op eerdere.
 
 ### Database
 
-- [ ] **6. Database met Neon en Prisma**
+- [x] **6. Database met Neon en Prisma**
   - Neon-project met aparte branches voor ontwikkeling en productie
   - Prisma installeren en koppelen via `DATABASE_URL` in `.env`
   - Winkans aantal pogingen, aantal speelrondes per betaling uit in database tabel game-settings

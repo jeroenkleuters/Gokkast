@@ -1,6 +1,7 @@
 import { connection } from "next/server";
 import GameClient from "@/components/GameClient";
-import { MAX_ODDS, oddsFromUrlAllowed, parsePositiveInt, readSettings } from "@/lib/settings";
+import { MAX_ODDS, oddsFromUrlAllowed, parsePositiveInt } from "@/lib/settings";
+import { loadSettings } from "@/lib/settingsStore";
 
 export default async function Home({
   searchParams,
@@ -9,7 +10,7 @@ export default async function Home({
 }) {
   // Instellingen per verzoek lezen, niet bij de build vastzetten
   await connection();
-  const settings = readSettings();
+  const settings = await loadSettings();
 
   if (oddsFromUrlAllowed()) {
     const kans = (await searchParams).kans;

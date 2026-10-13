@@ -3,6 +3,9 @@
 # - push op een branch  → preview-deploy (URL zichtbaar bij de commit en in de pull request)
 # Vercels eigen Git-deploys staan uit (vercel.json), zodat er nooit iets live gaat
 # zonder geslaagde tests. Nodig: secrets VERCEL_TOKEN, VERCEL_ORG_ID, VERCEL_PROJECT_ID.
+# De testjob draait zonder database (het spel gebruikt dan .env); de deployjob past eerst
+# de Prisma-migraties toe op de database van de omgeving: environment-secret
+# DATABASE_URL_UNPOOLED in de GitHub-environments Production (Neon main) en Preview (Neon dev).
 name: CI/CD
 
 on:
@@ -99,6 +102,20 @@ jobs:
           branch_flag=""
           if [ "$TARGET" = preview ]; then branch_flag="--git-branch=$GITHUB_REF_NAME"; fi
           npx --yes $VERCEL_CLI pull ${RUNNER_DEBUG:+--debug} --yes --environment=$TARGET $branch_flag --token="$VERCEL_TOKEN"
+
+      - run: npm ci
+
+      # Migraties vóór de deploy, zodat de nieuwe code nooit een oud schema ziet.
+      # De Vercel-variabelen van Neon zijn "sensitive" en komen niet mee met vercel pull,
+      # daarom staat de directe verbinding als secret in de GitHub-environment.
+      - name: Databasemigraties
+        env:
+          DATABASE_URL_UNPOOLED: ${{ secrets.DATABASE_URL_UNPOOLED }}
+        run: |
+          if [ -z "$DATABASE_URL_UNPOOLED" ]; then
+            echo "::warning::Secret DATABASE_URL_UNPOOLED ontbreekt ($TARGET): migraties overgeslagen"; exit 0
+          fi
+          npx prisma migrate deploy
 
       - name: Bouwen
         run: npx --yes $VERCEL_CLI build ${RUNNER_DEBUG:+--debug} $PROD_FLAG --token="$VERCEL_TOKEN"

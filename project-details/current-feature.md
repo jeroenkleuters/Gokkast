@@ -1,16 +1,31 @@
-# Current Feature
+# Current Feature: Database met Neon en Prisma
 
 ## Status
 
-Not Started
+Complete
 
 ## Goals
 
-<!-- Doelen van de feature, in te vullen met /feature load -->
+- Neon-project met aparte branches voor ontwikkeling (`dev`) en productie (`main`); preview-deploys gebruiken niet de productie-database
+- Prisma geïnstalleerd en gekoppeld via `DATABASE_URL` (lokaal in `.env.local`, in Vercel per omgeving); `.env.example` en README bijgewerkt
+- Tabel `GameSettings` met winkans (`odds`), pogingen (`maxTries`) en speelrondes per betaling (`roundsPerPayment`); het spel leest deze waarden uit de database
+- `.env`-waarden (`GAME_ODDS`, `GAME_MAX_TRIES`, `GAME_ROUNDS_PER_PAYMENT`) blijven de standaard als er geen rij is of de database niet bereikbaar is
+- Schema `Game` (speelronde: naam, uitkomst gewonnen/verloren, aantal pogingen, datum) en `Payment` (basisvelden; versleuteling en koppeling volgen in taak 11)
+- Eerste migratie in `prisma/migrations/` en seed-data voor ontwikkeling (instellingen plus een paar voorbeeldrondes)
+- CI/CD: Prisma Client wordt gegenereerd in de workflow; migraties worden vóór de productie-deploy toegepast (`prisma migrate deploy`)
+- Vitest-tests voor het lezen van de instellingen (database-waarde, terugval op `.env`); bestaande Vitest- en Playwright-tests blijven slagen
+- Lint, typecheck en build zonder fouten; in de browser gecontroleerd dat de instellingen uit de database komen
 
 ## Notes
 
-<!-- Extra context, beperkingen of details uit de spec -->
+- Spec: taak 6 in `project-details/to-do.md`; achtergrond in `goals.md` (Neon: https://neon.com/docs/introduction, Prisma: https://www.prisma.io/docs).
+- Huidige bron: `src/lib/settings.ts` (`readSettings`, `parsePositiveInt`, grenzen `MAX_ODDS`, `MAX_TRIES_LIMIT`, `MAX_ROUNDS_PER_PAYMENT`); `src/app/page.tsx` leest per verzoek op de server. `?kans=` via `GAME_ALLOW_ODDS_URL` blijft een `.env`-vlag, niet in de database.
+- Databasewaarden valideren met dezelfde grenzen als de `.env`-waarden.
+- Taak 7 slaat de spelletjes echt op, taak 9 maakt de winkans instelbaar in de game-manager; deze taak legt alleen het schema, de migratie en de seed neer en leest de instellingen.
+- Neon: serverless Postgres; gebruik een pooled verbinding voor de app en een directe verbinding voor migraties (`DIRECT_URL`) indien nodig. Prisma-versie en configuratie (o.a. `prisma.config.ts`, driver adapters) eerst nalezen in de actuele documentatie.
+- Playwright draait zonder database: de terugval op `.env` moet daar werken, of de workflow krijgt een testdatabase. Kiezen bij `start`.
+- Neon-account/project aanmaken en de connection strings ophalen moet de gebruiker doen (of via de Neon-integratie in Vercel); secrets nooit in git.
+- Open vragen uit `to-do.md` (waarvoor betaald wordt, waar de naam vandaan komt) bepalen later de velden van `Payment`; nu minimaal houden.
 
 ## History
 

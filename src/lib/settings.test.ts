@@ -4,6 +4,7 @@ import {
   MAX_ODDS,
   MAX_ROUNDS_PER_PAYMENT,
   MAX_TRIES_LIMIT,
+  mergeSettings,
   oddsFromUrlAllowed,
   parseFlag,
   parsePositiveInt,
@@ -79,5 +80,35 @@ describe("oddsFromUrlAllowed", () => {
     expect(oddsFromUrlAllowed({})).toBe(false);
     expect(oddsFromUrlAllowed({ GAME_ALLOW_ODDS_URL: "false" })).toBe(false);
     expect(oddsFromUrlAllowed({ GAME_ALLOW_ODDS_URL: "true" })).toBe(true);
+  });
+});
+
+describe("mergeSettings", () => {
+  const defaults = { odds: 30, maxTries: 3, roundsPerPayment: 1 };
+
+  it("neemt de waarden uit de databaserij", () => {
+    expect(mergeSettings({ odds: 7, maxTries: 5, roundsPerPayment: 10 }, defaults)).toEqual({
+      odds: 7,
+      maxTries: 5,
+      roundsPerPayment: 10,
+      source: "database",
+    });
+  });
+
+  it("gebruikt de standaard zonder rij", () => {
+    expect(mergeSettings(null, defaults)).toEqual({ ...defaults, source: "env" });
+  });
+
+  it("negeert ongeldige databasewaarden per veld, met dezelfde grenzen als .env", () => {
+    expect(mergeSettings({ odds: 0, maxTries: MAX_TRIES_LIMIT + 1, roundsPerPayment: 2.5 }, defaults)).toEqual({
+      ...defaults,
+      source: "database",
+    });
+    expect(mergeSettings({ odds: MAX_ODDS + 1, maxTries: 2, roundsPerPayment: MAX_ROUNDS_PER_PAYMENT + 1 }, defaults)).toEqual({
+      odds: 30,
+      maxTries: 2,
+      roundsPerPayment: 1,
+      source: "database",
+    });
   });
 });

@@ -450,6 +450,61 @@ Resultaat:
 3. Fast-forward gemerged in `main` (feature-commit `698444a`), lokale branch verwijderd.
 4. `current-feature.md` teruggezet en de feature toegevoegd aan History; reset gecommit.
 5. `main` gepusht (start de eerste productie-deploy via de workflow), remote branch verwijderd, `.next` verwijderd.
+6. Eerste productie-run op `main`: tests en deploy geslaagd. Productie: https://gokkast.vercel.app (openbaar, HTTP 200): titel "Eenarmige Bandiet", odds 30, 3 pogingen; `?kans=7` wordt genegeerd (odds blijft 30), dus `GAME_ALLOW_ODDS_URL` staat uit in Production.
+7. `npm run dev` stopte direct: er draaide al een dev-server (PID 10572) op http://localhost:3000; die is blijven draaien.
+
+---
+
+## Stap 32 — Feature geladen: Database met Neon en Prisma (13 oktober 2026)
+
+**Vraag:**
+> /feature load 6
+
+**Uitgevoerde handelingen:**
+1. Taak 6 uit `to-do.md` en `goals.md` gelezen; gecontroleerd dat Prisma en Neon nog niet in `package.json` staan en dat `src/lib/settings.ts` de instellingen nu uit `.env` leest.
+2. `current-feature.md` gevuld met doelen (Neon-branches voor ontwikkeling en productie, Prisma via `DATABASE_URL`, tabel `GameSettings` met terugval op `.env`, schema `Game` en `Payment`, eerste migratie en seed, migraties in CI/CD, tests, controle in de browser) en notities; status Not Started.
+
+---
+
+## Stap 33 — Feature gestart: Database met Neon en Prisma (13 oktober 2026)
+
+**Vraag:**
+> /feature start
+
+**Keuzes van de gebruiker:** Neon koppelen via Vercel (Storage/Marketplace); Playwright draait zonder database (terugval op `.env`).
+
+**Uitgevoerde handelingen:**
+1. Branch `feature/database-met-neon-en-prisma` aangemaakt; status In Progress.
+2. Geïnstalleerd: `prisma` 7.10.0 (dev), `@prisma/client` 7.10.0, `@prisma/adapter-neon` 7.10.0, `@neondatabase/serverless` 1.1.0, `tsx` 4.23.15 (dev). Prisma 8 staat op npm als `latest` maar is nog een release candidate; 7.10.0 is de nieuwste stabiele versie.
+3. `prisma/schema.prisma`: generator `prisma-client` naar `src/generated/prisma` (in `.gitignore`), modellen `GameSettings` (`game_settings`, één rij id 1), `Game` (`games`: naam, uitkomst `WON`/`LOST`, pogingen, datum) en `Payment` (`payments`: naam, bedrag in centen, datum). `prisma.config.ts` laadt `.env*` met `@next/env` en gebruikt `DATABASE_URL_UNPOOLED` (anders `DATABASE_URL`) voor migraties.
+4. Eerste migratie `prisma/migrations/20261013000000_init` gemaakt met `prisma migrate diff --from-empty` (nog geen database nodig) plus `migration_lock.toml`.
+5. `src/lib/db.ts` (Prisma Client met de Neon-adapter, `null` zonder `DATABASE_URL`); `mergeSettings` in `settings.ts` (databasewaarden met dezelfde grenzen als `.env`, veld `source`); `src/lib/settingsStore.ts` met `loadSettings` (database → `.env` → standaard, timeout 5 s, fout geeft een waarschuwing en `.env`). `page.tsx` gebruikt `loadSettings`; het tandwiel toont de bron.
+6. `prisma/seed.ts`: `game_settings` op de `.env`-waarden, vier voorbeeldrondes als `games` leeg is. Scripts `postinstall` (`prisma generate`), `db:migrate`, `db:deploy`, `db:seed`, `db:studio`.
+7. Workflow: deployjob draait `npm ci` en `prisma migrate deploy` met de `DATABASE_URL` uit `vercel pull` (overgeslagen als die ontbreekt). Playwright-server krijgt `DATABASE_URL=""` (gecontroleerd: een lege waarde gaat vóór `.env.local`).
+8. Tests: 3 tests voor `mergeSettings`, 6 voor `loadSettings`. Lint, typecheck, build, 48 Vitest-tests en 6 Playwright-tests zonder fouten.
+9. README (Instellingen, nieuwe sectie Database, Deployen, scripts, projectstructuur) en `.env.example` bijgewerkt.
+10. Nog te doen met de gebruiker: Neon via Vercel koppelen, branch `dev` voor Preview/Development, migreren, seeden en in de browser controleren.
+
+---
+
+## Stap 34 — Neon gekoppeld, Neon-tools geïnstalleerd, dev-branch gemigreerd (13 oktober 2026)
+
+**Vraag:**
+> done (Neon via Vercel gekoppeld)
+>
+> Fetch the Neon skill from https://neon.com/.well-known/agent-skills/neon/SKILL.md and follow its instructions. Check whether Neon agent skills and the Neon MCP server are already installed for this project, install anything missing, preserve my existing configuration, and summarize every change you make.
+
+**Keuze van de gebruiker:** Claude maakt de dev-branch met de Neon CLI en zet de dev-strings; het productie-secret in GitHub zet de gebruiker zelf.
+
+**Uitgevoerde handelingen:**
+1. Vercel-variabelen gecontroleerd: de Neon-integratie zette `DATABASE_URL`, `DATABASE_URL_UNPOOLED` e.a. als *sensitive* voor Preview en Production (beide Neon `main`), niet voor Development. Sensitive waarden komen niet mee met `vercel pull` (getest; bestand meteen verwijderd). Daarom leest de migratiestap in de workflow nu het GitHub-environment-secret `DATABASE_URL_UNPOOLED`.
+2. Neon-skill opgehaald en gevolgd. Vooraf: geen `neon` CLI, geen Neon-skills, geen MCP-server (project en gebruiker). Geïnstalleerd: `neon` CLI 6.2.4 globaal (nieuwste versie van minstens twee weken oud); MCP-server project-level met OAuth (`neon mcp --oauth --project --agent claude-code -y` → `.mcp.json`, alleen de URL `https://mcp.neon.tech/mcp`, geen sleutel); skills `neon`, `neon-postgres`, `neon-postgres-branches` in `.claude/skills/` (plus `skills-lock.json`). Bestaande skills `cleanup`, `feature`, `list-components` ongewijzigd.
+3. Neon-login (browser, goedgekeurd door de gebruiker); project `neon-gokkast` (`autumn-truth-38376645`, aws-eu-central-1, org van Vercel). Branch `dev` gemaakt van `main`.
+4. `.env.local`: `DATABASE_URL` (pooled) en `DATABASE_URL_UNPOOLED` (direct) van `dev` toegevoegd; bestaande sleutels behouden. GitHub-secret `DATABASE_URL_UNPOOLED` in environment Preview gezet (dev, direct). Waarden nergens getoond.
+5. `npm run db:deploy` (migratie `20261013000000_init`) en `npm run db:seed` op `dev`: geslaagd.
+6. Lokaal gecontroleerd: bron `database`; `odds` op 17 in de tabel → het spel toont 17; `odds` op 0 (ongeldig) → terugval op 30 uit `.env`; teruggezet op 30.
+7. Playwright (6), Vitest (48), lint en typecheck zonder fouten, ook met de database in `.env.local`.
+8. Nog te doen: gebruiker haalt Preview weg bij de Neon-integratie in Vercel; daarna zet Claude `DATABASE_URL`/`_UNPOOLED` (dev) voor Preview en Development. Gebruiker zet het GitHub-secret voor Production (main).
 
 ---
 
@@ -457,14 +512,18 @@ Resultaat:
 
 ```
 Gokkast/
-├── AGENTS.md, README.md, .env.example, vitest.config.mts, playwright.config.ts, vercel.json
+├── AGENTS.md, README.md, .env.example, vitest.config.mts, playwright.config.ts, vercel.json, prisma.config.ts
+├── .mcp.json, skills-lock.json   Neon MCP-server (OAuth) en Neon-skills
+├── .claude/skills/       cleanup, feature, list-components, neon, neon-postgres, neon-postgres-branches
 ├── .github/workflows/    ci-cd.yml
 ├── package.json, tsconfig.json, next.config.ts, eslint.config.mjs
 ├── public/images/        beker.png, kakkerlak.png, vraagteken.png
 ├── src/
 │   ├── app/              layout.tsx, page.tsx, globals.css
 │   ├── components/       SlotMachine, Reel, Lever, InfoPanel, Stats, SettingsDialog, GameClient
-│   └── lib/              game.ts, settings.ts, sound.ts, storage.ts, coinShower.ts, game.test.ts, settings.test.ts
+│   ├── lib/              game.ts, settings.ts, settingsStore.ts, db.ts, sound.ts, storage.ts, coinShower.ts, game.test.ts, settings.test.ts, settingsStore.test.ts
+│   └── generated/prisma/ Prisma Client (gegenereerd, niet in git)
+├── prisma/               schema.prisma, seed.ts, migrations/ (20261013000000_init, migration_lock.toml)
 ├── e2e/                  gokkast.spec.ts, helpers.ts
 ├── v1/                   index.html, style.css, game.js (versie 1)
 ├── voorbeeld/            fruitmachine.jpg
