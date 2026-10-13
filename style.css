@@ -1,0 +1,342 @@
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body {
+  width: 100%; height: 100%;
+  background: #0b0612;
+  overflow: hidden;
+  font-family: "Arial Black", "Segoe UI", Arial, sans-serif;
+  user-select: none;
+}
+
+/* Vast 1024x768 speelveld, geschaald naar het venster */
+#game {
+  position: absolute;
+  left: 50%; top: 50%;
+  width: 1024px; height: 768px;
+  transform-origin: center center;
+  background:
+    radial-gradient(ellipse at 20% 15%, rgba(80,140,255,.25), transparent 45%),
+    radial-gradient(ellipse at 80% 20%, rgba(255,60,160,.25), transparent 45%),
+    radial-gradient(ellipse at 50% 100%, rgba(255,180,0,.15), transparent 60%),
+    linear-gradient(#1a0f2e, #0b0612);
+  overflow: hidden;
+}
+
+/* ---------- Kast ---------- */
+#cabinet {
+  position: absolute;
+  left: 212px; top: 18px;
+  width: 600px; height: 732px;
+}
+#topper {
+  position: absolute; left: 0; top: 0;
+  width: 600px; height: 150px;
+  border-radius: 120px 120px 10px 10px / 60px 60px 10px 10px;
+  background:
+    radial-gradient(circle at 15% 40%, rgba(120,170,255,.6), transparent 35%),
+    radial-gradient(circle at 85% 40%, rgba(255,90,170,.6), transparent 35%),
+    linear-gradient(135deg, #20325e, #4a2a5e 50%, #6b2a48);
+  border: 6px solid #9aa0a8;
+  box-shadow: inset 0 0 30px rgba(0,0,0,.7), 0 0 30px rgba(255,200,80,.15);
+}
+#topper .knob {
+  position: absolute; left: 270px; top: -26px;
+  width: 60px; height: 40px;
+  border-radius: 50% 50% 10px 10px;
+  background: radial-gradient(circle at 35% 30%, #ff8a8a, #d40000 55%, #700);
+}
+#title {
+  position: absolute; left: 0; right: 0; top: 34px;
+  text-align: center;
+  font-size: 76px; letter-spacing: 6px;
+  color: #ffcf6a;
+  text-shadow:
+    0 0 4px #fff3c4, 0 0 12px #ffae00, 0 0 28px #ff7a00,
+    3px 3px 0 #a33a00;
+}
+#title span { display: inline-block; animation: flicker 3s infinite; }
+#title span:nth-child(2n) { animation-delay: .4s; }
+#title span:nth-child(3n) { animation-delay: 1.1s; }
+@keyframes flicker {
+  0%, 92%, 100% { opacity: 1; }
+  94% { opacity: .55; }
+  96% { opacity: 1; }
+  98% { opacity: .7; }
+}
+
+#body {
+  position: absolute; left: 0; top: 150px;
+  width: 600px; height: 582px;
+  background: linear-gradient(90deg, #2b2b30, #55565c 8%, #2a2a2e 20%, #1c1c20 80%, #4c4d53 92%, #2b2b30);
+  border: 6px solid #9aa0a8;
+  border-top: none;
+  border-radius: 0 0 14px 14px;
+}
+
+/* Zijpanelen met neon */
+.side {
+  position: absolute; top: 24px;
+  width: 92px; height: 330px;
+  background: #08080c;
+  border: 3px solid #666;
+  border-radius: 6px;
+  display: flex; flex-direction: column; align-items: center; justify-content: space-around;
+  padding: 10px 4px;
+  font-size: 15px; text-align: center;
+}
+.side.left { left: 16px; }
+.side.right { right: 16px; }
+.neon-red { color: #ff5a4a; text-shadow: 0 0 6px #ff2a00; }
+.neon-blue { color: #6ad0ff; text-shadow: 0 0 6px #00a2ff; }
+.neon-gold { color: #ffd34a; text-shadow: 0 0 6px #ff9d00; }
+.neon-green { color: #6dff7a; text-shadow: 0 0 6px #00d020; }
+.arrow { font-size: 30px; line-height: 1; }
+
+/* Lampjes voor de pogingen */
+#tries-lamps { display: flex; flex-direction: column; gap: 8px; align-items: center; }
+.lamp {
+  width: 26px; height: 26px; border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #555, #222);
+  border: 2px solid #444;
+  transition: all .2s;
+}
+.lamp.on {
+  background: radial-gradient(circle at 35% 30%, #fff6b0, #ffc400 55%, #b37400);
+  box-shadow: 0 0 12px #ffbf00;
+  border-color: #ffe27a;
+}
+
+/* ---------- Rollen ---------- */
+#reels {
+  position: absolute; left: 120px; top: 24px;
+  width: 356px; height: 330px;
+  background: #111;
+  border: 4px solid #888;
+  border-radius: 8px;
+  padding: 11px 6px;
+  display: flex; gap: 6px;
+  box-shadow: inset 0 0 20px #000;
+}
+.reel {
+  position: relative;
+  width: 108px; height: 300px;
+  overflow: hidden;
+  background: #fff;
+  border-radius: 6px;
+  border: 2px solid #3a3a3a;
+}
+.reel::after { /* cilinder-effect */
+  content: ""; position: absolute; inset: 0; pointer-events: none;
+  background: linear-gradient(rgba(0,0,0,.75), rgba(0,0,0,0) 30%, rgba(255,255,255,.12) 50%, rgba(0,0,0,0) 70%, rgba(0,0,0,.75));
+}
+.reel.held { border-color: #ff3b3b; box-shadow: 0 0 14px #ff2020; }
+.reel.win { animation: winpulse .45s infinite alternate; }
+@keyframes winpulse {
+  from { box-shadow: 0 0 6px #ffd000; border-color: #ffd000; }
+  to { box-shadow: 0 0 30px #fff200; border-color: #fff8b0; }
+}
+.strip { position: absolute; left: 0; top: 0; width: 100%; will-change: transform; }
+.cell {
+  width: 104px; height: 104px;
+  display: flex; align-items: center; justify-content: center;
+  border-bottom: 2px solid #ddd;
+}
+.cell img { width: 96px; height: 96px; border-radius: 8px; display: block; }
+.strip.blur .cell img { filter: blur(1.5px); }
+
+/* Winlijn */
+#payline {
+  position: absolute; left: 0; right: 0; top: 160px;
+  height: 0; border-top: 3px dashed rgba(255,40,40,.75);
+  pointer-events: none; z-index: 2;
+}
+.payarrow {
+  position: absolute; top: 147px; z-index: 3;
+  width: 0; height: 0;
+  border-top: 14px solid transparent; border-bottom: 14px solid transparent;
+}
+.payarrow.l { left: -4px; border-left: 16px solid #ff3030; }
+.payarrow.r { right: -4px; border-right: 16px solid #ff3030; }
+
+/* ---------- Bedieningspaneel ---------- */
+#panel {
+  position: absolute; left: 16px; right: 16px; top: 372px;
+  height: 78px;
+  background: linear-gradient(#d9dce1, #8a8d93 45%, #b8bbc0);
+  border-radius: 6px;
+  border: 2px solid #555;
+}
+/* knoppen precies onder de rollen */
+.holdbtn, #playbtn { position: absolute; top: 50%; margin-top: -28px; }
+.holdbtn { margin-top: -27px; }
+.holdbtn[data-reel="0"] { left: 118px; }
+.holdbtn[data-reel="1"] { left: 232px; }
+.holdbtn[data-reel="2"] { left: 346px; }
+#playbtn { left: 449px; }
+.holdbtn {
+  width: 96px; height: 50px;
+  border-radius: 6px;
+  border: 3px solid #400;
+  background: linear-gradient(#c11, #700);
+  color: #ffd0d0;
+  font-family: inherit; font-size: 15px;
+  cursor: pointer;
+  box-shadow: 0 5px 0 #300, inset 0 2px 4px rgba(255,255,255,.35);
+  transition: transform .08s, box-shadow .08s, background .15s;
+}
+.holdbtn:active:not(:disabled) { transform: translateY(4px); box-shadow: 0 1px 0 #300; }
+.holdbtn.on {
+  background: linear-gradient(#ff7070, #ff1a1a);
+  color: #fff;
+  box-shadow: 0 2px 0 #300, 0 0 18px #ff3030, inset 0 2px 4px rgba(255,255,255,.5);
+  transform: translateY(3px);
+}
+.holdbtn:disabled { filter: grayscale(.7) brightness(.6); cursor: default; }
+
+#playbtn {
+  width: 100px; height: 56px;
+  border-radius: 28px;
+  border: 3px solid #064;
+  background: linear-gradient(#5dff8a, #0a9e3a);
+  color: #fff;
+  font-family: inherit; font-size: 20px;
+  text-shadow: 0 2px 0 #054;
+  cursor: pointer;
+  box-shadow: 0 5px 0 #043, inset 0 2px 6px rgba(255,255,255,.5);
+}
+#playbtn:active:not(:disabled) { transform: translateY(4px); box-shadow: 0 1px 0 #043; }
+#playbtn:disabled { filter: grayscale(.8) brightness(.6); cursor: default; }
+#playbtn.new { background: linear-gradient(#ffd75d, #d98a00); border-color: #7a4a00; box-shadow: 0 5px 0 #5a3500; text-shadow: 0 2px 0 #6a3a00; font-size: 11px; line-height: 1.1; }
+
+/* Rooster (grille) */
+#grille {
+  position: absolute; left: 16px; right: 16px; top: 462px;
+  height: 34px; border-radius: 6px;
+  background: repeating-linear-gradient(90deg, #2a2a2a 0 3px, #555 3px 6px);
+  border: 2px solid #777;
+}
+
+/* Berichtenbord */
+#display {
+  position: absolute; left: 16px; right: 16px; top: 506px;
+  height: 62px;
+  background: #050508;
+  border: 3px solid #1ec8ff;
+  border-radius: 6px;
+  box-shadow: 0 0 12px rgba(30,200,255,.5), inset 0 0 12px rgba(30,200,255,.3);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 26px; letter-spacing: 2px;
+  color: #ffd34a; text-shadow: 0 0 8px #ff9d00;
+  text-align: center;
+}
+#display.win { color: #6dff7a; text-shadow: 0 0 10px #00ff40; animation: flash .3s infinite alternate; }
+#display.lose { color: #ff6a5a; text-shadow: 0 0 8px #ff2a00; }
+#display.win, #display.lose { font-size: 22px; } /* 15% kleiner dan 26px */
+@keyframes flash { from { opacity: 1; } to { opacity: .55; } }
+
+/* ---------- Hendel ---------- */
+#lever {
+  position: absolute; left: 818px; top: 250px;
+  width: 90px; height: 330px;
+  cursor: pointer;
+}
+#lever .base {
+  position: absolute; left: 0; top: 230px;
+  width: 46px; height: 90px;
+  border-radius: 8px;
+  background: linear-gradient(90deg, #777, #eee 40%, #888);
+  border: 2px solid #555;
+}
+#lever .arm {
+  position: absolute; left: 24px; top: 0;
+  width: 60px; height: 270px;
+}
+#lever .rod, #lever .ball { transition: top .3s ease-out, height .3s ease-out; }
+#lever.pulled .rod { top: 190px; height: 80px; transition-duration: .15s; }
+#lever.pulled .ball { top: 150px; transition-duration: .15s; }
+#lever .rod {
+  position: absolute; left: 4px; top: 40px;
+  width: 14px; height: 230px;
+  background: linear-gradient(90deg, #888, #fff 45%, #999);
+  border-radius: 7px;
+}
+#lever .ball {
+  position: absolute; left: -18px; top: 0;
+  width: 58px; height: 58px; border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #ff9a9a, #d40000 55%, #600);
+  box-shadow: 0 4px 10px rgba(0,0,0,.6);
+}
+#lever.disabled { cursor: default; opacity: .8; }
+
+/* ---------- Info links ---------- */
+#info {
+  position: absolute; left: 18px; top: 200px;
+  width: 180px;
+  color: #cfc6e8; font-family: "Segoe UI", Arial, sans-serif; font-size: 14px;
+  line-height: 1.45;
+}
+#info h2 { font-family: "Arial Black", Arial, sans-serif; color: #ffcf6a; font-size: 17px; margin-bottom: 6px; text-shadow: 0 0 8px #ff8a00; }
+#info p { margin-bottom: 10px; }
+#info .pay { display: flex; gap: 3px; margin: 6px 0 12px; }
+#info .pay img { width: 34px; height: 34px; border-radius: 5px; }
+#stats {
+  position: absolute; left: 18px; top: 560px; width: 180px;
+  color: #cfc6e8; font-family: "Segoe UI", Arial, sans-serif; font-size: 14px;
+  background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.15);
+  border-radius: 8px; padding: 10px 12px; line-height: 1.6;
+}
+#stats b { color: #ffd34a; }
+
+/* ---------- Instellingen ---------- */
+#gear {
+  position: absolute; right: 16px; top: 14px;
+  width: 44px; height: 44px; border-radius: 50%;
+  border: 2px solid rgba(255,255,255,.3);
+  background: rgba(255,255,255,.08);
+  color: #ddd; font-size: 24px; cursor: pointer;
+}
+#gear:hover { background: rgba(255,255,255,.18); }
+#sound {
+  position: absolute; right: 68px; top: 14px;
+  width: 44px; height: 44px; border-radius: 50%;
+  border: 2px solid rgba(255,255,255,.3);
+  background: rgba(255,255,255,.08);
+  color: #ddd; font-size: 20px; cursor: pointer;
+}
+#sound:hover { background: rgba(255,255,255,.18); }
+
+#settings {
+  position: absolute; inset: 0;
+  background: rgba(0,0,0,.65);
+  display: none; align-items: center; justify-content: center;
+  z-index: 50;
+}
+#settings.open { display: flex; }
+#settings .box {
+  width: 420px;
+  background: #1d1530; border: 3px solid #ffcf6a; border-radius: 12px;
+  padding: 24px 28px;
+  color: #eee; font-family: "Segoe UI", Arial, sans-serif;
+  box-shadow: 0 0 40px rgba(255,180,0,.3);
+}
+#settings h3 { font-family: "Arial Black", Arial, sans-serif; color: #ffcf6a; font-size: 22px; margin-bottom: 16px; }
+#settings label { display: flex; align-items: center; gap: 10px; font-size: 18px; margin-bottom: 8px; }
+#settings input[type=number] {
+  width: 90px; font-size: 18px; padding: 4px 8px;
+  border-radius: 6px; border: 2px solid #888; background: #0d0a18; color: #fff;
+}
+#settings .hint { font-size: 13px; color: #aaa; margin-bottom: 18px; }
+#settings .row { display: flex; justify-content: flex-end; gap: 10px; }
+#settings button {
+  font-family: inherit; font-size: 16px; font-weight: bold;
+  padding: 8px 18px; border-radius: 8px; border: none; cursor: pointer;
+}
+#settings .ok { background: #ffcf6a; color: #2a1a00; }
+#settings .cancel { background: #444; color: #ddd; }
+
+/* Confetti / munten bij winst */
+.coin {
+  position: absolute; z-index: 40; pointer-events: none;
+  width: 26px; height: 26px; border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #fff6b0, #ffc400 55%, #a66a00);
+  border: 2px solid #8a5a00;
+}
