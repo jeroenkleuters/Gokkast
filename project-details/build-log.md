@@ -439,6 +439,20 @@ Resultaat:
 
 ---
 
+## Stap 31 — Feature afgerond: CI/CD met Vercel (13 oktober 2026)
+
+**Vraag:**
+> /feature complete
+
+**Uitgevoerde handelingen:**
+1. Laatste run op de branch afgewacht: tests en preview-deploy geslaagd.
+2. Taak 5 afgevinkt in `to-do.md`; status Complete; gecommit.
+3. Fast-forward gemerged in `main` (feature-commit `698444a`), lokale branch verwijderd.
+4. `current-feature.md` teruggezet en de feature toegevoegd aan History; reset gecommit.
+5. `main` gepusht (start de eerste productie-deploy via de workflow), remote branch verwijderd, `.next` verwijderd.
+
+---
+
 ## Huidige bestandsstructuur
 
 ```
