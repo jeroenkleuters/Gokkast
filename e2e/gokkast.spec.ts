@@ -134,3 +134,37 @@ test("NIEUW SPEL zet het spel terug naar de beginstand", async ({ page }) => {
   await spin(page);
   await expect(display(page)).toHaveText("NOG 2 POGINGEN — ZET ROLLEN VAST!");
 });
+
+// Aan het eind van elk spel gaat de ronde precies één keer naar de server action saveGame
+// (die zonder database niets opslaat, zie src/lib/gameStore.ts)
+test("stuurt de ronde na afloop één keer naar de server", async ({ page }) => {
+  const sent: unknown[] = [];
+  page.on("request", (req) => {
+    if (req.method() === "POST" && req.headers()["next-action"]) sent.push(req.postDataJSON());
+  });
+
+  await openGame(page, "win");
+  await spin(page);
+  await expect(display(page)).toHaveText("★ JACKPOT! JE HEBT GEWONNEN! ★");
+  await expect.poll(() => sent).toEqual([[{ outcome: "WON", tries: 1 }]]);
+
+  await playButton(page).click(); // NIEUW SPEL: geen nieuwe ronde
+  await expect(display(page)).toHaveText("DRUK OP SPEEL!");
+  await page.waitForTimeout(300);
+  expect(sent).toHaveLength(1);
+});
+
+test("stuurt een verloren ronde met alle pogingen naar de server", async ({ page }) => {
+  const sent: unknown[] = [];
+  page.on("request", (req) => {
+    if (req.method() === "POST" && req.headers()["next-action"]) sent.push(req.postDataJSON());
+  });
+
+  await openGame(page, "lose");
+  await spin(page);
+  await spin(page);
+  expect(sent).toHaveLength(0); // nog niet af
+  await spin(page);
+  await expect(display(page)).toHaveText("HELAAS... PROBEER HET NOG EENS");
+  await expect.poll(() => sent).toEqual([[{ outcome: "LOST", tries: 3 }]]);
+});

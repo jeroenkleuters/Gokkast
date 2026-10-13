@@ -128,7 +128,7 @@ Het schema staat in [`prisma/schema.prisma`](prisma/schema.prisma), de migraties
 | Tabel           | Inhoud                                                                 |
 | --------------- | ---------------------------------------------------------------------- |
 | `game_settings` | Eén rij (id 1): winkans, pogingen, speelrondes per betaling             |
-| `games`         | Gespeelde rondes: naam, uitkomst (`WON`/`LOST`), pogingen, datum (opslaan volgt in taak 7) |
+| `games`         | Gespeelde rondes: uitkomst (`WON`/`LOST`), gebruikte pogingen, datum; naam leeg tot betalen (taak 10/11) |
 | `payments`      | Betalingen: naam, bedrag in centen, datum (Mollie en versleuteling volgen in taak 10/11) |
 
 Verbinding via omgevingsvariabelen (zie [`.env.example`](.env.example)):
@@ -146,8 +146,16 @@ npm run db:deploy                       # migraties toepassen
 npm run db:seed                         # instellingen en voorbeeldrondes
 ```
 
+Aan het eind van elk spel stuurt de gokkast de ronde naar de server action `saveGame`
+([`src/app/actions.ts`](src/app/actions.ts)). De server controleert de invoer
+([`src/lib/gameStore.ts`](src/lib/gameStore.ts): uitkomst `WON`/`LOST`, pogingen 1 t/m het
+maximum, verlies alleen na alle pogingen) en slaat de ronde op. Zonder database of bij een fout
+wordt er niets opgeslagen (waarschuwing in de serverlog) en gaat het spel gewoon door.
+Highscores staan niet in het spel, alleen straks in de game-manager.
+
 De Prisma Client wordt gegenereerd in `src/generated/prisma` (niet in git) bij elke `npm install`.
 Het schema wijzigen: `prisma/schema.prisma` aanpassen en `npm run db:migrate -- --name <naam>`.
+Herstart daarna de dev-server: een draaiende server houdt de oude Prisma Client vast.
 
 ## Deployen (Vercel)
 
@@ -218,9 +226,9 @@ In previews werkt `?kans=` dus wel, in productie niet. Een wijziging geldt vanaf
 Gokkast/
 ├── public/images/      plaatjes voor de rollen (beker, kakkerlak, vraagteken)
 ├── src/
-│   ├── app/            layout, pagina en globale CSS (Next.js App Router)
+│   ├── app/            layout, pagina, server actions (actions.ts) en globale CSS (Next.js App Router)
 │   ├── components/     SlotMachine, Reel, Lever, InfoPanel, Stats, SettingsDialog, GameClient
-│   ├── lib/            spellogica (game.ts), instellingen (settings.ts, settingsStore.ts), database (db.ts), geluid, opslag, muntenregen, tests (*.test.ts)
+│   ├── lib/            spellogica (game.ts), instellingen (settings.ts, settingsStore.ts), database (db.ts), rondes opslaan (gameStore.ts), geluid, opslag, muntenregen, tests (*.test.ts)
 │   └── generated/      Prisma Client (gegenereerd, niet in git)
 ├── prisma/             schema.prisma, migrations/, seed.ts
 ├── prisma.config.ts    instellingen voor de Prisma CLI

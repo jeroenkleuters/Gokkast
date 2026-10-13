@@ -1,16 +1,29 @@
-# Current Feature
+# Current Feature: Spelletjes opslaan in de database
 
 ## Status
 
-Not Started
+Complete
 
 ## Goals
 
-<!-- Doelen van de feature, in te vullen met /feature load -->
+- Na elk afgelopen spel (winst of verlies) wordt de ronde opgeslagen in de tabel `games`: uitkomst (`WON`/`LOST`), aantal gebruikte pogingen en datum; naam blijft leeg (komt later uit de betaling)
+- Opslaan gaat via een server action (of API-route) op de server; de browser praat nooit direct met de database
+- De server controleert de invoer: uitkomst alleen `WON`/`LOST`, pogingen een geheel getal van 1 t/m het maximum uit de instellingen
+- Kolom `name` in `games` optioneel gemaakt (migratie); geen naamveld en geen highscores in het spel
+- Het spel blijft speelbaar als opslaan mislukt of er geen database is (geen foutmelding die het spel blokkeert; wel een waarschuwing in de serverlog)
+- Elke ronde wordt precies één keer opgeslagen (niet dubbel bij opnieuw renderen of snel klikken)
+- Vitest-tests voor de validatie en het opslaan (met een nep-database); Playwright-tests blijven slagen (zonder database)
+- Lint, typecheck en build zonder fouten; in de browser en in de `dev`-database gecontroleerd dat een gespeelde ronde verschijnt
 
 ## Notes
 
-<!-- Extra context, beperkingen of details uit de spec -->
+- Spec: taak 7 in `project-details/to-do.md`. Tabel `games` bestaat al (taak 6, model `Game`: `name`, `outcome` `WON`/`LOST`, `tries`, `playedAt`); geen migratie nodig, tenzij er een veld bij moet.
+- Einde van een spel zit in `gameReducer` (`spinEnd` met `gameOver: true`, `messageKind` `win`/`lose`); `spinsThisGame` is het aantal gebruikte pogingen. De reducer is puur: het opslaan hoort in de component (`SlotMachine.tsx`) of een aparte hook, niet in de reducer.
+- Database-toegang via `getDb()` in `src/lib/db.ts` (geeft `null` zonder `DATABASE_URL`); zelfde aanpak als `loadSettings` (fout of geen database → doorgaan zonder opslaan).
+- Besluit gebruiker (start): de naam komt pas uit de transactie als er betaald wordt via een QR-code (taak 10/11); geen naam invullen in het spel. Highscores worden niet in het spel getoond, alleen in de game-manager (taak 13).
+- Server actions: eerst de Next.js 16-docs in `node_modules/next/dist/docs/` lezen (o.a. `use server`, foutafhandeling, beveiliging van server actions).
+- Koppelen aan een betaling volgt in taak 11; statistieken in de game-manager in taak 13.
+- Een server action is een openbaar endpoint: iedereen kan rondes insturen. Fraudebestendig maken (uitkomst op de server bepalen) valt buiten deze taak; wel noteren als risico voor de betaal-taken.
 
 ## History
 

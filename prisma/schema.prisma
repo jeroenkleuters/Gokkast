@@ -27,10 +27,11 @@ enum GameOutcome {
   LOST
 }
 
-// Eén gespeelde ronde (opslaan volgt in taak 7, koppelen aan een betaling in taak 11)
+// Eén gespeelde ronde, opgeslagen aan het eind van elk spel (src/app/actions.ts).
+// De naam komt later uit de betaling (taak 10/11); tot dan is hij leeg.
 model Game {
   id       Int         @id @default(autoincrement())
-  name     String
+  name     String?
   outcome  GameOutcome
   tries    Int // aantal gebruikte pogingen
   playedAt DateTime    @default(now()) @map("played_at")

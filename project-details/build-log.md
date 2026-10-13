@@ -521,6 +521,39 @@ Resultaat:
 3. Taak 6 afgevinkt in `to-do.md`; status Complete; feature gecommit (`2da2855`, geen connection strings in de diff) en de branch gepusht.
 4. Run op de branch: tests, migratiestap ("No pending migrations" op `dev`) en preview-deploy geslaagd. Preview https://gokkast-m5uhhkxrj-jeroenkleuters-9584s-projects.vercel.app via `vercel curl` (in Git Bash met `MSYS_NO_PATHCONV=1`, anders wordt `/` een Windows-pad): titel "Eenarmige Bandiet", bron `database`, odds 30; `?kans=7` geeft odds 7.
 5. Fast-forward gemerged in `main`, lokale branch verwijderd; `current-feature.md` teruggezet en de feature toegevoegd aan History; reset gecommit.
+6. `main` gepusht, remote branch verwijderd, `.next` verwijderd.
+7. Productie-run geslaagd: migratie `20261013000000_init` toegepast op Neon `main`. https://gokkast.vercel.app: bron `.env` (tabel `game_settings` in productie nog leeg, geen seed in productie), odds 30; `?kans=7` genegeerd.
+8. Dev-server draaide al op http://localhost:3000 (PID 21296) en antwoordt (bron `database`); niet opnieuw gestart.
+
+---
+
+## Stap 36 — Feature geladen: Spelletjes opslaan in de database (13 oktober 2026)
+
+**Vraag:**
+> /feature load 7
+
+**Uitgevoerde handelingen:**
+1. Taak 7 uit `to-do.md` gelezen; gecontroleerd dat het spel nog geen spelersnaam kent en dat het einde van een spel in `gameReducer` (`spinEnd`, `gameOver`) zit.
+2. `current-feature.md` gevuld met doelen (ronde opslaan in `games` via een server action, validatie op de server, naam invullen en onthouden, spel blijft speelbaar zonder database, precies één keer opslaan, tests, controle in browser en `dev`-database) en notities (open vraag over de naam, fraude-risico van een openbare server action); status Not Started.
+
+---
+
+## Stap 37 — Feature gestart: Spelletjes opslaan in de database (13 oktober 2026)
+
+**Vraag:**
+> /feature start
+
+**Keuze van de gebruiker:** "pas als er betaald gaat worden via een QR code, kan de naam uit de transactie gehaald worden. Highscores worden niet in het spel getoond alleen in de game manager". Dus geen naamveld in het spel; de naam blijft leeg tot taak 10/11.
+
+**Uitgevoerde handelingen:**
+1. Branch `feature/spelletjes-opslaan-in-de-database` aangemaakt; status In Progress; doelen en notities aangepast aan de keuze; open vraag over de naam in `to-do.md` beantwoord.
+2. Next.js-docs gelezen (`server-actions.md`, `mutating-data.md`): server actions zijn een openbaar POST-endpoint (invoer altijd controleren, alleen het nodige teruggeven); aanroepen vanuit een event handler mag direct.
+3. `prisma/schema.prisma`: `Game.name` optioneel; migratie `20261013163330_games_name_optional` (`ALTER COLUMN "name" DROP NOT NULL`) gemaakt en toegepast op Neon `dev`.
+4. `src/lib/gameStore.ts`: `parseGameResult` (uitkomst `WON`/`LOST`, pogingen geheel getal 1 t/m `maxTries` uit de instellingen, verlies alleen na alle pogingen, andere velden genegeerd) en `saveGameResult` (geen database, ongeldige invoer of databasefout → `false` met waarschuwing). `src/app/actions.ts`: server action `saveGame`, geeft alleen `{ saved }` terug.
+5. `SlotMachine.tsx`: in `play()` na `spinEnd` bij winst of de laatste verloren poging één aanroep van `saveGame` (fouten genegeerd, het spel gaat door). Eén keer per spel doordat het in de event handler zit (niet in een effect) en `busyRef` dubbel starten tegenhoudt.
+6. Tests: `gameStore.test.ts` (9 tests); Playwright: 2 nieuwe tests die de POST naar de server action controleren (winst `{ outcome: "WON", tries: 1 }`, verlies `{ outcome: "LOST", tries: 3 }`, precies één keer, niet bij NIEUW SPEL). 57 Vitest- en 8 Playwright-tests, lint, typecheck en build zonder fouten.
+7. Controle met de `dev`-database: de dev-server (PID 21296) hield de oude Prisma Client vast en weigerde de ronde ("Argument `name` is missing"); het spel ging wel door en de serverlog kreeg een waarschuwing, zoals bedoeld. Dev-server herstart (eenmalig met `GAME_ALLOW_ODDS_URL=true` voor `?kans=1`); daarna een winst en een verlies gespeeld: rijen id 5 (`WON`, 1) en id 6 (`LOST`, 3) met naam leeg. Dev-server daarna gewoon herstart met `npm run dev`.
+8. README: sectie Database (opslaan van rondes, dev-server herstarten na een schemawijziging), tabel `games`, projectstructuur.
 
 ---
 
@@ -535,11 +568,11 @@ Gokkast/
 ├── package.json, tsconfig.json, next.config.ts, eslint.config.mjs
 ├── public/images/        beker.png, kakkerlak.png, vraagteken.png
 ├── src/
-│   ├── app/              layout.tsx, page.tsx, globals.css
+│   ├── app/              layout.tsx, page.tsx, actions.ts, globals.css
 │   ├── components/       SlotMachine, Reel, Lever, InfoPanel, Stats, SettingsDialog, GameClient
-│   ├── lib/              game.ts, settings.ts, settingsStore.ts, db.ts, sound.ts, storage.ts, coinShower.ts, game.test.ts, settings.test.ts, settingsStore.test.ts
+│   ├── lib/              game.ts, settings.ts, settingsStore.ts, db.ts, gameStore.ts, sound.ts, storage.ts, coinShower.ts, game.test.ts, settings.test.ts, settingsStore.test.ts, gameStore.test.ts
 │   └── generated/prisma/ Prisma Client (gegenereerd, niet in git)
-├── prisma/               schema.prisma, seed.ts, migrations/ (20261013000000_init, migration_lock.toml)
+├── prisma/               schema.prisma, seed.ts, migrations/ (20261013000000_init, 20261013163330_games_name_optional, migration_lock.toml)
 ├── e2e/                  gokkast.spec.ts, helpers.ts
 ├── v1/                   index.html, style.css, game.js (versie 1)
 ├── voorbeeld/            fruitmachine.jpg

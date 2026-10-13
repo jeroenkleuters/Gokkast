@@ -42,7 +42,7 @@ De taken staan in volgorde: latere taken bouwen voort op eerdere.
   - Schema: `Game` (speelrondes: naam, uitkomst, aantal pogingen, datum) en `Payment`
   - Eerste migratie en seed-data voor ontwikkeling
 
-- [ ] **7. Spelletjes opslaan in de database**
+- [x] **7. Spelletjes opslaan in de database**
   - Na elk spel de ronde opslaan (naam, gewonnen/verloren, pogingen, datum)
   - Opslaan via server action of API-route, niet vanuit de browser direct
 
@@ -62,8 +62,12 @@ De taken staan in volgorde: latere taken bouwen voort op eerdere.
 
 - [ ] **10. Betalen met Mollie (testomgeving)**
   - Mollie test-API-key in `.env`, geen echte betalingen
+  - Toon een QR code waarmee de speler kan betalen
   - Betaalflow: betalen → terug naar het spel → spel vrijgegeven
   - Webhook die de betaalstatus verwerkt
+  - betaling registreren in de database. Naam rekeninghouder koppelen aan de uitkomst van de spelletjes van deze persoon
+
+
 
 - [ ] **11. Betalingen versleuteld opslaan en koppelen aan spelletjes**
   - Naam, rekeningnummer en bedrag versleuteld opslaan (sleutel in `.env`)
@@ -86,7 +90,7 @@ De taken staan in volgorde: latere taken bouwen voort op eerdere.
 ## Open vragen
 
 - Waarvoor wordt betaald: per spel van 3 pogingen, of een tegoed voor meerdere spellen? Wat kost het?
-- Waar komt de naam van de speler vandaan: invullen in het spel of uit de Mollie-betaling?
+- ~~Waar komt de naam van de speler vandaan?~~ Besloten (taak 7): uit de transactie als er betaald wordt via een QR-code; geen naam invullen in het spel. Highscores alleen in de game-manager, niet in het spel.
 - Welke OAuth-provider voor de game-manager (Google, GitHub, Microsoft)?
 - Moet het rekeningnummer getoond worden in de game-manager, of alleen naam en bedrag?
 

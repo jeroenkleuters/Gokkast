@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useEffectEvent, useLayoutEffect, useReducer, useRef, useState } from "react";
+import { saveGame } from "@/app/actions";
 import {
   canToggleHold,
   decideOutcome,
@@ -77,11 +78,14 @@ export default function SlotMachine({ settings }: { settings: GameSettings }) {
     busyRef.current = false;
 
     // state is hier nog van voor de draai: triesLeft telt de huidige draai nog mee
+    const tries = state.spinsThisGame + 1;
     if (isWin(result)) {
       sfx.win();
       coinShower(gameRef.current!);
+      void saveGame({ outcome: "WON", tries }).catch(() => {});
     } else if (state.triesLeft === 1) {
       sfx.lose();
+      void saveGame({ outcome: "LOST", tries }).catch(() => {});
     }
   }
 
