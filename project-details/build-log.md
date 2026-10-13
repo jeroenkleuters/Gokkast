@@ -380,7 +380,46 @@ Resultaat:
 1. Taak 4 afgevinkt in `to-do.md`; status Complete.
 2. Commit `7762a9a` (feat: visuele tests met Playwright) op `feature/visuele-tests-met-playwright`, fast-forward gemerged in `main`, lokale branch verwijderd (nooit gepusht).
 3. `current-feature.md` teruggezet en de feature toegevoegd aan History; reset gecommit.
-4. `main` gepusht naar origin, `.next` verwijderd en `npm run dev` gestart.
+4. `main` gepusht naar origin en `.next` verwijderd. `npm run dev` stopte direct: er draaide al een dev-server (PID 488) op http://localhost:3000; die reageert nog (200) en is blijven draaien.
+
+---
+
+## Stap 27 — /feature start zonder geladen feature (13 oktober 2026)
+
+**Vraag:**
+> /feature start
+
+**Uitgevoerde handelingen:**
+1. `current-feature.md` gelezen: geen doelen (teruggezet na taak 4). Niet gestart, geen branch aangemaakt; eerst `/feature load` nodig.
+
+---
+
+## Stap 28 — Feature geladen: CI/CD met Vercel (13 oktober 2026)
+
+**Vraag:**
+> /feature load 5
+
+**Uitgevoerde handelingen:**
+1. Taak 5 uit `to-do.md` en `goals.md` gelezen; gecontroleerd dat er nog geen `.github/`, `vercel.json` of Vercel CLI is (wel `gh`, remote `jeroenkleuters/Gokkast`).
+2. `current-feature.md` gevuld met doelen (koppeling, preview/productie-deploys, tests vóór deploy, omgevingsvariabelen per omgeving, README, controle in de browser) en notities met twee aanpakken (GitHub Actions + Vercel CLI, of Vercel Git-integratie + GitHub-check); status Not Started.
+
+---
+
+## Stap 29 — Feature gestart: CI/CD met Vercel (13 oktober 2026)
+
+**Vraag:**
+> /feature start
+
+**Keuzes van de gebruiker:** aanpak A (GitHub Actions + Vercel CLI); het Vercel-project bestaat al.
+
+**Uitgevoerde handelingen:**
+1. Branch `feature/ci-cd-met-vercel` aangemaakt; status In Progress.
+2. Next.js-docs gelezen (`ci-build-caching.md`, `environment-variables.md`): `.next/cache` bewaren in CI; volgorde van `.env`-bestanden.
+3. `.github/workflows/ci-cd.yml`: job `test` (Node 24, `npm ci`, lint, `tsc --noEmit`, Vitest, Chromium installeren, Playwright; rapport als artifact bij falen; `.next/cache` gecachet) en job `deploy` (alleen na geslaagde tests): secrets controleren, `vercel pull` (preview met `--git-branch`), `vercel build`, `vercel deploy --prebuilt`, `--prod` op `main`. GitHub-environment Production/Preview met de deploy-URL. Vercel CLI vastgezet op 60.1.3 (nieuwste versie van minstens twee weken oud); de vlaggen gecontroleerd met `--help`. Workflow gecontroleerd met actionlint 1.7.7.
+4. `vercel.json`: framework `nextjs`, `git.deploymentEnabled: false` (Vercel deployt niet meer zelf bij een push).
+5. README: sectie Deployen (werkwijze, instellingen per omgeving met `GAME_ALLOW_ODDS_URL` alleen aan in Preview/Development, eenmalig instellen) en projectstructuur.
+6. Lint en typecheck zonder fouten.
+7. Nog te doen met de gebruiker: `gh`-token de scope `workflow` geven (nodig om een workflow-bestand te pushen), Vercel inloggen en linken, secrets en omgevingsvariabelen instellen, preview- en productie-deploy controleren.
 
 ---
 
@@ -388,7 +427,8 @@ Resultaat:
 
 ```
 Gokkast/
-├── AGENTS.md, README.md, .env.example, vitest.config.mts, playwright.config.ts
+├── AGENTS.md, README.md, .env.example, vitest.config.mts, playwright.config.ts, vercel.json
+├── .github/workflows/    ci-cd.yml
 ├── package.json, tsconfig.json, next.config.ts, eslint.config.mjs
 ├── public/images/        beker.png, kakkerlak.png, vraagteken.png
 ├── src/

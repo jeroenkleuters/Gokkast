@@ -1,0 +1,110 @@
+# CI/CD: eerst alle controles, pas daarna deployen naar Vercel.
+# - push op main        → productie-deploy
+# - push op een branch  → preview-deploy (URL zichtbaar bij de commit en in de pull request)
+# Vercels eigen Git-deploys staan uit (vercel.json), zodat er nooit iets live gaat
+# zonder geslaagde tests. Nodig: secrets VERCEL_TOKEN, VERCEL_ORG_ID, VERCEL_PROJECT_ID.
+name: CI/CD
+
+on:
+  push:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-cd-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+env:
+  NODE_VERSION: 24
+  VERCEL_CLI: vercel@60.1.3
+
+jobs:
+  test:
+    name: Lint, typecheck en tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - run: npm ci
+
+      - name: Next.js-buildcache
+        uses: actions/cache@v4
+        with:
+          path: .next/cache
+          key: nextjs-${{ hashFiles('package-lock.json') }}-${{ hashFiles('src/**') }}
+          restore-keys: nextjs-${{ hashFiles('package-lock.json') }}-
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Typecheck
+        run: npx tsc --noEmit
+
+      - name: Unit-tests (Vitest)
+        run: npm test
+
+      - name: Playwright-browser installeren
+        run: npx playwright install --with-deps chromium
+
+      # Bouwt en start de app zelf met testinstellingen (zie playwright.config.ts)
+      - name: Visuele tests (Playwright)
+        run: npm run test:e2e
+
+      - name: Playwright-rapport bewaren
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 7
+
+  deploy:
+    name: Deploy naar Vercel
+    needs: test
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment:
+      name: ${{ github.ref == 'refs/heads/main' && 'Production' || 'Preview' }}
+      url: ${{ steps.deploy.outputs.url }}
+    env:
+      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+      TARGET: ${{ github.ref == 'refs/heads/main' && 'production' || 'preview' }}
+      PROD_FLAG: ${{ github.ref == 'refs/heads/main' && '--prod' || '' }}
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - name: Secrets controleren
+        run: |
+          for name in VERCEL_TOKEN VERCEL_ORG_ID VERCEL_PROJECT_ID; do
+            if [ -z "${!name}" ]; then echo "::error::GitHub-secret $name ontbreekt (zie README, Deployen)"; exit 1; fi
+          done
+
+      # Haalt de projectinstellingen en de omgevingsvariabelen van deze omgeving op
+      # (voor previews ook de variabelen die alleen voor deze branch gelden)
+      - name: Vercel-instellingen ophalen
+        run: |
+          branch_flag=""
+          if [ "$TARGET" = preview ]; then branch_flag="--git-branch=$GITHUB_REF_NAME"; fi
+          npx --yes $VERCEL_CLI pull --yes --environment=$TARGET $branch_flag --token="$VERCEL_TOKEN"
+
+      - name: Bouwen
+        run: npx --yes $VERCEL_CLI build $PROD_FLAG --token="$VERCEL_TOKEN"
+
+      - name: Deployen
+        id: deploy
+        run: |
+          url=$(npx --yes $VERCEL_CLI deploy --prebuilt $PROD_FLAG --token="$VERCEL_TOKEN")
+          echo "url=$url" >> "$GITHUB_OUTPUT"
+          echo "Gedeployd ($TARGET): $url" >> "$GITHUB_STEP_SUMMARY"

@@ -111,6 +111,46 @@ Met `GAME_ALLOW_ODDS_URL=true` geeft
 [http://localhost:3000/?kans=10](http://localhost:3000/?kans=10) een winkans van 1 op 10. Handig bij
 ontwikkelen en testen; laat dit in productie uit.
 
+## Deployen (Vercel)
+
+Het spel draait op [Vercel](https://vercel.com/). Deployen gaat automatisch via GitHub Actions
+([`.github/workflows/ci-cd.yml`](.github/workflows/ci-cd.yml)), bij elke push:
+
+1. **Controles**: lint, typecheck, Vitest en Playwright. Faalt er één, dan wordt er niet gedeployd
+   (bij falende Playwright-tests staat het rapport als artifact bij de workflow-run).
+2. **Deploy** met de Vercel CLI:
+   - push op `main` → **productie**;
+   - push op een andere branch → **preview** met een eigen URL. Die staat bij de commit en in de
+     pull request (onder *Deployments*), en in de samenvatting van de workflow-run.
+
+Vercels eigen Git-deploys staan uit (`git.deploymentEnabled: false` in [`vercel.json`](vercel.json)),
+zodat er nooit iets live gaat zonder geslaagde tests.
+
+### Instellingen per omgeving
+
+De spelinstellingen (zie [Instellingen](#instellingen)) staan in Vercel onder
+*Project → Settings → Environment Variables*:
+
+| Variabele                 | Production | Preview | Development |
+| ------------------------- | ---------- | ------- | ----------- |
+| `GAME_ODDS`               | `30`       | `30`    | `30`        |
+| `GAME_MAX_TRIES`          | `3`        | `3`     | `3`         |
+| `GAME_ROUNDS_PER_PAYMENT` | `1`        | `1`     | `1`         |
+| `GAME_ALLOW_ODDS_URL`     | `false`    | `true`  | `true`      |
+
+In previews werkt `?kans=` dus wel, in productie niet. Een wijziging geldt vanaf de volgende deploy
+(workflow opnieuw draaien via *Actions → CI/CD → Run workflow*). Development-waarden lokaal ophalen:
+`npx vercel@60.1.3 env pull .env.local`.
+
+### Eenmalig instellen
+
+1. Project koppelen: `npx vercel@60.1.3 login` en `npx vercel@60.1.3 link`. Dit maakt
+   `.vercel/project.json` (niet in git) met `orgId` en `projectId`.
+2. Een token maken op [vercel.com/account/tokens](https://vercel.com/account/tokens).
+3. GitHub-secrets instellen (*Settings → Secrets and variables → Actions*, of met `gh secret set`):
+   `VERCEL_TOKEN`, `VERCEL_ORG_ID` (= `orgId`) en `VERCEL_PROJECT_ID` (= `projectId`).
+4. De omgevingsvariabelen uit de tabel hierboven instellen.
+
 ## Projectstructuur
 
 ```
@@ -121,6 +161,8 @@ Gokkast/
 │   ├── components/     SlotMachine, Reel, Lever, InfoPanel, Stats, SettingsDialog, GameClient
 │   └── lib/            spellogica (game.ts), instellingen (settings.ts), geluid, opslag, muntenregen, tests (*.test.ts)
 ├── .env.example        alle instellingen met uitleg (kopiëren naar .env.local)
+├── .github/workflows/  CI/CD: controles en deploy naar Vercel (ci-cd.yml)
+├── vercel.json         Vercel-instellingen (eigen Git-deploys uit)
 ├── e2e/                visuele tests met Playwright (*.spec.ts)
 ├── playwright.config.ts instellingen voor de visuele tests
 ├── vitest.config.mts   instellingen voor de unit-tests

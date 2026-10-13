@@ -1,16 +1,31 @@
-# Current Feature
+# Current Feature: CI/CD met Vercel
 
 ## Status
 
-Not Started
+In Progress
 
 ## Goals
 
-<!-- Doelen van de feature, in te vullen met /feature load -->
+- Repository `jeroenkleuters/Gokkast` gekoppeld aan een Vercel-project (Next.js-preset)
+- Productie-deploy vanaf `main`; preview-deploy per andere branch (en per pull request), met de preview-URL zichtbaar in GitHub
+- Vitest (`npm test`) en Playwright (`npm run test:e2e`) draaien automatisch vóór een deploy; falen de tests, dan wordt er niet gedeployd
+- Lint en typecheck draaien mee in dezelfde controle
+- Omgevingsvariabelen per omgeving in Vercel: `GAME_ODDS`, `GAME_MAX_TRIES`, `GAME_ROUNDS_PER_PAYMENT` voor Production, Preview en Development; `GAME_ALLOW_ODDS_URL` alleen aan in Preview/Development, uit in Production
+- Werkwijze vastgelegd in de README (waar het draait, hoe een deploy verloopt, waar de instellingen staan)
+- Gecontroleerd: een preview-deploy van de feature-branch en een productie-deploy na de merge werken in de browser
 
 ## Notes
 
-<!-- Extra context, beperkingen of details uit de spec -->
+- Taak 5 uit `to-do.md`; bouwt voort op taak 2 (`.env`-instellingen), 3 (Vitest) en 4 (Playwright).
+- Aanpak voor "tests vóór deploy" (te kiezen bij start):
+  - **A — GitHub Actions + Vercel CLI**: een workflow in `.github/workflows/` draait lint, typecheck, Vitest en Playwright en deployt daarna met `vercel pull/build/deploy --prebuilt` (`--prod` op `main`). Automatische Git-deploys van Vercel dan uit (`git.deploymentEnabled: false` in `vercel.json`). Nodig: GitHub-secrets `VERCEL_TOKEN`, `VERCEL_ORG_ID`, `VERCEL_PROJECT_ID`.
+  - **B — Vercel Git-integratie + GitHub-check**: Vercel deployt zelf per push; een GitHub Actions-workflow draait de tests, en een branch-protection-regel / Vercel "Deployment Checks" houdt promotie naar productie tegen bij falen.
+  - Alleen `npm test && next build` als build-commando in Vercel kan ook, maar Playwright in de Vercel-build is onpraktisch (geen browsers).
+- Playwright op CI: `npx playwright install --with-deps chromium`; de config gebruikt al `CI` (`forbidOnly`, 1 retry, HTML-rapport, geen `reuseExistingServer`). Rapport als artifact uploaden bij falen.
+- De Playwright-`webServer` zet zijn eigen testinstellingen (`GAME_ALLOW_ODDS_URL=true`), dus CI heeft geen `.env` nodig voor de tests.
+- Vercel-account en koppeling met GitHub moet de gebruiker zelf aanmaken/autoriseren; tokens nooit in de repo. `.vercel/` staat al in `.gitignore`.
+- Taak 12 zet later de Mollie live-key alleen in Production; deze taak legt de scheiding per omgeving vast.
+- Next.js 16 heeft breaking changes: eerst de docs in `node_modules/next/dist/docs/` raadplegen (o.a. over deployen).
 
 ## History
 
