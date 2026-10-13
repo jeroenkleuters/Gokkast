@@ -300,17 +300,59 @@ Resultaat:
 
 ---
 
+## Stap 21 — Feature geladen: Automatische tests met Vitest (13 oktober 2026)
+
+**Vraag:**
+> /feature load 3 uit to-do.md
+
+**Uitgevoerde handelingen:**
+1. Taak 3 uit `to-do.md` gelezen, samen met `src/lib/game.ts` en `src/lib/settings.ts`.
+2. `current-feature.md` gevuld met doelen (Vitest + `npm test`, tests voor winkans, uitkomst, pogingen, vastzetten en instellingen) en notities; status Not Started.
+
+---
+
+## Stap 22 — Feature gestart: Automatische tests met Vitest (13 oktober 2026)
+
+**Vraag:**
+> /feature start
+
+**Uitgevoerde handelingen:**
+1. Branch `feature/automatische-tests-vitest` aangemaakt; status in `current-feature.md` op In Progress.
+2. `vitest@5.0.4` geïnstalleerd als dev-dependency (werkt met Node 26; brengt Vite 8 mee). Scripts `test` (`vitest run`) en `test:watch` (`vitest`) toegevoegd.
+3. `vitest.config.mts` gemaakt: omgeving `node`, tests in `src/**/*.test.ts`, `@/`-paden via `resolve.tsconfigPaths`. Extensie `.mts` omdat Vite anders waarschuwt dat de config als CommonJS wordt geladen; `**/*.mts` toegevoegd aan `tsconfig.json` zodat de typecheck hem meeneemt.
+4. `src/lib/game.test.ts` (30 tests): `isWin`/`restCells`, `winChance` per aantal vastgezette rollen, `decideOutcome` (winst met vastgezet plaatje, verlies nooit drie gelijke, vastgezette rollen blijven staan, winkans in de praktijk ~1 op 30 over 30.000 draaien met vaste seed), `initialState`, pogingen en vastzetten via `gameReducer`, `formatChance`. Uitkomsten voorspelbaar via een vaste reeks getallen of een seeded random.
+5. `src/lib/settings.test.ts` (9 tests): `parsePositiveInt`, `parseFlag`, `readSettings` (standaard, geldig, ongeldig per veld, bovengrenzen) en `oddsFromUrlAllowed`.
+6. Controle: `MAX_HELD` tijdelijk op 3 en de winkansformule verkeerd gezet → 5 tests faalden; daarna `game.ts` teruggezet.
+7. `npm test` (39 geslaagd), lint, `tsc --noEmit` en `npm run build` zonder fouten; dev-server serveert het spel nog.
+8. README bijgewerkt: scripts `npm test` en `npm run test:watch`, sectie Tests, projectstructuur.
+9. Opgemerkt: `npm audit` meldt een kwetsbaarheid in `braces`; die komt via `eslint-config-next` en bestond al vóór deze feature.
+
+---
+
+## Stap 23 — Feature afgerond: Automatische tests met Vitest (13 oktober 2026)
+
+**Vraag:**
+> /feature complete
+
+**Uitgevoerde handelingen:**
+1. `npm test` nogmaals gedraaid: 39 tests geslaagd.
+2. Taak 3 afgevinkt in `to-do.md`; status in `current-feature.md` op Complete.
+3. Feature gecommit op `feature/automatische-tests-vitest`, samengevoegd in `main`, branch verwijderd, `current-feature.md` gereset en `main` naar GitHub gepusht.
+4. `.next` verwijderd en dev-server opnieuw gestart.
+
+---
+
 ## Huidige bestandsstructuur
 
 ```
 Gokkast/
-├── AGENTS.md, README.md, .env.example
+├── AGENTS.md, README.md, .env.example, vitest.config.mts
 ├── package.json, tsconfig.json, next.config.ts, eslint.config.mjs
 ├── public/images/        beker.png, kakkerlak.png, vraagteken.png
 ├── src/
 │   ├── app/              layout.tsx, page.tsx, globals.css
 │   ├── components/       SlotMachine, Reel, Lever, InfoPanel, Stats, SettingsDialog, GameClient
-│   └── lib/              game.ts, settings.ts, sound.ts, storage.ts, coinShower.ts
+│   └── lib/              game.ts, settings.ts, sound.ts, storage.ts, coinShower.ts, game.test.ts, settings.test.ts
 ├── v1/                   index.html, style.css, game.js (versie 1)
 ├── voorbeeld/            fruitmachine.jpg
 └── project-details/      build-log.md, current-feature.md, goals.md, to-do.md

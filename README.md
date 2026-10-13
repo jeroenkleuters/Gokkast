@@ -39,6 +39,8 @@ npm run dev -- -p 3001
 | `npm run build` | Productiebuild maken in `.next/`                         |
 | `npm run start` | De productiebuild serveren (eerst `npm run build` draaien) |
 | `npm run lint`  | Code controleren met ESLint                              |
+| `npm test`      | Automatische tests (Vitest) één keer draaien             |
+| `npm run test:watch` | Tests opnieuw draaien bij elke wijziging            |
 
 Productieversie lokaal testen:
 
@@ -46,6 +48,18 @@ Productieversie lokaal testen:
 npm run build
 npm run start
 ```
+
+## Tests
+
+De spellogica en de instellingen worden getest met [Vitest](https://vitest.dev/):
+
+```bash
+npm test
+```
+
+De tests staan naast de code in `src/lib/` (`game.test.ts`, `settings.test.ts`) en controleren onder
+andere de winkans per aantal vastgezette rollen, dat een verlies nooit drie gelijke plaatjes geeft,
+het aantal pogingen, maximaal 2 rollen vastzetten en het inlezen van de `.env`-instellingen.
 
 ## Spelen
 
@@ -81,8 +95,9 @@ Gokkast/
 ├── src/
 │   ├── app/            layout, pagina en globale CSS (Next.js App Router)
 │   ├── components/     SlotMachine, Reel, Lever, InfoPanel, Stats, SettingsDialog, GameClient
-│   └── lib/            spellogica (game.ts), instellingen (settings.ts), geluid, opslag, muntenregen
+│   └── lib/            spellogica (game.ts), instellingen (settings.ts), geluid, opslag, muntenregen, tests (*.test.ts)
 ├── .env.example        alle instellingen met uitleg (kopiëren naar .env.local)
+├── vitest.config.mts   instellingen voor de tests
 ├── v1/                 versie 1: losse HTML/CSS/JS, opent direct in de browser
 ├── voorbeeld/          ontwerpvoorbeeld (fruitmachine.jpg)
 └── project-details/    doelen, to-do, huidige feature en build-log

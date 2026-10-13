@@ -18,7 +18,7 @@ De taken staan in volgorde: latere taken bouwen voort op eerdere.
   - Winkans aantal pogingen, aantal speelrondes per betaling opslaan in .env bestand, 
   - later bij 6 halen wij dit uit de database en is het confugureerbaar in game-manager
 
-- [ ] **3. Automatische tests met Vitest**
+- [x] **3. Automatische tests met Vitest**
   - Vitest installeren en `npm test` instellen
   - Tests voor de spellogica: winkans per aantal vastgezette rollen, nooit drie gelijke bij verlies, pogingen, maximaal 2 rollen vast
 

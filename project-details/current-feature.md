@@ -1,16 +1,27 @@
-# Current Feature
+# Current Feature: Automatische tests met Vitest
 
 ## Status
 
-Not Started
+Complete
 
 ## Goals
 
-<!-- Doelen van de feature, in te vullen met /feature load -->
+- Vitest geïnstalleerd als dev-dependency; `npm test` draait de tests één keer (geschikt voor CI in taak 5)
+- Tests voor `winChance`: 0 vast = 1 op odds, 1 vast = (1/odds)^(2/3), 2 gelijke vast = (1/odds)^(1/3), 2 verschillende vast = 0
+- Tests voor `decideOutcome`: bij winst drie gelijke (met het vastgezette plaatje), bij verlies nooit drie gelijke en vastgezette rollen blijven staan
+- Tests voor pogingen in `gameReducer`: `spinStart` verlaagt `triesLeft`, geen draai bij 0 pogingen of tijdens draaien, verlies na de laatste poging, winst eindigt het spel, `newGame` zet alles terug
+- Tests voor vastzetten: maximaal 2 rollen vast (`MAX_HELD`), niet vóór de eerste draai, niet tijdens draaien of na afloop, losmaken mag altijd
+- Tests voor `src/lib/settings.ts`: standaardwaarden, geldige en ongeldige `.env`-waarden, `GAME_ALLOW_ODDS_URL`
+- Lint, typecheck, build en `npm test` zonder fouten
 
 ## Notes
 
-<!-- Extra context, beperkingen of details uit de spec -->
+- Spellogica in `src/lib/game.ts` is puur TypeScript zonder React/DOM; `decideOutcome` en `initialState` nemen een `random`-functie aan, dus uitkomsten zijn voorspelbaar te maken met een vaste reeks getallen.
+- `readSettings(env)` en `oddsFromUrlAllowed(env)` nemen een env-object aan; geen echte `process.env` nodig in tests.
+- Testomgeving `node` volstaat (geen jsdom); componenttests vallen buiten deze taak. Visuele tests komen in taak 4 (Playwright).
+- Testbestanden naast de code (`src/lib/*.test.ts`) of in een `tests/`-map; zorgen dat ESLint en `tsc` ze accepteren en dat `next build` ze niet meeneemt.
+- Controleren welke Vitest-versie werkt met de huidige Node/TypeScript-versie; config in `vitest.config.ts` met het `@/`-pad-alias uit `tsconfig.json` indien gebruikt.
+- README bijwerken met `npm test`.
 
 ## History
 
