@@ -670,6 +670,18 @@ Resultaat:
 4. Oordeel: klaar om af te ronden.
 
 ---
+## Stap 46 — Feature afgerond: Moeilijkheidsgraad aanpassen in de game-manager (13 oktober 2026)
+
+**Vraag:**
+> /feature complete
+
+**Uitgevoerde handelingen:**
+1. Taak 9 afgevinkt in `to-do.md`; status Complete; diff gecontroleerd op geheimen (alleen de nep-testsleutel van Playwright); feature gecommit (`3f1a2d0`).
+2. Fast-forward gemerged in `main` en de lokale branch verwijderd (de branch was niet gepusht, dus geen remote branch om te verwijderen).
+3. `current-feature.md` teruggezet en de feature toegevoegd aan History; reset gecommit; `main` één keer gepusht. De productie-run past de migratie `20261013200000_game_settings_optional` toe op Neon-branch `main` vóór de deploy.
+4. Dev-server gestopt, `.next` verwijderd en `npm run dev` opnieuw gestart.
+
+---
 
 ## Huidige bestandsstructuur
 
@@ -683,14 +695,14 @@ Gokkast/
 ├── public/images/        beker.png, kakkerlak.png, vraagteken.png
 ├── src/
 │   ├── app/              layout.tsx, page.tsx, actions.ts, globals.css
-│   │   ├── game-manager/ layout.tsx, page.tsx, actions.ts, game-manager.module.css, inloggen/page.tsx
+│   │   ├── game-manager/ layout.tsx, page.tsx, actions.ts, actions.test.ts, SettingsForm.tsx, game-manager.module.css, inloggen/page.tsx
 │   │   └── api/auth/[...nextauth]/route.ts
 │   ├── auth.ts           Auth.js (Google, alleen beheerders)
 │   ├── components/       SlotMachine, Reel, Lever, InfoPanel, Stats, SettingsDialog, GameClient
 │   ├── lib/              game.ts, settings.ts, settingsStore.ts, db.ts, gameStore.ts, admins.ts, dal.ts, sound.ts, storage.ts, coinShower.ts, game.test.ts, settings.test.ts, settingsStore.test.ts, gameStore.test.ts, admins.test.ts
 │   └── generated/prisma/ Prisma Client (gegenereerd, niet in git)
-├── prisma/               schema.prisma, seed.ts, migrations/ (20261013000000_init, 20261013163330_games_name_optional, migration_lock.toml)
-├── e2e/                  gokkast.spec.ts, game-manager.spec.ts, helpers.ts
+├── prisma/               schema.prisma, seed.ts, migrations/ (20261013000000_init, 20261013163330_games_name_optional, 20261013200000_game_settings_optional, migration_lock.toml)
+├── e2e/                  gokkast.spec.ts, game-manager.spec.ts, helpers.ts, auth.ts
 ├── v1/                   index.html, style.css, game.js (versie 1)
 ├── voorbeeld/            fruitmachine.jpg
 └── project-details/      build-log.md, current-feature.md, goals.md, to-do.md

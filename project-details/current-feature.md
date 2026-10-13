@@ -1,30 +1,16 @@
-# Current Feature: Moeilijkheidsgraad aanpassen in de game-manager
+# Current Feature
 
 ## Status
 
-Complete
+Not Started
 
 ## Goals
 
-- Sectie "Moeilijkheidsgraad" op `/game-manager` (vervangt de plek van taak 8) toont de huidige winkans (1 op N) en waar die vandaan komt (database of `.env`), plus de `.env`-standaardwaarde
-- Beheerder kan de winkans wijzigen via een formulier; opslaan via een server action die opnieuw `checkAdmin` doet (niet alleen de pagina beveiligen)
-- Invoer gecontroleerd op de server met dezelfde grenzen als nu (geheel getal 1 t/m `MAX_ODDS` = 100000, `parsePositiveInt`); duidelijke foutmelding bij ongeldige invoer, bevestiging na opslaan
-- Waarde opgeslagen in `game_settings` (rij id 1, upsert); bestaat de rij niet, dan worden `maxTries`/`roundsPerPayment` aangevuld met de huidige waarden
-- `.env` blijft de standaardwaarde: knop "Terug naar standaard" zodat het spel weer de `.env`-waarde gebruikt
-- Het spel gebruikt de ingestelde waarde bij het volgende laden van de pagina (instellingen worden per verzoek gelezen; eventueel `revalidatePath("/")`), tandwiel toont bron "database"
-- Zonder database (of bij een databasefout) een nette melding in de game-manager in plaats van een crash
-- Vitest-tests voor de opslag-/validatielogica (bijv. `src/lib/settingsStore.test.ts` uitbreiden of een nieuwe module), Playwright-test voor het formulier (met onderschepte login zoals in `e2e/game-manager.spec.ts`)
-- Lint, typecheck, build, Vitest en Playwright zonder fouten; lokaal gecontroleerd dat een gewijzigde winkans in het spel aankomt
+<!-- Doelen van de feature, in te vullen met /feature load -->
 
 ## Notes
 
-- Bron: taak 9 in `project-details/to-do.md` (geen map `context/features/`). Eisen versie 2: "op deze pagina is het mogelijk de moeilijkheidsgraad aan te passen".
-- Bestaande code: `src/lib/settings.ts` (grenzen, `parsePositiveInt`, `mergeSettings`), `src/lib/settingsStore.ts` (`loadSettings`: database → `.env` → standaard, 5 s timeout), `src/lib/dal.ts` (`checkAdmin`), `src/app/game-manager/page.tsx` + `actions.ts` + `game-manager.module.css`, Prisma-model `GameSettings` (alle kolommen verplicht, `updatedAt` automatisch).
-- Open vraag voor de gebruiker: alleen de winkans instelbaar maken (zoals de taak zegt), of ook het aantal pogingen (max 5) en speelrondes per betaling? En: winkans als vrij getal, of als keuze uit niveaus (bijv. makkelijk/normaal/moeilijk) met een vrij veld?
-- "Terug naar standaard": kolommen zijn verplicht, dus de rij verwijderen (dan geldt `.env` voor alle velden) of een migratie die `odds` optioneel maakt — keuze bij start.
-- Inloggen werkt alleen lokaal en in productie (taak 8); in de preview is de game-manager niet met Google te testen. Productie gebruikt Neon-branch `main`: een wijziging daar geldt direct voor het echte spel.
-- `?kans=` in de adresbalk (alleen met `GAME_ALLOW_ODDS_URL`) blijft voorrang houden voor tests.
-- Next.js 16: vóór het schrijven de gidsen in `node_modules/next/dist/docs/` lezen over server actions/formulieren (`useActionState`) en `revalidatePath`.
+<!-- Extra context, beperkingen of details uit de spec -->
 
 ## History
 
@@ -38,3 +24,4 @@ Complete
 - **Database met Neon en Prisma** (13 oktober 2026, taak 6) — Prisma 7.10 met `@prisma/adapter-neon`; schema `game_settings` (één rij), `games` (naam, `WON`/`LOST`, pogingen, datum) en `payments` (naam, bedrag in centen); migratie `20261013000000_init` en seed (instellingen + 4 voorbeeldrondes). `loadSettings` leest de database met terugval op `.env` (geen rij, ongeldige waarde, fout of 5 s timeout); tandwiel toont de bron. Neon-project `neon-gokkast`: `main` voor Production (Vercel-integratie), `dev` voor Preview/Development. Workflow past migraties toe vóór de deploy met GitHub-environment-secret `DATABASE_URL_UNPOOLED` (sensitive Vercel-variabelen komen niet mee met `vercel pull`); Playwright zonder database. Neon CLI 6.2.4, MCP-server (OAuth, `.mcp.json`) en skills `neon`, `neon-postgres`, `neon-postgres-branches`. 48 Vitest- en 6 Playwright-tests; lokaal en in de preview gecontroleerd dat de instellingen uit de database komen. Commit `2da2855`.
 - **Spelletjes opslaan in de database** (13 oktober 2026, taak 7) — server action `saveGame` (`src/app/actions.ts`) slaat aan het eind van elk spel de ronde op in `games` (uitkomst, pogingen, datum); aanroep één keer vanuit `play()` in `SlotMachine.tsx`. `src/lib/gameStore.ts` controleert de invoer (`WON`/`LOST`, pogingen 1 t/m `maxTries`, verlies alleen na alle pogingen) en slaat op; zonder database of bij een fout gaat het spel door met een waarschuwing in de serverlog. Besluit gebruiker: geen naam in het spel (komt uit de QR-betaling, taak 10/11), highscores alleen in de game-manager; daarom `games.name` optioneel (migratie `20261013163330_games_name_optional`). 57 Vitest- en 8 Playwright-tests; in de `dev`-database gecontroleerd met een gespeelde winst en verlies. Commit `794b201`.
 - **Game-manager pagina met OAuth** (13 oktober 2026, taak 8) — `/game-manager` alleen voor beheerders; inloggen met Google via Auth.js (`next-auth@5.0.0-beta.32`, vastgezet), JWT-sessie in een cookie (`src/auth.ts`, route `src/app/api/auth/[...nextauth]`). Beheerderslijst `GAME_MANAGER_ADMINS` (`src/lib/admins.ts`, leeg = niemand); `signIn`-callback geeft alleen een sessie bij een bevestigd adres uit de lijst, en `checkAdmin` in `src/lib/dal.ts` controleert elke pagina op de server (geen sessie → `/game-manager/inloggen`, niet meer in de lijst → geen toegang). Geen `proxy.ts`. Inlogpagina met melding bij `AccessDenied`, uitloggen, plekken voor taak 9, 13 en 14. Keuze gebruiker: Google, inloggen alleen lokaal en in productie. 64 Vitest- en 13 Playwright-tests (Google onderschept, nep-sleutels); lokaal ingelogd en uitgelogd door de gebruiker. Vercel-variabelen door de gebruiker gezet, alleen voor Production. Commit `c6b1e43`.
+- **Moeilijkheidsgraad aanpassen in de game-manager** (13 oktober 2026, taak 9) — sectie Moeilijkheidsgraad op `/game-manager` (`SettingsForm.tsx`, `useActionState`): winkans met snelkeuze (makkelijk 1 op 10, normaal 1 op 30, moeilijk 1 op 100) of eigen getal, plus pogingen en speelrondes per betaling (keuze gebruiker: alle drie); per veld "Terug naar standaard". Server action `updateSettings` doet `checkAdmin`, controleert met `parseSettingsForm` (zelfde grenzen als `.env`), slaat op met `saveStoredSettings` (upsert rij 1) en ververst `/` en `/game-manager`. Kolommen van `game_settings` optioneel, leeg = `.env`-waarde (migratie `20261013200000_game_settings_optional`); `mergeSettings` per veld. Zonder database een melding, database onbereikbaar → formulier verborgen. 85 Vitest- en 17 Playwright-tests (ondertekende testsessie in `e2e/auth.ts`); lokaal opgeslagen door de gebruiker in de `dev`-database. Commit `3f1a2d0`.
