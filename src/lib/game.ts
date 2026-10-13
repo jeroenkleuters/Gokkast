@@ -8,15 +8,14 @@ export const SYMBOLS = [
 ] as const;
 export const SYMBOL_COUNT = SYMBOLS.length;
 export const REEL_COUNT = 3;
-export const MAX_TRIES = 3;
 export const MAX_HELD = 2; // anders draait er niets meer
-export const DEFAULT_ODDS = 30; // winkans 1 op 30
 
 export type RandomFn = () => number;
 
 export interface GameState {
   current: number[]; // symbool op de winlijn per rol
   held: boolean[];
+  maxTries: number; // pogingen per spel, uit de instellingen
   triesLeft: number;
   spinsThisGame: number;
   spinning: boolean;
@@ -76,7 +75,7 @@ export function canToggleHold(state: GameState, reel: number): boolean {
   return state.held.filter(Boolean).length < MAX_HELD;
 }
 
-export function initialState(random: RandomFn = Math.random): GameState {
+export function initialState(maxTries: number, random: RandomFn = Math.random): GameState {
   // Begin met drie verschillende plaatjes
   const current = [0, 1, 2]
     .map((s) => ({ s, k: random() }))
@@ -85,7 +84,8 @@ export function initialState(random: RandomFn = Math.random): GameState {
   return {
     current,
     held: [false, false, false],
-    triesLeft: MAX_TRIES,
+    maxTries,
+    triesLeft: maxTries,
     spinsThisGame: 0,
     spinning: false,
     gameOver: false,
@@ -102,7 +102,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       return {
         ...state,
         held: [false, false, false],
-        triesLeft: MAX_TRIES,
+        triesLeft: state.maxTries,
         spinsThisGame: 0,
         gameOver: false,
         message: "DRUK OP SPEEL!",
@@ -159,13 +159,6 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       };
     }
   }
-}
-
-// "?kans=10", opgeslagen waarde, ... → geheel getal >= 1, anders null
-export function parseOdds(value: string | null | undefined): number | null {
-  if (!value) return null;
-  const n = Math.round(Number(value));
-  return Number.isFinite(n) && n >= 1 ? n : null;
 }
 
 export function formatChance(chance: number): string {

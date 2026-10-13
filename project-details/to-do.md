@@ -14,10 +14,9 @@ De taken staan in volgorde: latere taken bouwen voort op eerdere.
   - Plaatjes naar `public/images/`; uiterlijk en gedrag gelijk aan versie 1
   - Git-repository opzetten (nodig voor de feature-werkwijze en Vercel)
 
-- [ ] **2. Instellingen in .env-bestanden**
-  - Winkans en aantal pogingen uit `.env` (met standaardwaarden 30 en 3)
-  - `.env.example` met alle variabelen, echte `.env`-bestanden niet in git
-  - Tandwiel-instellingen in het spel vervallen of worden alleen-lezen
+- [x] **2. Instellingen in .env-bestanden**
+  - Winkans aantal pogingen, aantal speelrondes per betaling opslaan in .env bestand, 
+  - later bij 6 halen wij dit uit de database en is het confugureerbaar in game-manager
 
 - [ ] **3. Automatische tests met Vitest**
   - Vitest installeren en `npm test` instellen
@@ -39,6 +38,7 @@ De taken staan in volgorde: latere taken bouwen voort op eerdere.
 - [ ] **6. Database met Neon en Prisma**
   - Neon-project met aparte branches voor ontwikkeling en productie
   - Prisma installeren en koppelen via `DATABASE_URL` in `.env`
+  - Winkans aantal pogingen, aantal speelrondes per betaling uit in database tabel game-settings
   - Schema: `Game` (speelrondes: naam, uitkomst, aantal pogingen, datum) en `Payment`
   - Eerste migratie en seed-data voor ontwikkeling
 

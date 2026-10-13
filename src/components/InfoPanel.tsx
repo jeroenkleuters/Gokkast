@@ -1,12 +1,13 @@
 import Image from "next/image";
 import { SYMBOLS } from "@/lib/game";
 
-export default function InfoPanel() {
+export default function InfoPanel({ maxTries }: { maxTries: number }) {
   return (
     <div id="info">
       <h2>Hoe speel je?</h2>
       <p>
-        Druk op <b>SPEEL</b> of trek aan de hendel. Je hebt <b>3 pogingen</b>.
+        Druk op <b>SPEEL</b> of trek aan de hendel. Je hebt{" "}
+        <b>{maxTries === 1 ? "1 poging" : `${maxTries} pogingen`}</b>.
       </p>
       <p>
         Zet een rol vast met de rode knop eronder voordat je opnieuw draait. Twee gelijke plaatjes

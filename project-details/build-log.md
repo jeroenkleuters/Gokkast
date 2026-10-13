@@ -217,17 +217,100 @@ Resultaat:
 
 ---
 
+## Stap 15 — README toegevoegd (13 oktober 2026)
+
+**Vraag:**
+> maak een readme.md met daarin de relevante informatie zoals het starten van de locale server
+
+**Uitgevoerde handelingen:**
+1. `README.md` aangemaakt in de projectroot met: vereisten (Node.js 20.9+), installeren en
+   starten van de lokale server (`npm install`, `npm run dev`, http://localhost:3000),
+   overige scripts, besturing, winkans instellen (tandwiel of `?kans=`), projectstructuur,
+   verwijzing naar versie 1 in `v1/` en naar de bestanden in `project-details/`.
+
+---
+
+## Stap 16 — Feature geladen: Instellingen in .env-bestanden (13 oktober 2026)
+
+**Vraag:**
+> /feature load **2. Instellingen in .env-bestanden**
+
+**Uitgevoerde handelingen:**
+1. Taak 2 uit `to-do.md` en de huidige code (`game.ts`, `SlotMachine.tsx`, `SettingsDialog.tsx`) bekeken.
+2. `current-feature.md` gevuld met naam, doelen en notities; status "Not Started".
+
+---
+
+## Stap 17 — Feature opnieuw geladen: Instellingen in .env-bestanden (13 oktober 2026)
+
+**Vraag:**
+> /feature load 2 uit to-do.md
+
+**Uitgevoerde handelingen:**
+1. Gezien dat taak 2 in `to-do.md` is aangepast: nu ook "aantal speelrondes per betaling", en de database-instellingen komen al bij taak 6.
+2. `current-feature.md` bijgewerkt: doel voor speelrondes per betaling (standaard 1, nog niet gebruikt) en één centrale plek voor het inlezen van de instellingen; notities over taak 6 en 9 aangepast. Status "Not Started".
+
+---
+
+## Stap 18 — Feature gestart: Instellingen in .env-bestanden (13 oktober 2026)
+
+**Vraag:**
+> /feature start
+
+**Uitgevoerde handelingen:**
+1. Branch `feature/instellingen-in-env` aangemaakt; status "In Progress".
+2. Next.js-docs over omgevingsvariabelen gelezen: variabelen zonder `NEXT_PUBLIC_` zijn alleen op de server beschikbaar; met `await connection()` worden ze per verzoek gelezen in plaats van bij de build.
+3. Nieuw: `src/lib/settings.ts` leest en controleert `GAME_ODDS` (1–100000, standaard 30), `GAME_MAX_TRIES` (1–5, standaard 3), `GAME_ROUNDS_PER_PAYMENT` (1–100, standaard 1) en `GAME_ALLOW_ODDS_URL` (standaard uit).
+4. `page.tsx` leest de instellingen op de server en geeft ze via `GameClient` door aan `SlotMachine`. `?kans=` werkt alleen nog als `GAME_ALLOW_ODDS_URL` aan staat.
+5. `game.ts`: `MAX_TRIES`, `DEFAULT_ODDS` en `parseOdds` weg; het aantal pogingen staat nu in de spelstatus (`maxTries`).
+6. Tandwiel-venster is alleen-lezen (winkans, pogingen, speelrondes per betaling); winkans wordt niet meer in `localStorage` bewaard.
+7. `.env.example` toegevoegd; `.gitignore` negeerde `.env*` al (behalve `.env.example`), gecontroleerd met `git check-ignore`.
+8. README bijgewerkt met een sectie "Instellingen".
+9. Lint, typecheck en build zonder fouten. Productieserver gestart met testwaarden: env-waarden, ongeldige waarden (terugval naar standaard) en `?kans=` aan/uit doen wat ze moeten doen.
+
+---
+
+## Stap 19 — Browsercontrole: Instellingen in .env-bestanden (13 oktober 2026)
+
+**Vraag:**
+> /feature browser
+
+**Uitgevoerde handelingen:**
+1. Dev-server gestart (`.next` eerst verwijderd na de build). Gecontroleerd met een Playwright-script vanuit de scratchpad (Edge); geen wijzigingen in de broncode om dit te kunnen doen.
+2. Zonder `.env`: winkans 1 op 30, 3 lampjes; tandwiel toont 30 / 3 / 1 zonder invoervelden; sluiten met Escape, Enter en klik ernaast; een heel spel gespeeld (vastzetten, spatie, nieuw spel); winkans niet meer in `localStorage`; `?kans=2` genegeerd.
+3. Tijdelijke `.env.local` (door git genegeerd) met `GAME_ODDS=1`, `GAME_MAX_TRIES=5`, `GAME_ROUNDS_PER_PAYMENT=4`, `GAME_ALLOW_ODDS_URL=ja`: 5 lampjes passen in de kast, tandwiel toont 1 / 5 / 4, elke draai wint, `?kans=7` werkt, `?kans=0` valt terug op `.env`.
+4. Ongeldige waarden (`abc`, `9`, `-2`, `nee`): alles valt terug op de standaard.
+5. Fout gevonden en hersteld: het uitlegpaneel zei altijd "Je hebt 3 pogingen". `InfoPanel` krijgt nu `maxTries` mee ("1 poging" / "5 pogingen"). Ook de omschrijving in `layout.tsx` en de README aangepast.
+6. Bekend, niet door deze feature: `favicon.ico` geeft 404 (er is geen favicon). Na het verwijderen van een `.env`-bestand laadt `next dev` de waarden niet opnieuw; herstart de server.
+7. `.env.local`, screenshots en scripts verwijderd; dev-server blijft draaien op poort 3000.
+
+---
+
+## Stap 20 — Feature afgerond: Instellingen in .env-bestanden (13 oktober 2026)
+
+**Vraag:**
+> /feature complete
+
+**Uitgevoerde handelingen:**
+1. Dev-server gestopt, `.next` verwijderd, lint, typecheck en build opnieuw gedraaid.
+2. Gevonden: een losse `tsc --noEmit` faalde zonder `.next`, omdat het globale type `PageProps` pas door `next dev`/`next build` wordt gemaakt. `searchParams` in `page.tsx` nu expliciet getypt, zodat de typecheck ook in CI (taak 5) werkt.
+3. Taak 2 afgevinkt in `to-do.md`.
+4. Feature gecommit op `feature/instellingen-in-env`, samengevoegd in `main`, branch verwijderd, `current-feature.md` gereset en `main` naar GitHub gepusht.
+5. `.next` verwijderd en dev-server opnieuw gestart.
+
+---
+
 ## Huidige bestandsstructuur
 
 ```
 Gokkast/
-├── AGENTS.md
+├── AGENTS.md, README.md, .env.example
 ├── package.json, tsconfig.json, next.config.ts, eslint.config.mjs
 ├── public/images/        beker.png, kakkerlak.png, vraagteken.png
 ├── src/
 │   ├── app/              layout.tsx, page.tsx, globals.css
 │   ├── components/       SlotMachine, Reel, Lever, InfoPanel, Stats, SettingsDialog, GameClient
-│   └── lib/              game.ts, sound.ts, storage.ts, coinShower.ts
+│   └── lib/              game.ts, settings.ts, sound.ts, storage.ts, coinShower.ts
 ├── v1/                   index.html, style.css, game.js (versie 1)
 ├── voorbeeld/            fruitmachine.jpg
 └── project-details/      build-log.md, current-feature.md, goals.md, to-do.md

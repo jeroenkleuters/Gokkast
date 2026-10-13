@@ -1,58 +1,35 @@
 "use client";
 
-import { useState } from "react";
-import { parseOdds } from "@/lib/game";
+import type { GameSettings } from "@/lib/settings";
 
 interface SettingsDialogProps {
-  odds: number;
-  onSave(odds: number): void;
+  settings: GameSettings;
   onClose(): void;
 }
 
-// Wordt alleen gerenderd als hij open is, dus de invoer start steeds bij de huidige winkans.
-export default function SettingsDialog({ odds, onSave, onClose }: SettingsDialogProps) {
-  const [value, setValue] = useState(String(odds));
-
-  function save() {
-    const v = parseOdds(value);
-    if (v !== null) onSave(v);
-    onClose();
-  }
-
+// Alleen-lezen: de instellingen komen uit .env (zie .env.example).
+export default function SettingsDialog({ settings, onClose }: SettingsDialogProps) {
   return (
-    <div id="settings" className="open">
-      <div className="box">
+    <div id="settings" className="open" onClick={onClose}>
+      <div className="box" onClick={(e) => e.stopPropagation()}>
         <h3>Instellingen</h3>
-        <label>
-          Winkans: 1 op{" "}
-          <input
-            type="number"
-            min={1}
-            max={100000}
-            step={1}
-            value={value}
-            autoFocus
-            onFocus={(e) => e.currentTarget.select()}
-            onChange={(e) => setValue(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") save();
-              if (e.key === "Escape") onClose();
-              e.stopPropagation();
-            }}
-          />
-        </label>
+        <dl>
+          <dt>Winkans</dt>
+          <dd>1 op {settings.odds}</dd>
+          <dt>Pogingen per spel</dt>
+          <dd>{settings.maxTries}</dd>
+          <dt>Speelrondes per betaling</dt>
+          <dd>{settings.roundsPerPayment}</dd>
+        </dl>
         <div className="hint">
           Kans per draai op drie dezelfde plaatjes als er geen rollen vastgezet zijn. Vastgezette rollen met
           hetzelfde plaatje vergroten de kans.
           <br />
-          Ook in te stellen via de adresbalk, bijv. <code>?kans=10</code>
+          Deze waarden worden ingesteld in het <code>.env</code>-bestand op de server.
         </div>
         <div className="row">
-          <button className="cancel" onClick={onClose}>
-            Annuleer
-          </button>
-          <button className="ok" onClick={save}>
-            Opslaan
+          <button className="ok" autoFocus onClick={onClose}>
+            Sluiten
           </button>
         </div>
       </div>

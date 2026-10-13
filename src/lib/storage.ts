@@ -15,6 +15,5 @@ export function writeStorage(key: string, value: string) {
 }
 
 export const KEYS = {
-  odds: "gokkast-kans",
   sound: "gokkast-geluid",
 } as const;

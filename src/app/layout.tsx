@@ -3,7 +3,7 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "Eenarmige Bandiet",
-  description: "Een webbased eenarmige bandiet met drie rollen, drie pogingen en rollen vastzetten.",
+  description: "Een webbased eenarmige bandiet met drie rollen, meerdere pogingen en rollen vastzetten.",
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {

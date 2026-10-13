@@ -4,17 +4,15 @@ import { useEffect, useEffectEvent, useLayoutEffect, useReducer, useRef, useStat
 import {
   canToggleHold,
   decideOutcome,
-  DEFAULT_ODDS,
   formatChance,
   gameReducer,
   initialState,
   isWin,
-  MAX_TRIES,
-  parseOdds,
   winChance,
 } from "@/lib/game";
 import { coinShower } from "@/lib/coinShower";
 import { sfx } from "@/lib/sound";
+import type { GameSettings } from "@/lib/settings";
 import { KEYS, readStorage, writeStorage } from "@/lib/storage";
 import InfoPanel from "./InfoPanel";
 import Lever from "./Lever";
@@ -25,18 +23,9 @@ import Stats from "./Stats";
 const GAME_W = 1024;
 const GAME_H = 768;
 
-// Adresbalk (?kans=) gaat voor de opgeslagen waarde
-function loadOdds(): number {
-  return (
-    parseOdds(new URLSearchParams(location.search).get("kans")) ??
-    parseOdds(readStorage(KEYS.odds)) ??
-    DEFAULT_ODDS
-  );
-}
-
-export default function SlotMachine() {
-  const [state, dispatch] = useReducer(gameReducer, undefined, () => initialState());
-  const [odds, setOdds] = useState(loadOdds);
+export default function SlotMachine({ settings }: { settings: GameSettings }) {
+  const { odds } = settings;
+  const [state, dispatch] = useReducer(gameReducer, settings.maxTries, initialState);
   const [soundOn, setSoundOn] = useState(() => readStorage(KEYS.sound) !== "uit");
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [leverPulled, setLeverPulled] = useState(false);
@@ -103,7 +92,10 @@ export default function SlotMachine() {
   }
 
   const onKeyDown = useEffectEvent((e: KeyboardEvent) => {
-    if (settingsOpen) return;
+    if (settingsOpen) {
+      if (e.key === "Escape") setSettingsOpen(false);
+      return;
+    }
     if (e.code === "Space" || e.key === "Enter") {
       e.preventDefault();
       void play();
@@ -121,11 +113,6 @@ export default function SlotMachine() {
     writeStorage(KEYS.sound, on ? "aan" : "uit");
   }
 
-  function saveOdds(v: number) {
-    setOdds(v);
-    writeStorage(KEYS.odds, String(v));
-  }
-
   const won = state.gameOver && isWin(state.current);
   const chanceNow = state.gameOver ? "–" : formatChance(winChance(state.current, state.held, odds));
 
@@ -138,7 +125,7 @@ export default function SlotMachine() {
         ⚙
       </button>
 
-      <InfoPanel />
+      <InfoPanel maxTries={state.maxTries} />
       <Stats played={state.played} won={state.won} odds={odds} chanceNow={chanceNow} />
 
       <div id="cabinet">
@@ -155,7 +142,7 @@ export default function SlotMachine() {
             <div className="neon-red">★ ★ ★</div>
             <div className="neon-blue">POGING</div>
             <div id="tries-lamps">
-              {Array.from({ length: MAX_TRIES }, (_, k) => (
+              {Array.from({ length: state.maxTries }, (_, k) => (
                 <div key={k} className={`lamp${k < state.triesLeft ? " on" : ""}`} />
               ))}
             </div>
@@ -229,7 +216,7 @@ export default function SlotMachine() {
       <Lever pulled={leverPulled} disabled={state.spinning} onPull={() => void play()} />
 
       {settingsOpen && (
-        <SettingsDialog odds={odds} onSave={saveOdds} onClose={() => setSettingsOpen(false)} />
+        <SettingsDialog settings={settings} onClose={() => setSettingsOpen(false)} />
       )}
     </div>
   );
