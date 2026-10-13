@@ -1,11 +1,10 @@
 // Spellogica van de eenarmige bandiet. Puur TypeScript, geen React of DOM,
 // zodat het los te testen is.
 
-export const SYMBOLS = [
-  "/images/beker.png",
-  "/images/kakkerlak.png",
-  "/images/vraagteken.png",
-] as const;
+// Naam per symbool; ook de naam in de uitkomst ("WON shot") en van het plaatje
+export const SYMBOL_NAMES = ["shot", "kakkerlak", "vraagteken"] as const;
+export type SymbolName = (typeof SYMBOL_NAMES)[number];
+export const SYMBOLS = SYMBOL_NAMES.map((name) => `/images/${name}.png`);
 export const SYMBOL_COUNT = SYMBOLS.length;
 export const REEL_COUNT = 3;
 export const MAX_HELD = 2; // anders draait er niets meer

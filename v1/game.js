@@ -2,7 +2,7 @@
   "use strict";
 
   // ======== Configuratie ========
-  const SYMBOLS = ["../public/images/beker.png", "../public/images/kakkerlak.png", "../public/images/vraagteken.png"];
+  const SYMBOLS = ["../public/images/shot.png", "../public/images/kakkerlak.png", "../public/images/vraagteken.png"];
   const MAX_TRIES = 3;
   const DEFAULT_ODDS = 10;          // winkans 1 op 30
   const CELL = 104;                 // hoogte van een plaatje op de rol (incl. rand)

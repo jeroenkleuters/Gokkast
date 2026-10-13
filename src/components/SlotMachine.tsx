@@ -9,6 +9,7 @@ import {
   gameReducer,
   initialState,
   isWin,
+  SYMBOL_NAMES,
   winChance,
 } from "@/lib/game";
 import { coinShower } from "@/lib/coinShower";
@@ -82,7 +83,7 @@ export default function SlotMachine({ settings }: { settings: GameSettings }) {
     if (isWin(result)) {
       sfx.win();
       coinShower(gameRef.current!);
-      void saveGame({ outcome: "WON", tries }).catch(() => {});
+      void saveGame({ outcome: `WON ${SYMBOL_NAMES[result[0]]}`, tries }).catch(() => {});
     } else if (state.triesLeft === 1) {
       sfx.lose();
       void saveGame({ outcome: "LOST", tries }).catch(() => {});

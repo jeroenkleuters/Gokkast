@@ -23,8 +23,11 @@ model GameSettings {
   @@map("game_settings")
 }
 
+// Bij winst staat het gewonnen plaatje in de uitkomst; in de database letterlijk "WON shot" enz.
 enum GameOutcome {
-  WON
+  WON_SHOT       @map("WON shot")
+  WON_KAKKERLAK  @map("WON kakkerlak")
+  WON_VRAAGTEKEN @map("WON vraagteken")
   LOST
 }
 

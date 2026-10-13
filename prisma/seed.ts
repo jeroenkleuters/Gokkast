@@ -25,9 +25,9 @@ async function main() {
     await prisma.game.createMany({
       data: [
         { name: "Anna", outcome: "LOST", tries: 3, playedAt: day(3) },
-        { name: "Anna", outcome: "WON", tries: 2, playedAt: day(2) },
+        { name: "Anna", outcome: "WON_KAKKERLAK", tries: 2, playedAt: day(2) },
         { name: "Bram", outcome: "LOST", tries: 3, playedAt: day(1) },
-        { name: "Bram", outcome: "WON", tries: 1, playedAt: day(0) },
+        { name: "Bram", outcome: "WON_SHOT", tries: 1, playedAt: day(0) },
       ],
     });
     console.log("games: 4 voorbeeldrondes toegevoegd");

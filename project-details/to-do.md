@@ -58,10 +58,15 @@ De taken staan in volgorde: latere taken bouwen voort op eerdere.
   - Waarde opslaan in de database; `.env` blijft de standaardwaarde
   - Spel gebruikt de ingestelde waarde
 
+- [x] **9b. Gewonnen plaatje opslaan in de uitkomst**
+  - In de tabel `games` in de kolom `outcome` opslaan wat er gewonnen is: `WON shot`, `WON kakkerlak` of `WON vraagteken`
+  - `LOST` blijft `LOST`
+
 ### Betalingen
 
 - [ ] **10. Betalen met Mollie (testomgeving)**
   - Mollie test-API-key in `.env`, geen echte betalingen
+  - geef de mogelijkheid in de game-manager de een qr code te uploaden
   - Toon een QR code waarmee de speler kan betalen
   - Betaalflow: betalen → terug naar het spel → spel vrijgegeven
   - Webhook die de betaalstatus verwerkt
@@ -70,8 +75,9 @@ De taken staan in volgorde: latere taken bouwen voort op eerdere.
 
 
 - [ ] **11. Betalingen versleuteld opslaan en koppelen aan spelletjes**
-  - Naam, rekeningnummer en bedrag versleuteld opslaan (sleutel in `.env`)
-  - Spelletjes koppelen aan de betaling waarmee ze gespeeld zijn
+  - Naam, rekeningnummer en bedrag  opslaan (sleutel in `.env`)
+  - rekeningnummer versleuteld
+  - Spelletjes met naam koppelen aan de betaling waarmee ze gespeeld zijn
   - Tests voor versleutelen en ontsleutelen
 
 - [ ] **12. Mollie productieomgeving**

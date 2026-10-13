@@ -1,16 +1,24 @@
-# Current Feature
+# Current Feature: Gewonnen plaatje opslaan in de uitkomst
 
 ## Status
 
-Not Started
+Complete
 
 ## Goals
 
-<!-- Doelen van de feature, in te vullen met /feature load -->
+- Bij winst staat in `games.outcome` welk plaatje er gewonnen is: `WON shot`, `WON kakkerlak` of `WON vraagteken`
+- Verlies blijft `LOST`
+- Server action `saveGame` geeft het gewonnen plaatje mee; `parseGameResult` in `src/lib/gameStore.ts` accepteert alleen deze vier waarden (plus de bestaande regels voor pogingen)
+- Prisma-schema en migratie aangepast; oude `WON`-rijen (plaatje onbekend) worden verwijderd (besluit gebruiker: geschiedenis niet belangrijk)
+- Vitest-tests voor de nieuwe uitkomsten (en afwijzen van onbekende waarden); Playwright-winsttest blijft slagen
 
 ## Notes
 
-<!-- Extra context, beperkingen of details uit de spec -->
+- Taak 9b in `project-details/to-do.md` (na taak 9).
+- Nu is `outcome` een Postgres-enum `GameOutcome` (`WON`, `LOST`). Prisma-enumnamen mogen geen spatie hebben; met `@map` kan de databasewaarde toch letterlijk `WON shot` zijn (bijv. `WON_SHOT @map("WON shot")`).
+- De plaatjesnaam volgt uit `SYMBOLS` in `src/lib/game.ts` (`shot`, `kakkerlak`, `vraagteken`); `beker` is net hernoemd naar `shot`.
+- Besloten bij start: oude `WON`-rijen worden in de migratie verwijderd; dat gebeurt bij de deploy ook in productie.
+- De uitkomst komt uit de browser; de server kan alleen controleren dat de waarde geldig is, niet dat hij klopt (zelfde als nu).
 
 ## History
 

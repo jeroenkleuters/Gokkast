@@ -27,7 +27,7 @@ export const lever = (page: Page) => page.getByRole("button", { name: "Trek aan 
 export const display = (page: Page) => page.locator("#display");
 export const litLamps = (page: Page) => page.locator("#tries-lamps .lamp.on");
 
-// Plaatje op de winlijn per rol (de middelste cel), bijv. ["beker", "kakkerlak", "vraagteken"]
+// Plaatje op de winlijn per rol (de middelste cel), bijv. ["shot", "kakkerlak", "vraagteken"]
 export async function symbols(page: Page): Promise<string[]> {
   const srcs = await page
     .locator("#reels .reel .cell:nth-child(2) img")

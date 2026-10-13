@@ -129,7 +129,7 @@ Het schema staat in [`prisma/schema.prisma`](prisma/schema.prisma), de migraties
 | Tabel           | Inhoud                                                                 |
 | --------------- | ---------------------------------------------------------------------- |
 | `game_settings` | Eén rij (id 1): winkans, pogingen, speelrondes per betaling; leeg = `.env`-waarde |
-| `games`         | Gespeelde rondes: uitkomst (`WON`/`LOST`), gebruikte pogingen, datum; naam leeg tot betalen (taak 10/11) |
+| `games`         | Gespeelde rondes: uitkomst (`WON shot`, `WON kakkerlak`, `WON vraagteken` of `LOST`), gebruikte pogingen, datum; naam leeg tot betalen (taak 10/11) |
 | `payments`      | Betalingen: naam, bedrag in centen, datum (Mollie en versleuteling volgen in taak 10/11) |
 
 Verbinding via omgevingsvariabelen (zie [`.env.example`](.env.example)):
@@ -149,7 +149,7 @@ npm run db:seed                         # instellingen en voorbeeldrondes
 
 Aan het eind van elk spel stuurt de gokkast de ronde naar de server action `saveGame`
 ([`src/app/actions.ts`](src/app/actions.ts)). De server controleert de invoer
-([`src/lib/gameStore.ts`](src/lib/gameStore.ts): uitkomst `WON`/`LOST`, pogingen 1 t/m het
+([`src/lib/gameStore.ts`](src/lib/gameStore.ts): uitkomst `WON <plaatje>` of `LOST`, pogingen 1 t/m het
 maximum, verlies alleen na alle pogingen) en slaat de ronde op. Zonder database of bij een fout
 wordt er niets opgeslagen (waarschuwing in de serverlog) en gaat het spel gewoon door.
 Highscores staan niet in het spel, alleen straks in de game-manager.
@@ -266,7 +266,7 @@ In previews werkt `?kans=` dus wel, in productie niet. Een wijziging geldt vanaf
 
 ```
 Gokkast/
-├── public/images/      plaatjes voor de rollen (beker, kakkerlak, vraagteken)
+├── public/images/      plaatjes voor de rollen (shot, kakkerlak, vraagteken)
 ├── src/
 │   ├── app/            layout, pagina, server actions (actions.ts) en globale CSS (Next.js App Router)
 │   │   ├── game-manager/  beheerpagina met moeilijkheidsgraad (SettingsForm), server actions en inlogpagina (inloggen/)

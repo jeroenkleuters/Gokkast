@@ -12,7 +12,7 @@ Een webbased eenarmige bandiet die direct in de browser speelt, zonder installat
 
 - Speelveld van 1024x768.
 - Uiterlijk gebaseerd op het voorbeeld in `voorbeeld/fruitmachine.jpg`.
-- Drie rollen met de plaatjes uit `images/` (beker, kakkerlak, vraagteken).
+- Drie rollen met de plaatjes uit `images/` (shot, kakkerlak, vraagteken).
 - De rollen draaien als je op de speelknop drukt.
 - Je mag 3 keer proberen per spel.
 - Elke rol kun je los vastzetten.

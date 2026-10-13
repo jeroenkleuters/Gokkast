@@ -146,7 +146,9 @@ test("stuurt de ronde na afloop één keer naar de server", async ({ page }) => 
   await openGame(page, "win");
   await spin(page);
   await expect(display(page)).toHaveText("★ JACKPOT! JE HEBT GEWONNEN! ★");
-  await expect.poll(() => sent).toEqual([[{ outcome: "WON", tries: 1 }]]);
+  // De uitkomst noemt het gewonnen plaatje, bijv. "WON shot"
+  const [won] = await symbols(page);
+  await expect.poll(() => sent).toEqual([[{ outcome: `WON ${won}`, tries: 1 }]]);
 
   await playButton(page).click(); // NIEUW SPEL: geen nieuwe ronde
   await expect(display(page)).toHaveText("DRUK OP SPEEL!");

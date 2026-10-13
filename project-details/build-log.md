@@ -680,6 +680,47 @@ Resultaat:
 2. Fast-forward gemerged in `main` en de lokale branch verwijderd (de branch was niet gepusht, dus geen remote branch om te verwijderen).
 3. `current-feature.md` teruggezet en de feature toegevoegd aan History; reset gecommit; `main` één keer gepusht. De productie-run past de migratie `20261013200000_game_settings_optional` toe op Neon-branch `main` vóór de deploy.
 4. Dev-server gestopt, `.next` verwijderd en `npm run dev` opnieuw gestart.
+5. Productie-run (`1a095b2`): tests geslaagd, deploy-job faalde eerst op een netwerkfout (`ECONNRESET` bij het downloaden van de Prisma-engines in `npm ci`, vóór migratie en deploy); job opnieuw gestart en geslaagd. Migratie `20261013200000_game_settings_optional` toegepast op productie. https://gokkast.vercel.app: titel "Eenarmige Bandiet", `/` 200, `/game-manager` → 307, `/game-manager/inloggen` 200.
+
+---
+
+## Stap 47 — Plaatje beker hernoemd naar shot (13 oktober 2026)
+
+1. `public/images/beker.png` hernoemd naar `public/images/shot.png` (`git mv`).
+2. Verwijzingen bijgewerkt in `src/lib/game.ts`, `v1/game.js`, `v1/index.html`, `e2e/helpers.ts` (commentaar), `README.md` en `project-details/goals.md`. Oudere logregels hierboven zijn als geschiedenis ongewijzigd gelaten.
+
+---
+
+## Stap 48 — Feature geladen: Gewonnen plaatje opslaan in de uitkomst (13 oktober 2026)
+
+1. Taak 9b toegevoegd aan `project-details/to-do.md`: in `games.outcome` opslaan wat er gewonnen is (`WON shot`, `WON kakkerlak`, `WON vraagteken`).
+2. `current-feature.md` gevuld met doelen en notities (huidige enum `GameOutcome`, `@map` voor waarden met een spatie, open vraag over bestaande `WON`-rijen). Status: Not Started.
+
+---
+
+## Stap 49 — Feature gestart: Gewonnen plaatje opslaan in de uitkomst (13 oktober 2026)
+
+Besluit gebruiker: de spelgeschiedenis is niet belangrijk; in de database moet te zien zijn wat er gewonnen is. Daarom worden oude `WON`-rijen (plaatje onbekend) verwijderd.
+
+1. Branch `feature/gewonnen-plaatje-opslaan` aangemaakt (vanaf `main`, met de nog niet gecommitte hernoeming beker → shot); status In Progress.
+2. `src/lib/game.ts`: `SYMBOL_NAMES` (`shot`, `kakkerlak`, `vraagteken`) en type `SymbolName`; `SYMBOLS` wordt daaruit afgeleid.
+3. Schema: enum `GameOutcome` = `WON_SHOT @map("WON shot")`, `WON_KAKKERLAK @map("WON kakkerlak")`, `WON_VRAAGTEKEN @map("WON vraagteken")`, `LOST`. Migratie `20261013230000_games_outcome_symbol` met de hand geschreven: verwijdert rijen met `WON`, vervangt het enum-type. `prisma generate`; seed gebruikt `WON_KAKKERLAK` en `WON_SHOT`.
+4. `src/lib/gameStore.ts`: type `GameOutcome` = `` `WON ${SymbolName}` | "LOST" ``; `parseGameResult` accepteert alleen die vier waarden; `DB_OUTCOMES` zet ze om naar de Prisma-enum. `saveGame` (`src/app/actions.ts`) gebruikt dit type; `SlotMachine.tsx` stuurt `WON <plaatje>` van de winlijn mee.
+5. Migratie toegepast op Neon-branch `dev` (`prisma migrate deploy`); `migrate diff` database → schema is leeg.
+6. Tests: `gameStore.test.ts` (elk plaatje geaccepteerd; `WON`, `WON beker`, `WON Shot`, `WON_SHOT`, `toString` geweigerd), Playwright-winsttest controleert `WON <plaatje op de winlijn>`. Lint, typecheck, 86 Vitest- en 17 Playwright-tests geslaagd.
+7. Controle in `dev`: ronde `WON vraagteken` opgeslagen via `saveGameResult`, in de database staat letterlijk `WON vraagteken`; testrij daarna verwijderd.
+
+---
+
+## Stap 50 — Feature gereviewd: Gewonnen plaatje opslaan in de uitkomst (13 oktober 2026)
+
+Alle doelen gehaald. Opgelost tijdens de review: README noemde nog `WON`/`LOST` (tabel `games` en `saveGame`-uitleg); doel over bestaande rijen in `current-feature.md` aangepast aan het besluit (oude `WON`-rijen verwijderen). Opmerkingen: de omzetting `DB_OUTCOMES` heeft geen eigen unittest (wel gecontroleerd in `dev`); de hernoeming beker → shot gaat mee in deze commit. Oordeel: klaar om af te ronden.
+
+---
+
+## Stap 51 — Winst kwam niet in de database (13 oktober 2026)
+
+Melding gebruiker: in de database alleen `LOST`, ook na winst. Oorzaak: de dev-server (gestart 22:48) had nog de oude Prisma Client in het geheugen (`prisma generate` om 23:20), die alleen `WON`/`LOST` kent; het opslaan van `WON_SHOT` enz. faalde (waarschuwing in de serverlog) en alleen verlies werd opgeslagen. Rijen 29–33 in `dev` waren allemaal `LOST`, zonder gaten in de id's. Oplossing: dev-server gestopt, `.next` verwijderd, `npm run dev` opnieuw gestart.
 
 ---
 
@@ -692,7 +733,7 @@ Gokkast/
 ├── .claude/skills/       cleanup, feature, list-components, neon, neon-postgres, neon-postgres-branches
 ├── .github/workflows/    ci-cd.yml
 ├── package.json, tsconfig.json, next.config.ts, eslint.config.mjs
-├── public/images/        beker.png, kakkerlak.png, vraagteken.png
+├── public/images/        shot.png, kakkerlak.png, vraagteken.png
 ├── src/
 │   ├── app/              layout.tsx, page.tsx, actions.ts, globals.css
 │   │   ├── game-manager/ layout.tsx, page.tsx, actions.ts, actions.test.ts, SettingsForm.tsx, game-manager.module.css, inloggen/page.tsx
@@ -701,7 +742,7 @@ Gokkast/
 │   ├── components/       SlotMachine, Reel, Lever, InfoPanel, Stats, SettingsDialog, GameClient
 │   ├── lib/              game.ts, settings.ts, settingsStore.ts, db.ts, gameStore.ts, admins.ts, dal.ts, sound.ts, storage.ts, coinShower.ts, game.test.ts, settings.test.ts, settingsStore.test.ts, gameStore.test.ts, admins.test.ts
 │   └── generated/prisma/ Prisma Client (gegenereerd, niet in git)
-├── prisma/               schema.prisma, seed.ts, migrations/ (20261013000000_init, 20261013163330_games_name_optional, 20261013200000_game_settings_optional, migration_lock.toml)
+├── prisma/               schema.prisma, seed.ts, migrations/ (20261013000000_init, 20261013163330_games_name_optional, 20261013200000_game_settings_optional, 20261013230000_games_outcome_symbol, migration_lock.toml)
 ├── e2e/                  gokkast.spec.ts, game-manager.spec.ts, helpers.ts, auth.ts
 ├── v1/                   index.html, style.css, game.js (versie 1)
 ├── voorbeeld/            fruitmachine.jpg
