@@ -1,28 +1,19 @@
-# Current Feature: Betalingen versleuteld opslaan en koppelen aan spelletjes
+# Current Feature
 
 ## Status
 
-Complete
+Not Started
 
 ## Goals
 
-- Bij een betaalde Mollie-betaling worden naam rekeninghouder, rekeningnummer en bedrag opgeslagen in `payments`
-- Het rekeningnummer (`details.consumerAccount`) staat alleen versleuteld in de database; de sleutel staat in `.env` (nieuwe variabele, ook in `.env.example`, README en Vercel)
-- Versleutelen en ontsleutelen in een losse module in `src/lib/` met geauthenticeerde versleuteling (bijv. AES-256-GCM via `node:crypto`), alleen op de server
-- Spelletjes met naam zijn gekoppeld aan de betaling waarmee ze gespeeld zijn (controleren/aanvullen wat taak 10 al doet)
-- Zonder (geldige) sleutel geen rekeningnummer opslaan en een waarschuwing in de serverlog; de betaling en het spel gaan gewoon door
-- Vitest-tests voor versleutelen en ontsleutelen (heen en terug, verkeerde sleutel, gemanipuleerde tekst, ongeldige sleutel, elke keer andere uitkomst)
-- Lint, typecheck, Vitest en Playwright zonder fouten
+<!-- Doelen van de feature, in te vullen met /feature load -->
 
 ## Notes
 
-- Taak 11 uit `project-details/to-do.md`.
-- Al gedaan in taak 10: `payments` heeft Mollie-ID, status, credits, bedrag in centen en naam rekeninghouder (`details.consumerName`); `games.payment_id` + naam. `parseMolliePayment` (`src/lib/mollie.ts`) laat `consumerAccount` nu bewust weg (test in `mollie.test.ts`) — dat verandert in deze taak.
-- Nieuwe kolom voor het versleutelde rekeningnummer vraagt een migratie; toepassen op Neon-branch `dev`, productie via de workflow.
-- Ontsleuteld tonen hoort bij taak 14 (game-manager); open vraag in `to-do.md`: rekeningnummer tonen of alleen naam en bedrag.
-- Het rekeningnummer nooit loggen of naar de browser sturen.
+<!-- Extra context, beperkingen of details uit de spec -->
 
 ## History
+
 
 
 <!-- Afgeronde features worden hier toegevoegd -->
@@ -39,3 +30,4 @@ Complete
 - **Gewonnen plaatje opslaan in de uitkomst** (13 oktober 2026, taak 9b) — enum `GameOutcome` = `WON_SHOT`/`WON_KAKKERLAK`/`WON_VRAAGTEKEN` (in de database letterlijk `WON shot`, `WON kakkerlak`, `WON vraagteken` via `@map`) en `LOST`; migratie `20261013230000_games_outcome_symbol` verwijdert oude `WON`-rijen zonder plaatje (besluit gebruiker: geschiedenis niet belangrijk). `SYMBOL_NAMES` in `src/lib/game.ts`; `SlotMachine.tsx` stuurt `WON <plaatje>` mee; `parseGameResult` accepteert alleen de vier waarden, `DB_OUTCOMES` zet om naar de Prisma-enum. Plaatje beker hernoemd naar shot. 86 Vitest- en 17 Playwright-tests; in `dev` gecontroleerd met gespeelde winsten (`WON shot`, `WON vraagteken`) na herstart van de dev-server (oude Prisma Client in het geheugen). Commit `00f52cc`.
 - **Betalen met Mollie (testomgeving)** (14 oktober 2026, taak 10) — SPEEL zonder credits opent een popup (`PaymentDialog.tsx`) met de QR-code (`qrcode` 1.5.4, van de checkout-URL) van een eigen Mollie-betaling per speler, plus een link om op hetzelfde apparaat te betalen. 4 spelletjes voor € 1,00 (`GAME_ROUNDS_PER_PAYMENT` standaard 4, `GAME_PRICE_CENTS` 100); alleen een test-key (`MOLLIE_API_KEY=test_...`), zonder key is het spel gratis (productie tot taak 12). Eigen `fetch`-client (`src/lib/mollie.ts`); `paymentService.ts` start de betaling, haalt de status altijd bij Mollie op en boekt credits atomair af aan het begin van elk spel; token in httpOnly-cookie `gokkast-betaling`. Webhook `/api/mollie/webhook` (alleen het ID), terugkeerpagina `/betaald`, popup vraagt elke 3 s de status op. `payments` met Mollie-ID, betaallink, status, credits en naam rekeninghouder; `games.payment_id` + naam (migratie `20261014000000_payments_mollie`); rekeningnummer volgt versleuteld in taak 11. 136 Vitest- en 22 Playwright-tests (nep-Mollie `e2e/mollie-mock.ts`, tweede server op poort 3102 met `PAYMENTS_TEST_STORE`); lokaal getest met de echte Mollie-testomgeving (betaald, 4 credits, naam `T. TEST` gekoppeld aan de ronde). Open: credit gaat verloren bij herladen midden in een spel. Commit `779ddaa`.
 - **Betaald-pagina en score-popup** (14 oktober 2026, taak 10b) — `/betaald` toont ook op een telefoon zonder cookie de uitkomst: eigen referentie per betaling in de terugkeer-URL (`/betaald?ref=`, kolom `payments.reference`, migratie `20261014120000_payments_reference`), `getReturnPayment` haalt de status bij Mollie op en geeft alleen status, bedrag en aantal spelletjes (geen credits, geen cookie). Betaald → vinkje en "€ 1,00 is betaald voor 4 spelletjes"; mislukt, wordt verwerkt (ververst elke 3 s) of onbekend elk een eigen melding; zelfde browser en betaald → direct terug naar het spel. Score-popup `PrizeDialog.tsx` na het laatste spelletje van een betaling met minstens één winst (besluit gebruiker: alleen dan, niets vastleggen): naam rekeninghouder en prijzen per plaatje (`src/lib/prizes.ts`: gratis shotjes, kakkerlakken om te blingen, vrije keuzes); sluit alleen met "Prijzen uitgedeeld" (focus op de popup, niet op de knop); betaalpopup gaat dan dicht. `finishGame` (`gameStore.ts`) geeft het overzicht terug via `saveGame` en slaat nooit meer rondes per betaling op dan betaald; `GameStore` met geheugenversie voor Playwright. 156 Vitest- en 24 Playwright-tests; migratie toegepast op `dev`. Commit `24ca23d`.
+- **Betalingen versleuteld opslaan en koppelen aan spelletjes** (14 oktober 2026, taak 11) — `src/lib/encryption.ts`: AES-256-GCM via `node:crypto`, formaat `v1:<iv>:<tag>:<data>` (base64, elke keer een nieuwe iv), sleutel `PAYMENT_ENCRYPTION_KEY` (32 bytes base64; Production een eigen, Preview/Development samen omdat ze Neon `dev` delen). `parseMolliePayment` neemt `details.consumerAccount` over; `paymentService.ts` versleutelt het in `statusUpdate` en slaat het op in `payments.account_encrypted` (migratie `20261014200000_payments_account_encrypted`). Zonder geldige sleutel of bij een fout: niet opslaan, waarschuwing zonder het nummer, betaling gaat door; nooit naar de browser. Koppeling rondes–betaling bestond al (taak 10). 170 Vitest- (o.a. 10 in `encryption.test.ts`) en 24 Playwright-tests (nep-Mollie met test-IBAN, controle dat geen antwoord het nummer bevat). Migratie op `dev` (P1001 kwam door de VPN op poort 5432); echte Mollie-testbetaling: versleuteld opgeslagen, te ontsleutelen, 4 rondes gekoppeld. Open: sleutels in Vercel zetten (gebruiker). Commit `a6456ef`.

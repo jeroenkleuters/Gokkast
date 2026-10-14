@@ -933,6 +933,17 @@ Melding gebruiker: in de database alleen `LOST`, ook na winst. Oorzaak: de dev-s
 4. Open: sleutels in Vercel (Preview/Development dezelfde als `.env.local`, Production een eigen).
 5. Oordeel: klaar om af te ronden.
 
+## Stap 69 — Feature afgerond: Betalingen versleuteld opslaan en koppelen aan spelletjes (14 oktober 2026)
+
+**Vraag:**
+> /feature complete
+
+**Uitgevoerde handelingen:**
+1. Taak 11 afgevinkt in `to-do.md`; status Complete; diff gecontroleerd op geheimen (alleen de openbare test-IBAN van Mollie in tests).
+2. Feature gecommit (`a6456ef`), fast-forward gemerged in `main`, lokale branch verwijderd (niet gepusht, dus geen remote branch).
+3. `current-feature.md` teruggezet en de feature toegevoegd aan History; reset gecommit; `main` één keer gepusht. De productie-run past de migratie `20261014200000_payments_account_encrypted` toe op Neon-branch `main` vóór de deploy.
+4. Dev-server gestopt, `.next` verwijderd en `npm run dev` opnieuw gestart.
+
 ---
 
 ## Huidige bestandsstructuur
