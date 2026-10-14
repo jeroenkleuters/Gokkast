@@ -1,23 +1,16 @@
-# Current Feature: Instellingen (taak 15)
+# Current Feature
 
 ## Status
 
-Complete
+Not Started
 
 ## Goals
 
-- Tab **Moeilijkheidsgraad** op `/game-manager` heet **Instellingen** (tablabel, kop `h2` en de bijbehorende `id`'s)
-- Instellingen is de **derde** tab: volgorde Speelrondes, Betalingen, Instellingen
-- Tabs blijven werken zoals in taak 14: pijltjes/Home/End, gekozen tab blijft bij bladeren, sorteren en filteren
-- Playwright-tests (`e2e/game-manager.spec.ts`) en README bijgewerkt; lint, typecheck, Vitest en Playwright zonder fouten
+<!-- Doelen van de feature, in te vullen met /feature load -->
 
 ## Notes
 
-- Bron: `project-details/to-do.md`, taak 15.
-- Betrokken bestanden: `src/app/game-manager/page.tsx` (tabs-lijst r. ~88, kop `<h2 id="moeilijkheidsgraad">` r. 21), `ManagerTabs.tsx` (generiek, geen wijziging verwacht), `e2e/game-manager.spec.ts` (o.a. r. 14, 62–74, 145–178), `README.md` (r. 221, 232).
-- De snelkeuzegroep in `SettingsForm.tsx` (`aria-label="Moeilijkheidsgraad"`, makkelijk/normaal/moeilijk) gaat over de winkans; die naam kan blijven.
-- Gevolg van de nieuwe volgorde: zonder gekozen tab (na herladen) opent de eerste tab, dus **Speelrondes** in plaats van de instellingen. Bij `start` bevestigen of dat de bedoeling is.
-- De tab-`id` bepaalt de element-`id`'s (`tab-…`, `paneel-…`); hernoemen naar `instellingen` is netjes, de tab staat niet in de URL dus er breken geen links.
+<!-- Extra context, beperkingen of details uit de spec -->
 
 ## History
 
@@ -40,3 +33,4 @@ Complete
 - **Betalingen versleuteld opslaan en koppelen aan spelletjes** (14 oktober 2026, taak 11) — `src/lib/encryption.ts`: AES-256-GCM via `node:crypto`, formaat `v1:<iv>:<tag>:<data>` (base64, elke keer een nieuwe iv), sleutel `PAYMENT_ENCRYPTION_KEY` (32 bytes base64; Production een eigen, Preview/Development samen omdat ze Neon `dev` delen). `parseMolliePayment` neemt `details.consumerAccount` over; `paymentService.ts` versleutelt het in `statusUpdate` en slaat het op in `payments.account_encrypted` (migratie `20261014200000_payments_account_encrypted`). Zonder geldige sleutel of bij een fout: niet opslaan, waarschuwing zonder het nummer, betaling gaat door; nooit naar de browser. Koppeling rondes–betaling bestond al (taak 10). 170 Vitest- (o.a. 10 in `encryption.test.ts`) en 24 Playwright-tests (nep-Mollie met test-IBAN, controle dat geen antwoord het nummer bevat). Migratie op `dev` (P1001 kwam door de VPN op poort 5432); echte Mollie-testbetaling: versleuteld opgeslagen, te ontsleutelen, 4 rondes gekoppeld. Open: sleutels in Vercel zetten (gebruiker). Commit `a6456ef`.
 - **Speelrondes en statistieken in de game-manager** (14 oktober 2026, taak 13) — sectie op `/game-manager` (`StatsSection.tsx`): tabel Per naam (gespeeld, gewonnen per plaatje shot/kakkerlak/vraagteken, totaal gewonnen, verloren; A-Z, "Zonder naam" onderaan, regel Totaal) en tabel Speelrondes (datum in Nederlandse tijd, naam, uitkomst, pogingen; nieuwste eerst). Keuzes gebruiker: paginering (25 per pagina, `?pagina=`, voorbij het einde → laatste pagina), periode Vandaag/Alles (`?periode=vandaag`, vanaf 00:00 Nederlandse tijd via `startOfDay`, ook bij zomer-/wintertijd), sortering op naam. `src/lib/gameStats.ts` (`readGameStats` met 5 s timeout; geen database/fout → melding); `GameStore` met `countRounds`/`listRounds`/`countByName` (Prisma `count`/`findMany`/`groupBy` en geheugenversie); `withTimeout`/`DB_TIMEOUT_MS` naar `db.ts`. Verschillende schrijfwijzen van een naam blijven apart; geen rekeningnummers. 192 Vitest- (22 in `gameStats.test.ts`) en 26 Playwright-tests (melding zonder database; betalen, spelen en de ronde van `T. TEST` terugzien, ook bij Vandaag); gecontroleerd tegen de `dev`-database (47 rondes, 2 pagina's, vandaag 13). Commit `f9482bc`.
 - **Betalingen in de game-manager** (14 oktober 2026, taak 14) — tab Betalingen (`PaymentsSection.tsx`, `src/lib/paymentOverview.ts`): datum, naam, rekeningnummer ontsleuteld op de server na `checkAdmin` (in groepjes van vier; "Geen sleutel" met melding of "Niet te ontsleutelen" met één waarschuwing zonder nummers), bedrag, status en gespeeld (afgeboekte credits); sorteren en bladeren in het geheugen (nodig voor sorteren op rekeningnummer). Moeilijkheidsgraad, Speelrondes en Betalingen in drie tabs (`ManagerTabs.tsx`, pijltjes/Home/End); keuze gebruiker: tab niet in de URL, `TabProvider` in `layout.tsx` houdt de tab bij bladeren, sorteren en filteren. Alle tabellen 15 rijen per pagina, sorteren op elke kolom (lege waarden onderaan) en filter "Naam bevat" (hoofdletterongevoelig, ook voor Per naam en Speelrondes) via `src/lib/tables.ts`, `src/lib/managerQuery.ts` (eigen URL-parameters per tabel, `?pagina=` werd `?rondes_pagina=`) en `TableParts.tsx` (`next/form`). `GameStore` met `RoundFilter` en sortering in Prisma (`mode: "insensitive"`, `nulls: "last"`), `PaymentStore.listByName` en `createdAt`. 229 Vitest- en 30 Playwright-tests; gecontroleerd tegen de `dev`-database. Commit `63624a6`.
+- **Instellingen** (14 oktober 2026, taak 15) — tab Moeilijkheidsgraad op `/game-manager` hernoemd naar Instellingen (tablabel, kop `h2`, `id`'s `instellingen`/`tab-instellingen`/`paneel-instellingen`; `DifficultySection` werd `SettingsSection` in `page.tsx`) en als derde tab gezet: Speelrondes, Betalingen, Instellingen. Na laden en herladen opent nu Speelrondes. Snelkeuzegroep `aria-label="Moeilijkheidsgraad"` in `SettingsForm.tsx` bewust laten staan (gaat over de winkans). `ManagerTabs.tsx` ongewijzigd. Playwright-tests klikken eerst op de tab Instellingen; tabs-test controleert volgorde, pijltjes rondom, Home en End. README (tabvolgorde, alinea Instellingen na Betalingen). 229 Vitest- en 30 Playwright-tests; in de browser gecontroleerd tegen de dev-server (ook 390px, console zonder fouten). Commit `bea07a9`.
