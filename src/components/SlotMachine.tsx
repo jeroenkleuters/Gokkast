@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useEffectEvent, useLayoutEffect, useReducer, useRef, useState } from "react";
-import { saveGame } from "@/app/actions";
+import { saveGame, spendGameCredit } from "@/app/actions";
 import {
   canToggleHold,
   decideOutcome,
@@ -14,10 +14,12 @@ import {
 } from "@/lib/game";
 import { coinShower } from "@/lib/coinShower";
 import { sfx } from "@/lib/sound";
+import type { PaymentInfo, PaymentView } from "@/lib/paymentService";
 import type { GameSettings } from "@/lib/settings";
 import { KEYS, readStorage, writeStorage } from "@/lib/storage";
 import InfoPanel from "./InfoPanel";
 import Lever from "./Lever";
+import PaymentDialog from "./PaymentDialog";
 import Reel, { type ReelHandle } from "./Reel";
 import SettingsDialog from "./SettingsDialog";
 import Stats from "./Stats";
@@ -25,11 +27,18 @@ import Stats from "./Stats";
 const GAME_W = 1024;
 const GAME_H = 768;
 
-export default function SlotMachine({ settings }: { settings: GameSettings }) {
+interface SlotMachineProps {
+  settings: GameSettings;
+  payment: PaymentInfo | null; // null: betalen staat uit, het spel is gratis
+}
+
+export default function SlotMachine({ settings, payment }: SlotMachineProps) {
   const { odds } = settings;
   const [state, dispatch] = useReducer(gameReducer, settings.maxTries, initialState);
   const [soundOn, setSoundOn] = useState(() => readStorage(KEYS.sound) !== "uit");
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [paymentOpen, setPaymentOpen] = useState(false);
+  const [credits, setCredits] = useState(payment?.payment.creditsLeft ?? 0);
   const [leverPulled, setLeverPulled] = useState(false);
   const [initialSymbols] = useState(() => state.current);
 
@@ -60,6 +69,19 @@ export default function SlotMachine({ settings }: { settings: GameSettings }) {
     }
 
     busyRef.current = true;
+
+    // Betalen staat aan: het begin van elk spel kost één credit (afgeboekt op de server)
+    if (payment && state.spinsThisGame === 0) {
+      const credit = await spendGameCredit().catch(() => null);
+      if (!credit?.ok) {
+        busyRef.current = false;
+        setCredits(credit?.payment.creditsLeft ?? 0);
+        setPaymentOpen(true);
+        return;
+      }
+      setCredits(credit.payment.creditsLeft);
+    }
+
     setLeverPulled(true);
     setTimeout(() => setLeverPulled(false), 260);
 
@@ -97,8 +119,11 @@ export default function SlotMachine({ settings }: { settings: GameSettings }) {
   }
 
   const onKeyDown = useEffectEvent((e: KeyboardEvent) => {
-    if (settingsOpen) {
-      if (e.key === "Escape") setSettingsOpen(false);
+    if (settingsOpen || paymentOpen) {
+      if (e.key === "Escape") {
+        setSettingsOpen(false);
+        setPaymentOpen(false);
+      }
       return;
     }
     if (e.code === "Space" || e.key === "Enter") {
@@ -131,7 +156,13 @@ export default function SlotMachine({ settings }: { settings: GameSettings }) {
       </button>
 
       <InfoPanel maxTries={state.maxTries} />
-      <Stats played={state.played} won={state.won} odds={odds} chanceNow={chanceNow} />
+      <Stats
+        played={state.played}
+        won={state.won}
+        odds={odds}
+        chanceNow={chanceNow}
+        credits={payment ? credits : null}
+      />
 
       <div id="cabinet">
         <div id="topper">
@@ -219,6 +250,18 @@ export default function SlotMachine({ settings }: { settings: GameSettings }) {
       </div>
 
       <Lever pulled={leverPulled} disabled={state.spinning} onPull={() => void play()} />
+
+      {paymentOpen && payment && (
+        <PaymentDialog
+          price={payment.price}
+          credits={payment.credits}
+          onPaid={(paid: PaymentView) => {
+            setCredits(paid.creditsLeft);
+            setPaymentOpen(false);
+          }}
+          onClose={() => setPaymentOpen(false)}
+        />
+      )}
 
       {settingsOpen && (
         <SettingsDialog settings={settings} onClose={() => setSettingsOpen(false)} />

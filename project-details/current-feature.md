@@ -1,16 +1,43 @@
-# Current Feature
+# Current Feature: Betalen met Mollie (testomgeving)
 
 ## Status
 
-Not Started
+Complete
 
 ## Goals
 
-<!-- Doelen van de feature, in te vullen met /feature load -->
+- Mollie test-API-key (`test_...`) in `.env` en `.env.example`; er zijn geen echte betalingen mogelijk
+- Prijs: 4 spelletjes voor € 1,00 (1 credit = 1 spel van 3 pogingen); `GAME_ROUNDS_PER_PAYMENT` standaard 4, prijs in `.env` (`GAME_PRICE_CENTS=100`)
+- Speler zonder credits klikt op speel → popup met een QR-code van een **unieke Mollie-betaling voor deze speler** (Payments API, per klik een nieuwe betaling; QR gemaakt van de checkout-URL) plus een link om op hetzelfde apparaat te betalen
+- Na betalen krijgt de speler 4 credits; elk gespeeld spel kost 1 credit; bij 0 credits weer de popup
+- Credits staan op de server bij de betaling (niet alleen in de browser); de browser kent alleen het betaal-ID
+- Betaalflow: betalen → terug naar het spel (`redirectUrl`) → spel vrijgegeven; de popup ziet ook zelf dat er betaald is (status opvragen) als er op een telefoon betaald wordt
+- Webhook (API-route) die de betaalstatus bij Mollie ophaalt en verwerkt; de status nooit uit het verzoek zelf overnemen
+- Betaling registreren in de tabel `payments` (Mollie-ID, betaallink, bedrag in centen, status, credits, naam rekeninghouder)
+- Naam van de rekeninghouder (`details.consumerName`) koppelen aan de spelletjes die met die betaling gespeeld zijn
+- Vitest-tests voor de betaallogica en de webhook; Playwright-tests voor de betaalflow zonder echte Mollie-aanroepen
 
 ## Notes
 
-<!-- Extra context, beperkingen of details uit de spec -->
+- Taak 10 uit `project-details/to-do.md`. Documentatie: https://docs.mollie.com/docs/getting-started
+- Alleen testmodus; live-key en productie volgen in taak 12. Versleuteld opslaan van naam en rekeningnummer volgt in taak 11 — nu nog niet versleutelen, wel zo opzetten dat taak 11 erop kan voortbouwen.
+- Overzichten van betalingen en speelrondes in de game-manager volgen in taak 13 en 14.
+- Besluit taak 7: geen naam invullen in het spel; de naam komt uit de transactie. `games.name` is optioneel.
+- De naam van de rekeninghouder staat bij Mollie in `details.consumerName` (o.a. iDEAL/bankoverboeking), pas na betaling.
+- Mollie moet de webhook kunnen bereiken: lokaal niet zonder tunnel; in de Vercel-preview staat Deployment Protection aan. Testen kan ook door de status op te halen bij terugkeer naar het spel.
+- Geheimen (`MOLLIE_API_KEY`) alleen op de server; nooit in de browser.
+- Besluiten gebruiker (14 oktober 2026):
+  - 4 spelletjes voor € 1,00.
+  - Mollie-betaling met QR-code tonen in een popup als iemand op speel klikt; de speler krijgt dan 4 credits.
+  - Per speler een unieke betaallink van Mollie, opgeslagen in de database met naam en rekeningnummer. Daardoor vervalt het uploaden van een vaste QR-code in de game-manager.
+- Rekeningnummer (`details.consumerAccount`): pas in taak 11 opslaan, en dan versleuteld; in taak 10 alleen de naam. Zo komt er nooit een onversleuteld rekeningnummer in de database.
+- Naam en rekeningnummer zijn er alleen bij betaalmethoden die ze teruggeven (o.a. iDEAL); anders blijft de naam leeg.
+- Keuzes bij de bouw (14 oktober 2026):
+  - Zonder `MOLLIE_API_KEY` staat betalen uit en is het spel gratis (ook productie tot taak 12); een `live_`-key wordt geweigerd.
+  - Eigen kleine `fetch`-client voor Mollie (twee aanroepen) in plaats van de SDK; `MOLLIE_API_URL` alleen voor de nep-Mollie van Playwright.
+  - QR-code door de app gemaakt van de checkout-URL (`qrcode` 1.5.4); de QR van Mollie zelf werkt alleen voor iDEAL/Bancontact/overboeking.
+  - Token in httpOnly-cookie `gokkast-betaling`; credits atomair afgeboekt aan het begin van elk spel; betaald is definitief (credits één keer).
+  - Playwright: tweede server (poort 3102) met betalen aan en betalingen in het geheugen (`PAYMENTS_TEST_STORE`, nooit in productie of met database).
 
 ## History
 

@@ -331,6 +331,40 @@ html, body {
 }
 #settings .ok { background: #ffcf6a; color: #2a1a00; }
 
+/* ---------- Betalen (popup met QR-code) ---------- */
+#payment {
+  position: absolute; inset: 0;
+  background: rgba(0,0,0,.7);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 50;
+}
+#payment .box {
+  width: 400px;
+  background: #1d1530; border: 3px solid #ffcf6a; border-radius: 12px;
+  padding: 22px 28px;
+  color: #eee; font-family: "Segoe UI", Arial, sans-serif;
+  box-shadow: 0 0 40px rgba(255,180,0,.3);
+  display: flex; flex-direction: column; align-items: center; gap: 10px;
+  text-align: center;
+}
+#payment h3 { font-family: "Arial Black", Arial, sans-serif; color: #ffcf6a; font-size: 24px; }
+#payment .offer { font-size: 18px; }
+#payment .offer b { color: #ffd34a; }
+#payment .qr { width: 220px; height: 220px; background: #fff; border-radius: 8px; padding: 6px; }
+#payment .hint { font-size: 14px; color: #cfc6e8; }
+#payment .paylink { color: #7fd8ff; font-size: 14px; }
+#payment .status { font-size: 15px; color: #fff; }
+#payment .status.error { color: #ff8a7a; }
+#payment .testmode { font-size: 12px; color: #9a90b4; }
+#payment .row { align-self: stretch; display: flex; justify-content: flex-end; }
+#payment button {
+  font-family: inherit; font-size: 16px; font-weight: bold;
+  padding: 8px 18px; border-radius: 8px; border: none; cursor: pointer;
+}
+#payment .ok { background: #ffcf6a; color: #2a1a00; }
+#payment .cancel { background: #3a2f52; color: #eee; }
+#payment button:focus-visible, #payment .paylink:focus-visible { outline: 3px solid #fff; outline-offset: 2px; }
+
 /* Confetti / munten bij winst */
 .coin {
   position: absolute; z-index: 40; pointer-events: none;

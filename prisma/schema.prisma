@@ -32,24 +32,51 @@ enum GameOutcome {
 }
 
 // Eén gespeelde ronde, opgeslagen aan het eind van elk spel (src/app/actions.ts).
-// De naam komt later uit de betaling (taak 10/11); tot dan is hij leeg.
+// Gespeeld met een betaling: de naam van de rekeninghouder en de betaling staan erbij;
+// zonder betaling (gratis spel, of de naam is onbekend) blijven ze leeg.
 model Game {
-  id       Int         @id @default(autoincrement())
-  name     String?
-  outcome  GameOutcome
-  tries    Int // aantal gebruikte pogingen
-  playedAt DateTime    @default(now()) @map("played_at")
+  id        Int         @id @default(autoincrement())
+  name      String?
+  outcome   GameOutcome
+  tries     Int // aantal gebruikte pogingen
+  playedAt  DateTime    @default(now()) @map("played_at")
+  paymentId Int?        @map("payment_id")
+  payment   Payment?    @relation(fields: [paymentId], references: [id], onDelete: SetNull)
 
   @@index([name])
+  @@index([paymentId])
   @@map("games")
 }
 
-// Betaling; versleuteling en Mollie-velden volgen in taak 10 en 11
+// Status van een Mollie-betaling (https://docs.mollie.com/docs/status-change)
+enum PaymentStatus {
+  OPEN       @map("open")
+  PENDING    @map("pending")
+  AUTHORIZED @map("authorized")
+  PAID       @map("paid")
+  CANCELED   @map("canceled")
+  EXPIRED    @map("expired")
+  FAILED     @map("failed")
+}
+
+// Eén betaling via Mollie, per speler een eigen betaling (src/lib/payments.ts).
+// token: willekeurige sleutel in een httpOnly-cookie van de speler; zo weet het spel welke
+// betaling bij deze browser hoort. Na betalen krijgt de speler `credits` spelletjes.
+// De naam komt van Mollie (details.consumerName); het rekeningnummer volgt versleuteld in taak 11.
 model Payment {
-  id          Int      @id @default(autoincrement())
-  name        String
-  amountCents Int      @map("amount_cents")
-  createdAt   DateTime @default(now()) @map("created_at")
+  id          Int           @id @default(autoincrement())
+  token       String        @unique
+  mollieId    String        @unique @map("mollie_id")
+  checkoutUrl String        @map("checkout_url")
+  status      PaymentStatus @default(OPEN)
+  amountCents Int           @map("amount_cents")
+  credits     Int // spelletjes voor deze betaling
+  creditsLeft Int           @default(0) @map("credits_left") // pas na betalen gelijk aan credits
+  name        String?
+  paidAt      DateTime?     @map("paid_at")
+  createdAt   DateTime      @default(now()) @map("created_at")
+  updatedAt   DateTime      @updatedAt @map("updated_at")
+  games       Game[]
 
   @@map("payments")
 }

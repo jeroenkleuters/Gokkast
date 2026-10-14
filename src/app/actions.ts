@@ -1,10 +1,89 @@
 "use server";
 
 // Server actions: de browser roept ze aan, maar ze draaien alleen op de server.
-// Ze zijn een openbaar endpoint, dus alle invoer wordt in gameStore.ts gecontroleerd.
-import { saveGameResult, type GameOutcome } from "@/lib/gameStore";
+// Ze zijn een openbaar endpoint, dus alle invoer wordt gecontroleerd (gameStore.ts, paymentService.ts).
+import { cookies, headers } from "next/headers";
+import { saveGameResult, type GameOutcome, type GamePayment } from "@/lib/gameStore";
+import { isPaymentToken, PAYMENT_COOKIE, PAYMENT_COOKIE_MAX_AGE } from "@/lib/payments";
+import {
+  defaultPaymentDeps,
+  getPlayerPayment,
+  NO_PAYMENT,
+  PAYMENT_ERROR,
+  spendCredit,
+  startPayment as startPlayerPayment,
+  type CreditResult,
+  type PaymentView,
+} from "@/lib/paymentService";
+import { qrDataUrl } from "@/lib/qr";
+
+// Token van de betaling van deze browser (httpOnly-cookie), alleen als het er geldig uitziet
+async function paymentToken(): Promise<string | undefined> {
+  const token = (await cookies()).get(PAYMENT_COOKIE)?.value;
+  return isPaymentToken(token) ? token : undefined;
+}
+
+// Adres van de site voor de terugkeer na betalen en de webhook (achter Vercel via x-forwarded-*)
+async function requestOrigin(): Promise<string> {
+  const h = await headers();
+  const host = h.get("x-forwarded-host") ?? h.get("host");
+  if (!host) throw new Error("geen host in het verzoek");
+  const proto = h.get("x-forwarded-proto")?.split(",")[0].trim() || (/^(localhost|127\.0\.0\.1)(:|$)/.test(host) ? "http" : "https");
+  return `${proto}://${host}`;
+}
+
+// De betaalde betaling van deze browser, om de ronde aan te koppelen
+async function currentGamePayment(): Promise<GamePayment | null> {
+  const deps = defaultPaymentDeps();
+  const token = await paymentToken();
+  if (!deps?.store || !token) return null;
+  try {
+    const payment = await deps.store.findByToken(token);
+    return payment?.status === "paid" ? { id: payment.id, name: payment.name } : null;
+  } catch (error) {
+    console.warn("Betaling voor de ronde niet gelezen:", error);
+    return null;
+  }
+}
 
 // Aan het eind van elk spel; geeft alleen terug of het gelukt is
 export async function saveGame(input: { outcome: GameOutcome; tries: number }): Promise<{ saved: boolean }> {
-  return { saved: await saveGameResult(input) };
+  return { saved: await saveGameResult(input, await currentGamePayment()) };
+}
+
+// Begin van een nieuw spel: één credit gebruiken. Staat betalen uit, dan is het spel gratis.
+export async function spendGameCredit(): Promise<CreditResult> {
+  const deps = defaultPaymentDeps();
+  if (!deps) return { ok: true, payment: NO_PAYMENT };
+  return spendCredit(await paymentToken(), deps);
+}
+
+export type StartPaymentResponse =
+  | { ok: true; payment: PaymentView; qr: string | null }
+  | { ok: false; error: string };
+
+// Popup: betaling van deze speler starten (of de lopende tonen) met een QR-code van de betaallink
+export async function startPayment(): Promise<StartPaymentResponse> {
+  const deps = defaultPaymentDeps();
+  if (!deps) return { ok: false, error: PAYMENT_ERROR };
+  const origin = await requestOrigin();
+  const result = await startPlayerPayment(await paymentToken(), origin, deps);
+  if (!result.ok) return result;
+
+  (await cookies()).set(PAYMENT_COOKIE, result.token, {
+    httpOnly: true,
+    sameSite: "lax", // mee bij de terugkeer van Mollie naar /betaald
+    secure: origin.startsWith("https:"),
+    maxAge: PAYMENT_COOKIE_MAX_AGE,
+    path: "/",
+  });
+  const { checkoutUrl } = result.payment;
+  return { ok: true, payment: result.payment, qr: checkoutUrl && (await qrDataUrl(checkoutUrl)) };
+}
+
+// Popup vraagt regelmatig of er al betaald is (bijv. met een telefoon via de QR-code)
+export async function checkPayment(): Promise<PaymentView> {
+  const deps = defaultPaymentDeps();
+  if (!deps) return NO_PAYMENT;
+  return getPlayerPayment(await paymentToken(), deps);
 }

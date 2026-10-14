@@ -34,22 +34,41 @@ export function parseGameResult(input: unknown, maxTries: number): GameResult | 
   return { outcome, tries: tries as number };
 }
 
+// De betaling waarmee de ronde gespeeld is: de naam van de rekeninghouder komt bij de ronde
+export interface GamePayment {
+  id: number;
+  name: string | null;
+}
+
 export interface SaveGameDeps {
   maxTries(): Promise<number>;
-  create: ((result: GameResult) => Promise<unknown>) | null; // null: geen database
+  create: ((result: GameResult, payment: GamePayment | null) => Promise<unknown>) | null; // null: geen database
 }
 
 function defaultDeps(): SaveGameDeps {
   const db = getDb();
   return {
     maxTries: async () => (await loadSettings()).maxTries,
-    create: db && ((result) => db.game.create({ data: { ...result, outcome: DB_OUTCOMES[result.outcome] } })),
+    create:
+      db &&
+      ((result, payment) =>
+        db.game.create({
+          data: {
+            ...result,
+            outcome: DB_OUTCOMES[result.outcome],
+            ...(payment && { paymentId: payment.id, name: payment.name }),
+          },
+        })),
   };
 }
 
 // true als de ronde is opgeslagen. Ongeldige invoer, geen database of een databasefout
 // geeft false (met een waarschuwing in de serverlog); het spel gaat gewoon door.
-export async function saveGameResult(input: unknown, deps: SaveGameDeps = defaultDeps()): Promise<boolean> {
+export async function saveGameResult(
+  input: unknown,
+  payment: GamePayment | null = null,
+  deps: SaveGameDeps = defaultDeps(),
+): Promise<boolean> {
   if (!deps.create) return false;
   try {
     const result = parseGameResult(input, await deps.maxTries());
@@ -57,7 +76,7 @@ export async function saveGameResult(input: unknown, deps: SaveGameDeps = defaul
       console.warn("Ronde niet opgeslagen, ongeldige invoer:", input);
       return false;
     }
-    await deps.create(result);
+    await deps.create(result, payment);
     return true;
   } catch (error) {
     console.warn("Ronde niet opgeslagen:", error);

@@ -64,15 +64,17 @@ De taken staan in volgorde: latere taken bouwen voort op eerdere.
 
 ### Betalingen
 
-- [ ] **10. Betalen met Mollie (testomgeving)**
+- [x] **10. Betalen met Mollie (testomgeving)**
   - Mollie test-API-key in `.env`, geen echte betalingen
-  - geef de mogelijkheid in de game-manager de een qr code te uploaden
-  - Toon een QR code waarmee de speler kan betalen
+  - 4 spelletjes voor € 1,00: na betalen krijgt de speler 4 credits
+  - Klik op speel zonder credits → popup met QR-code van een unieke Mollie-betaallink per speler (vervangt het uploaden van een vaste QR-code)
   - Betaalflow: betalen → terug naar het spel → spel vrijgegeven
   - Webhook die de betaalstatus verwerkt
   - betaling registreren in de database. Naam rekeninghouder koppelen aan de uitkomst van de spelletjes van deze persoon
 
-
+- [ ] **10b. betaald pagina en score popup **
+  - maak een pagina op /betaald zodat op de mobiel zichtbaar is dat het gelukt is
+  - maak een popup met een overzicht van de scores als men minstens 1 maal gewonnen hebben. Wij kunnen dan de prijs(en) uitdelen: 1 of meer gratis shotjes,  1 of meer kakkelakken om te blingen of vrije keuze bij vraagteken.
 
 - [ ] **11. Betalingen versleuteld opslaan en koppelen aan spelletjes**
   - Naam, rekeningnummer en bedrag  opslaan (sleutel in `.env`)
@@ -95,7 +97,7 @@ De taken staan in volgorde: latere taken bouwen voort op eerdere.
 
 ## Open vragen
 
-- Waarvoor wordt betaald: per spel van 3 pogingen, of een tegoed voor meerdere spellen? Wat kost het?
+- ~~Waarvoor wordt betaald: per spel van 3 pogingen, of een tegoed voor meerdere spellen? Wat kost het?~~ Besloten (taak 10): 4 spelletjes (credits) voor € 1,00.
 - ~~Waar komt de naam van de speler vandaan?~~ Besloten (taak 7): uit de transactie als er betaald wordt via een QR-code; geen naam invullen in het spel. Highscores alleen in de game-manager, niet in het spel.
 - ~~Welke OAuth-provider voor de game-manager?~~ Besloten (taak 8): Google; inloggen alleen lokaal en in productie.
 - Moet het rekeningnummer getoond worden in de game-manager, of alleen naam en bedrag?

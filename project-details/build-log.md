@@ -669,6 +669,15 @@ Resultaat:
 3. Geen bugs gevonden die blokkeren. Opmerkingen: (a) wijzigt een beheerder het aantal pogingen terwijl iemand speelt, dan wordt dat ene spel door `saveGame` geweigerd (waarschuwing in de serverlog, spel gaat door); (b) het tandwiel toont bron "database" zodra minstens één waarde uit de database komt; (c) een time-out bij opslaan meldt "fout", terwijl de schrijfactie later toch kan slagen; (d) migratie `DROP NOT NULL` is veilig voor productie: oude code behandelt null als ongeldig en valt terug op `.env`.
 4. Oordeel: klaar om af te ronden.
 
+## Stap 58 — Opschoning: omzetting Mollie-status op één plek (14 oktober 2026)
+
+**Vraag:**
+> schoon punt 3 op
+
+**Uitgevoerde handelingen:**
+1. `statusUpdate(mollie)` in `src/lib/paymentService.ts`: zet een Mollie-betaling om naar wat er opgeslagen wordt (status, naam, betaaldatum); gebruikt door `refreshPayment` en `syncPaymentById`.
+2. Lint, typecheck en Vitest zonder fouten.
+
 ---
 ## Stap 46 — Feature afgerond: Moeilijkheidsgraad aanpassen in de game-manager (13 oktober 2026)
 
@@ -735,6 +744,87 @@ Melding gebruiker: in de database alleen `LOST`, ook na winst. Oorzaak: de dev-s
 3. Fast-forward gemerged in `main` en de lokale branch verwijderd (niet gepusht, dus geen remote branch).
 4. `current-feature.md` teruggezet en de feature toegevoegd aan History; reset gecommit; `main` één keer gepusht. De productie-run past de migratie `20261013230000_games_outcome_symbol` toe op Neon-branch `main` vóór de deploy; die verwijdert daar de oude `WON`-rijen.
 5. Dev-server gestopt, `.next` verwijderd en `npm run dev` opnieuw gestart.
+6. Productie-run (`1a0c74f`, run 38471851056) geslaagd; migratie `20261013230000_games_outcome_symbol` toegepast op productie. https://gokkast.vercel.app: `/` 200, `/game-manager` → 307, `/game-manager/inloggen` 200.
+
+## Stap 53 — Feature geladen: Betalen met Mollie (testomgeving) (14 oktober 2026)
+
+**Vraag:**
+> /feature load 10
+
+**Uitgevoerde handelingen:**
+1. Geen specbestand `context/features/10.md`; taak 10 uit `to-do.md` gebruikt.
+2. `current-feature.md` gevuld met naam, doelen en notities (status Not Started), met open vragen voor `start`: prijs per speelronde, wat er geüpload wordt als QR-code en hoe een betaling aan de speler gekoppeld wordt.
+
+## Stap 54 — Open vragen betalen beantwoord (14 oktober 2026)
+
+**Vraag:**
+> 1. 4 spelletjes voor 1 euro
+> 2. ik wil gebruikmaken van de molie betaalink met qr en deze tonen in popup als iemand op speel klikt. de speler krijgt dan 4 credits
+> 3. kan molie voor iedere speler een unieke betaallink maken. dan kan deze samen met naam en bankrekeningnummer in de database opgeslagen worden
+
+**Uitgevoerde handelingen:**
+1. Antwoord: ja, met de Mollie Payments API maakt de app per klik een nieuwe betaling met een eigen checkout-URL; daar maakt de app de QR-code van.
+2. `current-feature.md` bijgewerkt: prijs 4 credits voor € 1,00, popup met QR bij speel zonder credits, credits op de server bij de betaling, uploaden van een vaste QR-code vervalt. Rekeningnummer pas in taak 11 (versleuteld) opslaan, nu alleen de naam.
+3. `to-do.md`: taak 10 aangepast en open vraag over de prijs als besloten gemarkeerd.
+
+## Stap 55 — Feature gestart en gebouwd: Betalen met Mollie (testomgeving) (14 oktober 2026)
+
+**Vraag:**
+> /feature start
+
+**Uitgevoerde handelingen:**
+1. Status In Progress; branch `feature/betalen-met-mollie-testomgeving`.
+2. `qrcode@1.5.4` en `@types/qrcode@1.5.6` geïnstalleerd (vastgezet). De 9 `npm audit`-meldingen zaten er al (Prisma-afhankelijkheden).
+3. Schema: `payments` met `token`, `mollie_id`, `checkout_url`, `status` (enum `PaymentStatus`, waarden als bij Mollie), `amount_cents`, `credits`, `credits_left`, `name` (optioneel), `paid_at`, `updated_at`; `games.payment_id` met relatie. Migratie `20261014000000_payments_mollie` gemaakt met `prisma migrate diff` van het oude naar het nieuwe schema (geen database nodig); verwijdert eerst oude rijen uit `payments`.
+4. Standaard `GAME_ROUNDS_PER_PAYMENT` 4; nieuwe variabelen `MOLLIE_API_KEY` (alleen `test_`) en `GAME_PRICE_CENTS` (100).
+5. Nieuw: `src/lib/payments.ts` (instellingen, bedragen, token, webhook-adres), `mollie.ts` (fetch-client), `paymentStore.ts` (Prisma en geheugen), `paymentService.ts` (betaling starten, status bij Mollie ophalen, credits afboeken), `qr.ts`; server actions `startPayment`, `checkPayment`, `spendGameCredit` en koppeling van rondes aan de betaling in `saveGame`; webhook `src/app/api/mollie/webhook/route.ts`; pagina `/betaald`; popup `PaymentDialog.tsx`; credits in `Stats`.
+6. Tests: Vitest 136 (was 86) met `payments`, `mollie`, `paymentStore`, `paymentService` en de webhook-route; Playwright 22 (was 17) met nep-Mollie `e2e/mollie-mock.ts` en tweede server op poort 3102. Betaaltests 20/20 bij 4x herhalen. Lint, typecheck en build zonder fouten.
+7. README (sectie Betalen, variabelen, Vercel-tabel, structuur) en `.env.example` bijgewerkt.
+8. Nog te doen door de gebruiker: migratie toepassen op Neon `dev`, Mollie test-key in `.env.local` en in Vercel (Preview/Development), en lokaal een echte testbetaling doen.
+
+## Stap 56 — Lokaal getest met de echte Mollie-testomgeving (14 oktober 2026)
+
+**Vraag:**
+> alle 4 punten gedaan
+
+**Uitgevoerde handelingen:**
+1. Gecontroleerd: test-key in `.env.local`, `prisma migrate status` op `dev` up to date, dev-server bereikbaar.
+2. Eerste poging: popup gaf "Betalen lukt nu niet" en "1 spel". Oorzaken: (a) de dev-server had nog de oude Prisma Client in het geheugen (zelfde als stap 51); buiten de dev-server werkte `startPayment` met `dev` en Mollie wel; (b) het veld in de game-manager is leeg, dus gold `GAME_ROUNDS_PER_PAYMENT=1` uit `.env.local`.
+3. `.env.local`: `GAME_ROUNDS_PER_PAYMENT` op 4; dev-server gestopt, `.next` verwijderd, `npm run dev` opnieuw gestart.
+4. Met een Playwright-script (scratchpad) de echte flow doorlopen: popup "4 spelletjes voor € 1,00" met QR-code → betaallink → Mollie-testpagina (iDEAL, bank ING, status Betaald) → terug via `/betaald` naar het spel met 4 credits → spel gespeeld, 3 credits.
+5. In `dev`: betaling `tr_LuP9pJKjgfnsHrSwn6AYJ` status `PAID`, 100 cent, naam `T. TEST` (van Mollie), en de gespeelde ronde (`WON kakkerlak`) gekoppeld met `payment_id` en naam. Twee open testbetalingen van de controles blijven staan.
+6. Gezien: een spel dat halverwege wordt verlaten (pagina herladen) kost toch de credit; de ronde wordt dan niet opgeslagen.
+
+## Stap 57 — Feature gereviewd: Betalen met Mollie (testomgeving) (14 oktober 2026)
+
+**Vraag:**
+> /feature review
+
+**Uitgevoerde handelingen:**
+1. Alle wijzigingen nagelopen tegen de doelen in `current-feature.md`: alle 10 doelen gehaald.
+2. Aandachtspunten (geen blokkades): credit weg bij herladen midden in een spel (keuze gebruiker open); uitkomst van het spel blijft in de browser bepaald (bekende beperking); dubbele omzetting van de Mollie-status in `refreshPayment` en `syncPaymentById`; een late "open" van Mollie kan "geannuleerd" in theorie terugzetten (onschadelijk); `PAYMENTS_TEST_STORE` is testcode in de app (afgeschermd).
+3. Gezien dat de gebruiker taak 10b heeft toegevoegd (`/betaald` op de mobiel, scorepopup); `/betaald` bestaat al, maar toont op de telefoon niet of de betaling gelukt is.
+4. Oordeel: klaar om af te ronden.
+
+## Stap 58 — Opschoning: omzetting Mollie-status op één plek (14 oktober 2026)
+
+**Vraag:**
+> schoon punt 3 op
+
+**Uitgevoerde handelingen:**
+1. `statusUpdate(mollie)` in `src/lib/paymentService.ts`: zet een Mollie-betaling om naar wat er opgeslagen wordt (status, naam, betaaldatum); gebruikt door `refreshPayment` en `syncPaymentById`.
+2. Lint, typecheck en Vitest zonder fouten.
+
+## Stap 59 — Feature afgerond: Betalen met Mollie (testomgeving) (14 oktober 2026)
+
+**Vraag:**
+> /feature complete
+
+**Uitgevoerde handelingen:**
+1. Taak 10 afgevinkt in `to-do.md`; status Complete; diff gecontroleerd op geheimen (geen).
+2. Feature gecommit, fast-forward gemerged in `main`, lokale branch verwijderd (niet gepusht, dus geen remote branch).
+3. `current-feature.md` teruggezet en de feature toegevoegd aan History; reset gecommit; `main` één keer gepusht. De productie-run past de migratie `20261014000000_payments_mollie` toe op Neon-branch `main` vóór de deploy. Productie heeft geen `MOLLIE_API_KEY`, dus het spel blijft daar gratis tot taak 12.
+4. Dev-server gestopt, `.next` verwijderd en `npm run dev` opnieuw gestart.
 
 ---
 

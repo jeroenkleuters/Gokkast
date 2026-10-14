@@ -39,7 +39,7 @@ describe("loadSettings", () => {
   });
 
   it("gebruikt zonder database en .env de vaste standaard", async () => {
-    expect(await loadSettings(null, {})).toEqual({ odds: 30, maxTries: 3, roundsPerPayment: 1, source: "env" });
+    expect(await loadSettings(null, {})).toEqual({ odds: 30, maxTries: 3, roundsPerPayment: 4, source: "env" });
   });
 });
 

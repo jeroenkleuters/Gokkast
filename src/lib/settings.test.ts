@@ -41,7 +41,7 @@ describe("parseFlag", () => {
 describe("readSettings", () => {
   it("gebruikt de standaardwaarden zonder .env", () => {
     expect(readSettings({})).toEqual(DEFAULT_SETTINGS);
-    expect(DEFAULT_SETTINGS).toEqual({ odds: 30, maxTries: 3, roundsPerPayment: 1 });
+    expect(DEFAULT_SETTINGS).toEqual({ odds: 30, maxTries: 3, roundsPerPayment: 4 });
   });
 
   it("leest geldige waarden uit .env", () => {

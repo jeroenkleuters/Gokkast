@@ -8,7 +8,7 @@ import styles from "./game-manager.module.css";
 const FIELDS: { key: SettingKey; label: string; prefix?: string; hint: string }[] = [
   { key: "odds", label: "Winkans", prefix: "1 op", hint: "Kans per draai zonder vastgezette rollen. Hoger = moeilijker." },
   { key: "maxTries", label: "Pogingen per spel", hint: "Aantal keer draaien per spel." },
-  { key: "roundsPerPayment", label: "Speelrondes per betaling", hint: "Nog niet in gebruik (betalen komt in taak 10)." },
+  { key: "roundsPerPayment", label: "Speelrondes per betaling", hint: "Zoveel spelletjes (credits) krijgt een speler na één betaling." },
 ];
 
 const initialState: SettingsFormState = { status: "idle" };

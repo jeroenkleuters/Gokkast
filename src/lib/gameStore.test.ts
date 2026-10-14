@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { parseGameResult, saveGameResult, type GameResult } from "@/lib/gameStore";
+import { parseGameResult, saveGameResult, type GamePayment, type GameResult } from "@/lib/gameStore";
 
 describe("parseGameResult", () => {
   it("accepteert winst na 1 t/m maxTries pogingen", () => {
@@ -48,36 +48,43 @@ describe("parseGameResult", () => {
 describe("saveGameResult", () => {
   afterEach(() => vi.restoreAllMocks());
 
-  const deps = (create: ((r: GameResult) => Promise<unknown>) | null) => ({ maxTries: async () => 3, create });
+  const deps = (create: ((r: GameResult, p: GamePayment | null) => Promise<unknown>) | null) => ({ maxTries: async () => 3, create });
 
   it("slaat een geldige ronde op", async () => {
     const create = vi.fn(async () => ({}));
-    expect(await saveGameResult({ outcome: "WON kakkerlak", tries: 2 }, deps(create))).toBe(true);
-    expect(create).toHaveBeenCalledExactlyOnceWith({ outcome: "WON kakkerlak", tries: 2 });
+    expect(await saveGameResult({ outcome: "WON kakkerlak", tries: 2 }, null, deps(create))).toBe(true);
+    expect(create).toHaveBeenCalledExactlyOnceWith({ outcome: "WON kakkerlak", tries: 2 }, null);
+  });
+
+  it("koppelt de ronde aan de betaling waarmee gespeeld is", async () => {
+    const create = vi.fn(async () => ({}));
+    const payment = { id: 12, name: "A. de Vries" };
+    expect(await saveGameResult({ outcome: "LOST", tries: 3 }, payment, deps(create))).toBe(true);
+    expect(create).toHaveBeenCalledExactlyOnceWith({ outcome: "LOST", tries: 3 }, payment);
   });
 
   it("slaat niets op zonder database", async () => {
-    expect(await saveGameResult({ outcome: "WON shot", tries: 2 }, deps(null))).toBe(false);
+    expect(await saveGameResult({ outcome: "WON shot", tries: 2 }, null, deps(null))).toBe(false);
   });
 
   it("slaat ongeldige invoer niet op", async () => {
     vi.spyOn(console, "warn").mockImplementation(() => {});
     const create = vi.fn(async () => ({}));
-    expect(await saveGameResult({ outcome: "LOST", tries: 1 }, deps(create))).toBe(false);
+    expect(await saveGameResult({ outcome: "LOST", tries: 1 }, null, deps(create))).toBe(false);
     expect(create).not.toHaveBeenCalled();
   });
 
   it("gebruikt het maximum uit de instellingen", async () => {
     const create = vi.fn(async () => ({}));
     const fiveTries = { maxTries: async () => 5, create };
-    expect(await saveGameResult({ outcome: "LOST", tries: 5 }, fiveTries)).toBe(true);
-    expect(await saveGameResult({ outcome: "LOST", tries: 3 }, fiveTries)).toBe(false);
+    expect(await saveGameResult({ outcome: "LOST", tries: 5 }, null, fiveTries)).toBe(true);
+    expect(await saveGameResult({ outcome: "LOST", tries: 3 }, null, fiveTries)).toBe(false);
   });
 
   it("geeft false en een waarschuwing bij een databasefout", async () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
     const create = vi.fn(() => Promise.reject(new Error("verbinding geweigerd")));
-    expect(await saveGameResult({ outcome: "WON shot", tries: 1 }, deps(create))).toBe(false);
+    expect(await saveGameResult({ outcome: "WON shot", tries: 1 }, null, deps(create))).toBe(false);
     expect(warn).toHaveBeenCalledOnce();
   });
 });

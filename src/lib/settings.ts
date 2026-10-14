@@ -5,7 +5,7 @@
 export interface GameSettings {
   odds: number; // winkans 1 op odds per draai zonder vastgezette rollen
   maxTries: number; // pogingen per spel
-  roundsPerPayment: number; // speelrondes per betaling (nog niet gebruikt, zie taak 10)
+  roundsPerPayment: number; // speelrondes (credits) per betaling, zie payments.ts
   source?: SettingsSource; // waar de waarden vandaan komen (getoond bij het tandwiel)
 }
 
@@ -20,7 +20,7 @@ export type SettingsRow = Record<SettingKey, number | null>;
 export const DEFAULT_SETTINGS: GameSettings = {
   odds: 30,
   maxTries: 3,
-  roundsPerPayment: 1,
+  roundsPerPayment: 4, // 4 spelletjes voor € 1,00 (taak 10)
 };
 
 // Bovengrenzen: de invoer kende al max 100000, en meer dan 5 lampjes passen niet in de kast

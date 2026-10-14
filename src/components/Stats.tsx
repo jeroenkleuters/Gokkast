@@ -3,9 +3,10 @@ interface StatsProps {
   won: number;
   odds: number;
   chanceNow: string;
+  credits: number | null; // null: betalen staat uit
 }
 
-export default function Stats({ played, won, odds, chanceNow }: StatsProps) {
+export default function Stats({ played, won, odds, chanceNow, credits }: StatsProps) {
   return (
     <div id="stats">
       Gespeeld: <b>{played}</b>
@@ -15,6 +16,12 @@ export default function Stats({ played, won, odds, chanceNow }: StatsProps) {
       Winkans: <b>1 op {odds}</b>
       <br />
       Deze draai: <b>{chanceNow}</b>
+      {credits !== null && (
+        <>
+          <br />
+          Credits: <b data-testid="credits">{credits}</b>
+        </>
+      )}
     </div>
   );
 }

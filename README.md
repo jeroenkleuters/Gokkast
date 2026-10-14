@@ -89,6 +89,11 @@ verliesmelding en NIEUW SPEL. De uitkomst is voorspelbaar: `?kans=1` geeft altij
 verlies gebruiken de tests `?kans=100000` met een `Math.random` die nooit onder 0,05 komt.
 Draait er al iets op poort 3100, dan gebruikt Playwright die server (behalve op CI).
 
+Voor betalen (`e2e/betalen.spec.ts`) start Playwright er nog twee servers bij: een nep-Mollie op
+poort 3101 (`e2e/mollie-mock.ts`, met een betaalpagina waarop je de uitkomst kiest, net als de
+testpagina van Mollie) en dezelfde build op poort 3102 met betalen aan, winkans 1 en de betalingen
+in het geheugen (`PAYMENTS_TEST_STORE=true`, er is geen database). Er gaat niets naar Mollie.
+
 ## Spelen
 
 - **Speelknop / hendel** of `Spatie` / `Enter`: rollen draaien.
@@ -96,6 +101,7 @@ Draait er al iets op poort 3100, dan gebruikt Playwright die server (behalve op 
 - Je hebt standaard **3 pogingen** per spel (instelbaar); drie dezelfde plaatjes is winst.
 - Vastzetten van rollen met hetzelfde plaatje vergroot de winkans.
 - Het **tandwiel** toont de huidige instellingen (alleen-lezen).
+- Staat [betalen](#betalen) aan, dan kost elk spel één credit; zonder credits opent **SPEEL** de betaalpopup.
 
 ## Instellingen
 
@@ -114,12 +120,43 @@ ongeldig, dan geldt de standaardwaarde. Na een wijziging de server herstarten.
 | ------------------------- | ------------------------------------------------------------ | ------------------- | --------- |
 | `GAME_ODDS`               | Winkans per draai zonder vastgezette rollen: 1 op deze waarde | 1 t/m 100000        | `30`      |
 | `GAME_MAX_TRIES`          | Aantal pogingen per spel                                     | 1 t/m 5             | `3`       |
-| `GAME_ROUNDS_PER_PAYMENT` | Speelrondes per betaling (nog niet in gebruik, komt met betalen) | 1 t/m 100       | `1`       |
+| `GAME_ROUNDS_PER_PAYMENT` | Spelletjes (credits) per betaling, zie [Betalen](#betalen)  | 1 t/m 100           | `4`       |
 | `GAME_ALLOW_ODDS_URL`     | Winkans via de adresbalk overschrijven, bijv. `/?kans=1`      | `true`/`1`/`ja`/`aan` | uit     |
 
 Met `GAME_ALLOW_ODDS_URL=true` geeft
 [http://localhost:3000/?kans=10](http://localhost:3000/?kans=10) een winkans van 1 op 10. Handig bij
 ontwikkelen en testen; laat dit in productie uit.
+
+## Betalen
+
+Betalen gaat via [Mollie](https://docs.mollie.com/docs/getting-started), voorlopig **alleen in de
+testmodus**: de app accepteert alleen een test-key (`test_...`), dus er wordt geen echt geld
+afgeschreven. Live betalen volgt in taak 12.
+
+- Een speler zonder credits klikt op **SPEEL** → een popup met een QR-code. Die hoort bij een eigen
+  Mollie-betaling voor deze speler (per speler een unieke betaallink). Scannen met de telefoon, of
+  "Of betaal op dit apparaat".
+- Na betalen krijgt de speler **4 spelletjes voor € 1,00** (`GAME_ROUNDS_PER_PAYMENT`, ook in te
+  stellen in de game-manager, en `GAME_PRICE_CENTS`). Elk nieuw spel kost één credit.
+- De credits staan op de server bij de betaling (tabel `payments`); de browser heeft alleen een
+  willekeurige sleutel in een httpOnly-cookie. De naam van de rekeninghouder (van Mollie, o.a. bij
+  iDEAL) komt bij de betaling en bij elke ronde die ermee gespeeld is (`games.name`, `games.payment_id`).
+  Het rekeningnummer volgt versleuteld in taak 11.
+- De status komt altijd van Mollie zelf: de popup vraagt die elke 3 seconden op, de pagina `/betaald`
+  (terugkeer na betalen) ook, en Mollie meldt elke wijziging via de webhook
+  `POST /api/mollie/webhook`. Die krijgt alleen het ID en haalt de status zelf op bij Mollie.
+
+| Variabele          | Betekenis                                                   | Standaard        |
+| ------------------ | ----------------------------------------------------------- | ---------------- |
+| `MOLLIE_API_KEY`   | Test-key uit het Mollie-dashboard (*Developers → API keys*). Leeg = betalen uit, het spel is gratis | leeg |
+| `GAME_PRICE_CENTS` | Prijs van één betaling in centen (1 t/m 10000)              | `100` (€ 1,00)   |
+
+Betalen werkt alleen met een database. Lokaal kan Mollie de webhook niet bereiken (localhost); de app
+stuurt dan geen webhook mee en ziet de betaling via de popup of `/betaald`. In previews staat Vercel
+Deployment Protection aan, waardoor de webhook daar niet aankomt; de popup werkt wel.
+
+Zelf proberen: zet de test-key in `.env.local`, herstart `npm run dev`, klik op SPEEL en kies op de
+testpagina van Mollie een betaalmethode en de status *Paid*.
 
 ## Database
 
@@ -228,12 +265,14 @@ De spelinstellingen (zie [Instellingen](#instellingen)) staan in Vercel onder
 | ------------------------- | ---------- | ------- | ----------- |
 | `GAME_ODDS`               | `30`       | `30`    | `30`        |
 | `GAME_MAX_TRIES`          | `3`        | `3`     | `3`         |
-| `GAME_ROUNDS_PER_PAYMENT` | `1`        | `1`     | `1`         |
+| `GAME_ROUNDS_PER_PAYMENT` | `4`        | `4`     | `4`         |
 | `GAME_ALLOW_ODDS_URL`     | `false`    | `true`  | `true`      |
 | `DATABASE_URL` (+ `_UNPOOLED`) | Neon `main` | Neon `dev` | Neon `dev` |
 | `AUTH_SECRET`             | eigen sleutel | eigen sleutel | eigen sleutel |
 | `AUTH_GOOGLE_ID` / `AUTH_GOOGLE_SECRET` | Google OAuth-client | idem | idem |
 | `GAME_MANAGER_ADMINS`     | beheerders | beheerders | beheerders |
+| `MOLLIE_API_KEY`          | leeg (taak 12) | Mollie test-key | Mollie test-key |
+| `GAME_PRICE_CENTS`        | `100`      | `100`   | `100`       |
 
 In previews werkt `?kans=` dus wel, in productie niet. Een wijziging geldt vanaf de volgende deploy
 (workflow opnieuw draaien via *Actions → CI/CD → Run workflow*). Development-waarden lokaal ophalen:
@@ -270,10 +309,12 @@ Gokkast/
 ├── src/
 │   ├── app/            layout, pagina, server actions (actions.ts) en globale CSS (Next.js App Router)
 │   │   ├── game-manager/  beheerpagina met moeilijkheidsgraad (SettingsForm), server actions en inlogpagina (inloggen/)
-│   │   └── api/auth/      Auth.js-routes (inloggen, terugkeer van Google, uitloggen)
+│   │   ├── betaald/       terugkeer na betalen bij Mollie
+│   │   ├── api/auth/      Auth.js-routes (inloggen, terugkeer van Google, uitloggen)
+│   │   └── api/mollie/webhook/  webhook van Mollie (betaalstatus)
 │   ├── auth.ts         Auth.js-instellingen (Google, alleen beheerders)
-│   ├── components/     SlotMachine, Reel, Lever, InfoPanel, Stats, SettingsDialog, GameClient
-│   ├── lib/            spellogica (game.ts), instellingen (settings.ts, settingsStore.ts), database (db.ts), rondes opslaan (gameStore.ts), beheerders (admins.ts, dal.ts), geluid, opslag, muntenregen, tests (*.test.ts)
+│   ├── components/     SlotMachine, Reel, Lever, InfoPanel, Stats, SettingsDialog, PaymentDialog, GameClient
+│   ├── lib/            spellogica (game.ts), instellingen (settings.ts, settingsStore.ts), database (db.ts), rondes opslaan (gameStore.ts), betalen (payments.ts, mollie.ts, paymentStore.ts, paymentService.ts, qr.ts), beheerders (admins.ts, dal.ts), geluid, opslag, muntenregen, tests (*.test.ts)
 │   └── generated/      Prisma Client (gegenereerd, niet in git)
 ├── prisma/             schema.prisma, migrations/, seed.ts
 ├── prisma.config.ts    instellingen voor de Prisma CLI
@@ -281,7 +322,7 @@ Gokkast/
 ├── .env.example        alle instellingen met uitleg (kopiëren naar .env.local)
 ├── .github/workflows/  CI/CD: controles en deploy naar Vercel (ci-cd.yml)
 ├── vercel.json         Vercel-instellingen (eigen Git-deploys uit)
-├── e2e/                visuele tests met Playwright (*.spec.ts)
+├── e2e/                visuele tests met Playwright (*.spec.ts) en de nep-Mollie (mollie-mock.ts)
 ├── playwright.config.ts instellingen voor de visuele tests
 ├── vitest.config.mts   instellingen voor de unit-tests
 ├── v1/                 versie 1: losse HTML/CSS/JS, opent direct in de browser
