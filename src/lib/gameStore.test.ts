@@ -1,5 +1,14 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
-import { parseGameResult, saveGameResult, type GamePayment, type GameResult } from "@/lib/gameStore";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import {
+  finishGame,
+  memoryGameStore,
+  parseGameResult,
+  saveGameResult,
+  type GamePayment,
+  type GameResult,
+  type GameStore,
+  type PaidGame,
+} from "@/lib/gameStore";
 
 describe("parseGameResult", () => {
   it("accepteert winst na 1 t/m maxTries pogingen", () => {
@@ -86,5 +95,68 @@ describe("saveGameResult", () => {
     const create = vi.fn(() => Promise.reject(new Error("verbinding geweigerd")));
     expect(await saveGameResult({ outcome: "WON shot", tries: 1 }, null, deps(create))).toBe(false);
     expect(warn).toHaveBeenCalledOnce();
+  });
+});
+
+describe("finishGame", () => {
+  afterEach(() => vi.restoreAllMocks());
+
+  let store: GameStore;
+  const deps = () => ({ maxTries: async () => 3, create: store.create, outcomes: store.outcomes });
+  const paid = (creditsLeft: number): PaidGame => ({ id: 1, name: "T. TEST", credits: 4, creditsLeft });
+  const won = { outcome: "WON shot", tries: 1 } as const;
+  const lost = { outcome: "LOST", tries: 3 } as const;
+
+  // De vier spelletjes van een betaling: credits gaan aan het begin van elk spel af
+  async function playAll(results: { outcome: GameResult["outcome"]; tries: number }[]) {
+    const finished = [];
+    for (const [i, result] of results.entries()) finished.push(await finishGame(result, paid(3 - i), deps()));
+    return finished;
+  }
+
+  beforeEach(() => {
+    store = memoryGameStore();
+  });
+
+  it("geeft na het laatste spelletje de prijzen van de betaling", async () => {
+    const finished = await playAll([won, lost, { outcome: "WON vraagteken", tries: 2 }, won]);
+    expect(finished.map((f) => f.saved)).toEqual([true, true, true, true]);
+    expect(finished.slice(0, 3).map((f) => f.prizes)).toEqual([null, null, null]);
+    expect(finished[3].prizes).toEqual({ name: "T. TEST", games: 4, prizes: { shot: 2, kakkerlak: 0, vraagteken: 1 } });
+  });
+
+  it("geeft geen prijzen als er niets gewonnen is", async () => {
+    const finished = await playAll([lost, lost, lost, lost]);
+    expect(finished.at(-1)).toEqual({ saved: true, prizes: null });
+  });
+
+  it("telt alleen de rondes van deze betaling", async () => {
+    await finishGame(won, { ...paid(3), id: 2 }, deps());
+    await finishGame(won, null, deps());
+    const finished = await playAll([lost, lost, lost, { outcome: "WON kakkerlak", tries: 1 }]);
+    expect(finished.at(-1)!.prizes!.prizes).toEqual({ shot: 0, kakkerlak: 1, vraagteken: 0 });
+  });
+
+  it("slaat nooit meer rondes op dan er spelletjes betaald zijn", async () => {
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    await playAll([won, won, won, won]);
+    expect(await finishGame(won, paid(0), deps())).toEqual({ saved: false, prizes: null });
+    expect(await store.outcomes(1)).toHaveLength(4);
+  });
+
+  it("geeft geen prijzen bij ongeldige invoer", async () => {
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    expect(await finishGame({ outcome: "WON jackpot", tries: 1 }, paid(0), deps())).toEqual({ saved: false, prizes: null });
+  });
+
+  it("zonder betaling alleen opslaan, zonder prijzen", async () => {
+    expect(await finishGame(won, null, deps())).toEqual({ saved: true, prizes: null });
+  });
+
+  it("gaat door zonder prijzen als de rondes niet te lezen zijn", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const failing = { ...deps(), outcomes: async () => Promise.reject(new Error("db weg")) };
+    expect(await finishGame(won, paid(0), failing)).toEqual({ saved: false, prizes: null });
+    expect(warn).toHaveBeenCalled();
   });
 });

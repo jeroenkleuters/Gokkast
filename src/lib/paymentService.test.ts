@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { CreatePaymentInput, MollieClient, MolliePayment } from "@/lib/mollie";
 import {
   getPlayerPayment,
+  getReturnPayment,
   loadPaymentInfo,
   NO_PAYMENT,
   PAYMENT_ERROR,
@@ -78,10 +79,15 @@ describe("betaalflow", () => {
     expect(mollie.created[0]).toEqual({
       amountCents: 100,
       description: "Gokkast: 4 spelletjes",
-      redirectUrl: "https://gokkast.test/betaald",
+      redirectUrl: expect.stringMatching(/^https:\/\/gokkast\.test\/betaald\?ref=[A-Za-z0-9_-]{16}$/),
       webhookUrl: "https://gokkast.test/api/mollie/webhook",
     });
-    expect(await store.findByToken(a.token)).toMatchObject({ mollieId: "tr_test1", amountCents: 100, credits: 4, creditsLeft: 0 });
+    const stored = await store.findByToken(a.token);
+    expect(stored).toMatchObject({ mollieId: "tr_test1", amountCents: 100, credits: 4, creditsLeft: 0 });
+    // De referentie in de terugkeer-URL is die van de betaling, en niet het token van de cookie
+    expect(mollie.created[0].redirectUrl).toBe(`${ORIGIN}/betaald?ref=${stored!.reference}`);
+    expect(stored!.reference).not.toBe(a.token);
+    expect((await store.findByToken(b.token))!.reference).not.toBe(stored!.reference);
   });
 
   it("toont dezelfde betaling opnieuw zolang die nog open is", async () => {
@@ -192,6 +198,42 @@ describe("betaalflow", () => {
     expect(await getPlayerPayment(undefined, deps)).toEqual(NO_PAYMENT);
     expect(await getPlayerPayment("a".repeat(32), deps)).toEqual(NO_PAYMENT);
     expect(await spendCredit(undefined, deps)).toEqual({ ok: false, payment: NO_PAYMENT });
+  });
+
+  it("/betaald toont via de referentie wat er betaald is, ook zonder cookie", async () => {
+    await start();
+    const { reference } = (await store.findByMollieId("tr_test1"))!;
+    expect(await getReturnPayment(reference!, deps)).toEqual({ status: "open", amount: "€ 1,00", credits: 4 });
+
+    // De status komt van Mollie, ook als de webhook nog niet is geweest
+    mollie.setStatus("tr_test1", "paid", "T. TEST");
+    expect(await getReturnPayment(reference!, deps)).toEqual({ status: "paid", amount: "€ 1,00", credits: 4 });
+  });
+
+  it("/betaald toont een mislukte betaling als mislukt", async () => {
+    await start();
+    const { reference } = (await store.findByMollieId("tr_test1"))!;
+    mollie.setStatus("tr_test1", "canceled");
+    expect(await getReturnPayment(reference!, deps)).toMatchObject({ status: "canceled" });
+  });
+
+  it("/betaald zonder geldige of met een onbekende referentie toont geen betaling", async () => {
+    const { token } = await start();
+    expect(await getReturnPayment(undefined, deps)).toBeNull();
+    expect(await getReturnPayment("kort", deps)).toBeNull();
+    expect(await getReturnPayment(token, deps)).toBeNull(); // het token van de cookie werkt niet als referentie
+    expect(await getReturnPayment("a".repeat(16), deps)).toBeNull();
+    deps.store = null;
+    expect(await getReturnPayment("a".repeat(16), deps)).toBeNull();
+  });
+
+  it("de referentie geeft geen credits: alleen het token van de cookie kan spelen", async () => {
+    const { token } = await start();
+    const { reference } = (await store.findByMollieId("tr_test1"))!;
+    mollie.setStatus("tr_test1", "paid");
+    await getReturnPayment(reference!, deps);
+    expect(await spendCredit(reference!, deps)).toEqual({ ok: false, payment: NO_PAYMENT });
+    expect(await spendCredit(token, deps)).toMatchObject({ ok: true });
   });
 
   it("geeft het spel de prijs, de credits per betaling en de betaling van de speler", async () => {

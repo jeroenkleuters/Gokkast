@@ -7,6 +7,7 @@ import { prismaPaymentStore } from "@/lib/paymentStore";
 const row = {
   id: 1,
   token: "t".repeat(32),
+  reference: "r".repeat(16),
   mollieId: "tr_test1",
   checkoutUrl: "https://mollie.test/checkout/tr_test1",
   status: "OPEN",

@@ -66,6 +66,7 @@ enum PaymentStatus {
 model Payment {
   id          Int           @id @default(autoincrement())
   token       String        @unique
+  reference   String?       @unique // in de terugkeer-URL (/betaald?ref=...): alleen tonen, geeft geen credits
   mollieId    String        @unique @map("mollie_id")
   checkoutUrl String        @map("checkout_url")
   status      PaymentStatus @default(OPEN)

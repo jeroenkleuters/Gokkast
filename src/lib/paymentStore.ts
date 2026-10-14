@@ -8,6 +8,7 @@ import { memoryStoreAllowed, type PaymentStatus } from "@/lib/payments";
 export interface StoredPayment {
   id: number;
   token: string;
+  reference: string | null; // null bij betalingen van voor taak 10b
   mollieId: string;
   checkoutUrl: string;
   status: PaymentStatus;
@@ -17,7 +18,7 @@ export interface StoredPayment {
   name: string | null;
 }
 
-export type NewPayment = Pick<StoredPayment, "token" | "mollieId" | "checkoutUrl" | "amountCents" | "credits">;
+export type NewPayment = Pick<StoredPayment, "token" | "reference" | "mollieId" | "checkoutUrl" | "amountCents" | "credits">;
 
 export interface StatusUpdate {
   status: PaymentStatus;
@@ -29,6 +30,7 @@ export interface PaymentStore {
   create(data: NewPayment): Promise<StoredPayment>;
   findByToken(token: string): Promise<StoredPayment | null>;
   findByMollieId(mollieId: string): Promise<StoredPayment | null>;
+  findByReference(reference: string): Promise<StoredPayment | null>;
   // Nieuwe status van Mollie. Betaald is definitief: de credits komen er precies één keer bij,
   // ook als de webhook en het spel de betaling tegelijk bijwerken.
   updateStatus(mollieId: string, update: StatusUpdate): Promise<StoredPayment | null>;
@@ -43,6 +45,7 @@ export function prismaPaymentStore(db: PrismaClient): PaymentStore {
   const select = {
     id: true,
     token: true,
+    reference: true,
     mollieId: true,
     checkoutUrl: true,
     status: true,
@@ -58,6 +61,7 @@ export function prismaPaymentStore(db: PrismaClient): PaymentStore {
     create: async (data) => toPayment(await db.payment.create({ data, select }))!,
     findByToken: async (token) => toPayment(await db.payment.findUnique({ where: { token }, select })),
     findByMollieId: async (mollieId) => toPayment(await db.payment.findUnique({ where: { mollieId }, select })),
+    findByReference: async (reference) => toPayment(await db.payment.findUnique({ where: { reference }, select })),
 
     async updateStatus(mollieId, { status, name, paidAt }) {
       const current = await db.payment.findUnique({ where: { mollieId }, select });
@@ -94,6 +98,7 @@ export function memoryPaymentStore(): PaymentStore {
     },
     findByToken: async (token) => copy(payments.find((p) => p.token === token)),
     findByMollieId: async (mollieId) => copy(payments.find((p) => p.mollieId === mollieId)),
+    findByReference: async (reference) => copy(payments.find((p) => p.reference === reference)),
     async updateStatus(mollieId, { status, name }) {
       const p = payments.find((p) => p.mollieId === mollieId);
       if (!p) return null;

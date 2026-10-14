@@ -14,18 +14,22 @@ import {
 } from "@/lib/game";
 import { coinShower } from "@/lib/coinShower";
 import { sfx } from "@/lib/sound";
+import type { GameOutcome } from "@/lib/gameStore";
 import type { PaymentInfo, PaymentView } from "@/lib/paymentService";
+import type { PrizeSummary } from "@/lib/prizes";
 import type { GameSettings } from "@/lib/settings";
 import { KEYS, readStorage, writeStorage } from "@/lib/storage";
 import InfoPanel from "./InfoPanel";
 import Lever from "./Lever";
 import PaymentDialog from "./PaymentDialog";
+import PrizeDialog from "./PrizeDialog";
 import Reel, { type ReelHandle } from "./Reel";
 import SettingsDialog from "./SettingsDialog";
 import Stats from "./Stats";
 
 const GAME_W = 1024;
 const GAME_H = 768;
+const PRIZES_DELAY_MS = 1500; // eerst de winst zien (munten), dan de score-popup
 
 interface SlotMachineProps {
   settings: GameSettings;
@@ -38,6 +42,7 @@ export default function SlotMachine({ settings, payment }: SlotMachineProps) {
   const [soundOn, setSoundOn] = useState(() => readStorage(KEYS.sound) !== "uit");
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [paymentOpen, setPaymentOpen] = useState(false);
+  const [prizes, setPrizes] = useState<PrizeSummary | null>(null);
   const [credits, setCredits] = useState(payment?.payment.creditsLeft ?? 0);
   const [leverPulled, setLeverPulled] = useState(false);
   const [initialSymbols] = useState(() => state.current);
@@ -105,11 +110,26 @@ export default function SlotMachine({ settings, payment }: SlotMachineProps) {
     if (isWin(result)) {
       sfx.win();
       coinShower(gameRef.current!);
-      void saveGame({ outcome: `WON ${SYMBOL_NAMES[result[0]]}`, tries }).catch(() => {});
+      finish(`WON ${SYMBOL_NAMES[result[0]]}`, tries);
     } else if (state.triesLeft === 1) {
       sfx.lose();
-      void saveGame({ outcome: "LOST", tries }).catch(() => {});
+      finish("LOST", tries);
     }
+  }
+
+  // Ronde opslaan; na het laatste spelletje van een betaling met winst komt de score-popup
+  // (de betaalpopup gaat dan dicht: eerst de prijzen uitdelen)
+  function finish(outcome: GameOutcome, tries: number) {
+    saveGame({ outcome, tries })
+      .then((finished) => {
+        const summary = finished.prizes;
+        if (!summary) return;
+        setTimeout(() => {
+          setPaymentOpen(false);
+          setPrizes(summary);
+        }, PRIZES_DELAY_MS);
+      })
+      .catch(() => {});
   }
 
   function toggleHold(reel: number) {
@@ -119,6 +139,7 @@ export default function SlotMachine({ settings, payment }: SlotMachineProps) {
   }
 
   const onKeyDown = useEffectEvent((e: KeyboardEvent) => {
+    if (prizes) return; // de score-popup sluit alleen met de knop
     if (settingsOpen || paymentOpen) {
       if (e.key === "Escape") {
         setSettingsOpen(false);
@@ -262,6 +283,8 @@ export default function SlotMachine({ settings, payment }: SlotMachineProps) {
           onClose={() => setPaymentOpen(false)}
         />
       )}
+
+      {prizes && <PrizeDialog summary={prizes} onClose={() => setPrizes(null)} />}
 
       {settingsOpen && (
         <SettingsDialog settings={settings} onClose={() => setSettingsOpen(false)} />

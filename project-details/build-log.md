@@ -825,6 +825,53 @@ Melding gebruiker: in de database alleen `LOST`, ook na winst. Oorzaak: de dev-s
 2. Feature gecommit, fast-forward gemerged in `main`, lokale branch verwijderd (niet gepusht, dus geen remote branch).
 3. `current-feature.md` teruggezet en de feature toegevoegd aan History; reset gecommit; `main` één keer gepusht. De productie-run past de migratie `20261014000000_payments_mollie` toe op Neon-branch `main` vóór de deploy. Productie heeft geen `MOLLIE_API_KEY`, dus het spel blijft daar gratis tot taak 12.
 4. Dev-server gestopt, `.next` verwijderd en `npm run dev` opnieuw gestart.
+5. Productie-run (`094f8ec`, run 38620093190) geslaagd; migratie `20261014000000_payments_mollie` toegepast op productie. https://gokkast.vercel.app: `/` 200, `/game-manager` → 307, webhook 200.
+6. Gezien: in productie staat betalen **aan** (de pagina bevat `creditsLeft`, de webhook antwoordt 200 in plaats van 404). In Vercel staat dus ook voor Production een Mollie-test-key; spelers betalen daar met testgeld. Aan de gebruiker gemeld; niets aangepast.
+
+## Stap 60 — Feature geladen: Betaald-pagina en score-popup (14 oktober 2026)
+
+**Vraag:**
+> /feature load 10b
+
+**Uitgevoerde handelingen:**
+1. Geen specbestand `context/features/10b.md`; taak 10b uit `to-do.md` gebruikt.
+2. Bestaande `/betaald`-pagina (taak 10) en het schema van `games`/`payments` bekeken.
+3. `current-feature.md` gevuld met naam, doelen en notities (status Not Started), met open vragen voor `start`: wanneer de popup verschijnt, wat `/betaald` op de telefoon toont en of het uitdelen van prijzen wordt vastgelegd.
+
+## Stap 61 — Open vragen betaald-pagina en score-popup beantwoord (14 oktober 2026)
+
+**Vraag:**
+> 1 na het laatste spelletje
+> 2 1 euro is betaald voor 4 spelletjes
+> 3 alleen een popup
+
+**Uitgevoerde handelingen:**
+1. Besluiten verwerkt in `current-feature.md`: popup alleen na het laatste spelletje van een betaling; `/betaald` toont "€ 1,00 is betaald voor 4 spelletjes" (bedrag en aantal uit de betaling); uitdelen van prijzen niet vastleggen, alleen een popup.
+
+## Stap 62 — Feature gestart en gebouwd: Betaald-pagina en score-popup (14 oktober 2026)
+
+**Vraag:**
+> /feature start
+
+**Uitgevoerde handelingen:**
+1. Branch `feature/betaald-pagina-en-score-popup` gemaakt; status In Progress.
+2. `/betaald` op de telefoon: elke betaling krijgt een eigen referentie (`payments.reference`, 16 tekens, uniek; migratie `20261014120000_payments_reference`). De terugkeer-URL naar Mollie is `/betaald?ref=<referentie>`. `getReturnPayment` (`paymentService.ts`) zoekt de betaling op, haalt de status bij Mollie op en geeft alleen status, bedrag en aantal spelletjes terug; de referentie geeft geen credits en zet geen cookie (het token in de cookie blijft de enige sleutel om te spelen). Pagina: betaald → vinkje, "Betaald!" en "€ 1,00 is betaald voor 4 spelletjes"; mislukt → "Betaling niet gelukt"; nog bezig → "Betaling wordt verwerkt" en de pagina ververst elke 3 s; geen of onbekende referentie → "Bedankt!". Zelfde browser als het spel en betaald → nog steeds direct terug naar het spel. De knop "Terug naar het spel" staat er alleen in de browser van het spel (op de telefoon gaat de speler terug naar de gokkast zelf).
+3. Score-popup: `src/lib/prizes.ts` telt de winsten per plaatje (`countPrizes`, `prizeSummary`, `prizeLabel`: "2 gratis shotjes", "1 kakkerlak om te blingen", "1 vrije keuze"). `finishGame` (`gameStore.ts`) slaat de ronde op en geeft na het laatste spelletje van een betaling (credits op) met minstens één winst het overzicht terug (naam rekeninghouder, aantal spelletjes, prijzen). Ook nieuw: nooit meer rondes per betaling opslaan dan er spelletjes betaald zijn (de uitkomst komt uit de browser). `saveGame` geeft `{ saved, prizes }` terug.
+4. `PrizeDialog.tsx`: popup "Gewonnen!" met naam, "x van de 4 spelletjes gewonnen" en per plaatje het plaatje en de prijs; verschijnt 1,5 s na het laatste spel (eerst de munten). Sluit alleen met de knop "Prijzen uitgedeeld" (niet met Escape of ernaast klikken); toetsen voor het spel werken niet zolang hij open is. Niets vastgelegd in de database (besluit gebruiker).
+5. `GameStore` met een Prisma- en een geheugenversie (`getGameStore`, zelfde voorwaarde als de geheugenopslag van betalingen), zodat de Playwright-tests zonder database de rondes per betaling kunnen tellen.
+6. Tests: Vitest 156 (was 136): `prizes.test.ts` (7), `finishGame` (7), referentie in `payments` (2) en `paymentService` (4). Playwright 24 (was 22): telefoon ziet "Betaald!" en "€ 1,00 is betaald voor 4 spelletjes" zonder terugknop, telefoon ziet "Betaling niet gelukt" na annuleren, score-popup na 4 gewonnen spelletjes (naam `T. TEST`, totaal 4 prijzen, sluit niet met Escape of klik ernaast), geen popup na 4 verloren spelletjes, `/betaald` zonder of met onbekende referentie. Lint, typecheck en build zonder fouten.
+7. Migratie toegepast op Neon-branch `dev` (`ep-silent-tooth`); `prisma migrate diff` tegen de database is leeg. Dev-server gestopt, `.next` verwijderd en `npm run dev` opnieuw gestart (nieuwe Prisma Client).
+
+## Stap 63 — Feature gereviewd: Betaald-pagina en score-popup (14 oktober 2026)
+
+**Vraag:**
+> /feature review
+
+**Uitgevoerde handelingen:**
+1. Alle doelen gecontroleerd: gehaald.
+2. Gevonden en opgelost: (a) de knop "Prijzen uitgedeeld" had de focus, waardoor spelen met spatie of Enter de popup per ongeluk sloot; nu krijgt de popup zelf de focus (`tabIndex={-1}`) en sluiten kan alleen door op de knop te klikken of ernaar te tabben. (b) Wie binnen 1,5 s NIEUW SPEL en SPEEL drukte, kreeg de betaalpopup onder de score-popup; die gaat nu dicht als de score-popup verschijnt. `finish` gebruikt het type `GameOutcome`.
+3. Playwright-test drukt nu ook spatie en Enter bij de open score-popup. Lint, typecheck, 156 Vitest- en 24 Playwright-tests zonder fouten.
+4. Bewust gelaten: "Betaling wordt verwerkt" ververst zolang de betaling bij Mollie open staat (verloopt bij Mollie vanzelf); twee gelijktijdige `saveGame`-aanroepen kunnen samen de grens van 4 rondes passeren (niet atomair, klein risico); herladen tijdens het laatste spel geeft geen popup (bekend open punt taak 10).
 
 ---
 
@@ -843,10 +890,10 @@ Gokkast/
 │   │   ├── game-manager/ layout.tsx, page.tsx, actions.ts, actions.test.ts, SettingsForm.tsx, game-manager.module.css, inloggen/page.tsx
 │   │   └── api/auth/[...nextauth]/route.ts
 │   ├── auth.ts           Auth.js (Google, alleen beheerders)
-│   ├── components/       SlotMachine, Reel, Lever, InfoPanel, Stats, SettingsDialog, GameClient
-│   ├── lib/              game.ts, settings.ts, settingsStore.ts, db.ts, gameStore.ts, admins.ts, dal.ts, sound.ts, storage.ts, coinShower.ts, game.test.ts, settings.test.ts, settingsStore.test.ts, gameStore.test.ts, admins.test.ts
+│   ├── components/       SlotMachine, Reel, Lever, InfoPanel, Stats, SettingsDialog, GameClient, PaymentDialog, PrizeDialog
+│   ├── lib/              prizes.ts, payments.ts, paymentService.ts, paymentStore.ts, mollie.ts, qr.ts, game.ts, settings.ts, settingsStore.ts, db.ts, gameStore.ts, admins.ts, dal.ts, sound.ts, storage.ts, coinShower.ts, game.test.ts, settings.test.ts, settingsStore.test.ts, gameStore.test.ts, admins.test.ts
 │   └── generated/prisma/ Prisma Client (gegenereerd, niet in git)
-├── prisma/               schema.prisma, seed.ts, migrations/ (20261013000000_init, 20261013163330_games_name_optional, 20261013200000_game_settings_optional, 20261013230000_games_outcome_symbol, migration_lock.toml)
+├── prisma/               schema.prisma, seed.ts, migrations/ (20261013000000_init, 20261013163330_games_name_optional, 20261013200000_game_settings_optional, 20261013230000_games_outcome_symbol, 20261014000000_payments_mollie, 20261014120000_payments_reference, migration_lock.toml)
 ├── e2e/                  gokkast.spec.ts, game-manager.spec.ts, helpers.ts, auth.ts
 ├── v1/                   index.html, style.css, game.js (versie 1)
 ├── voorbeeld/            fruitmachine.jpg

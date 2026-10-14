@@ -3,7 +3,7 @@
 // Server actions: de browser roept ze aan, maar ze draaien alleen op de server.
 // Ze zijn een openbaar endpoint, dus alle invoer wordt gecontroleerd (gameStore.ts, paymentService.ts).
 import { cookies, headers } from "next/headers";
-import { saveGameResult, type GameOutcome, type GamePayment } from "@/lib/gameStore";
+import { finishGame, type FinishedGame, type GameOutcome, type PaidGame } from "@/lib/gameStore";
 import { isPaymentToken, PAYMENT_COOKIE, PAYMENT_COOKIE_MAX_AGE } from "@/lib/payments";
 import {
   defaultPaymentDeps,
@@ -33,22 +33,24 @@ async function requestOrigin(): Promise<string> {
 }
 
 // De betaalde betaling van deze browser, om de ronde aan te koppelen
-async function currentGamePayment(): Promise<GamePayment | null> {
+async function currentGamePayment(): Promise<PaidGame | null> {
   const deps = defaultPaymentDeps();
   const token = await paymentToken();
   if (!deps?.store || !token) return null;
   try {
     const payment = await deps.store.findByToken(token);
-    return payment?.status === "paid" ? { id: payment.id, name: payment.name } : null;
+    if (payment?.status !== "paid") return null;
+    return { id: payment.id, name: payment.name, credits: payment.credits, creditsLeft: payment.creditsLeft };
   } catch (error) {
     console.warn("Betaling voor de ronde niet gelezen:", error);
     return null;
   }
 }
 
-// Aan het eind van elk spel; geeft alleen terug of het gelukt is
-export async function saveGame(input: { outcome: GameOutcome; tries: number }): Promise<{ saved: boolean }> {
-  return { saved: await saveGameResult(input, await currentGamePayment()) };
+// Aan het eind van elk spel: of het gelukt is, en na het laatste spelletje van een betaling
+// met minstens één winst het prijzenoverzicht voor de score-popup
+export async function saveGame(input: { outcome: GameOutcome; tries: number }): Promise<FinishedGame> {
+  return finishGame(input, await currentGamePayment());
 }
 
 // Begin van een nieuw spel: één credit gebruiken. Staat betalen uit, dan is het spel gratis.

@@ -72,7 +72,7 @@ De taken staan in volgorde: latere taken bouwen voort op eerdere.
   - Webhook die de betaalstatus verwerkt
   - betaling registreren in de database. Naam rekeninghouder koppelen aan de uitkomst van de spelletjes van deze persoon
 
-- [ ] **10b. betaald pagina en score popup **
+- [x] **10b. betaald pagina en score popup **
   - maak een pagina op /betaald zodat op de mobiel zichtbaar is dat het gelukt is
   - maak een popup met een overzicht van de scores als men minstens 1 maal gewonnen hebben. Wij kunnen dan de prijs(en) uitdelen: 1 of meer gratis shotjes,  1 of meer kakkelakken om te blingen of vrije keuze bij vraagteken.
 

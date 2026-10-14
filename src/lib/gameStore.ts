@@ -1,8 +1,11 @@
 // Gespeelde rondes opslaan in de tabel games (alleen op de server, via src/app/actions.ts).
 // De invoer komt uit de browser en is dus niet te vertrouwen: alles wordt hier gecontroleerd.
 import type { GameOutcome as DbGameOutcome } from "@/generated/prisma/enums";
+import type { PrismaClient } from "@/generated/prisma/client";
 import { getDb } from "@/lib/db";
 import type { SymbolName } from "@/lib/game";
+import { memoryStoreAllowed } from "@/lib/payments";
+import { prizeSummary, type PrizeSummary } from "@/lib/prizes";
 import { loadSettings } from "@/lib/settingsStore";
 
 // Bij winst met het gewonnen plaatje, bijv. "WON shot"
@@ -15,6 +18,11 @@ const DB_OUTCOMES: Record<GameOutcome, DbGameOutcome> = {
   "WON vraagteken": "WON_VRAAGTEKEN",
   LOST: "LOST",
 };
+
+const FROM_DB = Object.fromEntries(Object.entries(DB_OUTCOMES).map(([outcome, db]) => [db, outcome])) as Record<
+  DbGameOutcome,
+  GameOutcome
+>;
 
 const isGameOutcome = (value: unknown): value is GameOutcome => typeof value === "string" && Object.hasOwn(DB_OUTCOMES, value);
 
@@ -40,25 +48,63 @@ export interface GamePayment {
   name: string | null;
 }
 
+export interface GameStore {
+  create(result: GameResult, payment: GamePayment | null): Promise<unknown>;
+  // Uitkomsten van de rondes die met een betaling gespeeld zijn
+  outcomes(paymentId: number): Promise<GameOutcome[]>;
+}
+
+export function prismaGameStore(db: PrismaClient): GameStore {
+  return {
+    create: (result, payment) =>
+      db.game.create({
+        data: {
+          ...result,
+          outcome: DB_OUTCOMES[result.outcome],
+          ...(payment && { paymentId: payment.id, name: payment.name }),
+        },
+      }),
+    async outcomes(paymentId) {
+      const rows = await db.game.findMany({ where: { paymentId }, select: { outcome: true } });
+      return rows.map((row) => FROM_DB[row.outcome]);
+    },
+  };
+}
+
+// Voor de Playwright-tests zonder database (zelfde voorwaarde als de geheugenopslag van betalingen)
+export function memoryGameStore(): GameStore {
+  const games: { outcome: GameOutcome; paymentId: number | null }[] = [];
+  return {
+    async create(result, payment) {
+      games.push({ outcome: result.outcome, paymentId: payment?.id ?? null });
+    },
+    outcomes: async (paymentId) => games.filter((g) => g.paymentId === paymentId).map((g) => g.outcome),
+  };
+}
+
+const globalForStore = globalThis as unknown as { memoryGameStore?: GameStore };
+
+// De database; zonder database alleen de geheugenopslag als die mag (tests); anders null
+export function getGameStore(): GameStore | null {
+  const db = getDb();
+  if (db) return prismaGameStore(db);
+  if (!memoryStoreAllowed()) return null;
+  globalForStore.memoryGameStore ??= memoryGameStore();
+  return globalForStore.memoryGameStore;
+}
+
 export interface SaveGameDeps {
   maxTries(): Promise<number>;
-  create: ((result: GameResult, payment: GamePayment | null) => Promise<unknown>) | null; // null: geen database
+  create: GameStore["create"] | null; // null: geen database
+  outcomes?: GameStore["outcomes"];
 }
 
 function defaultDeps(): SaveGameDeps {
-  const db = getDb();
+  const store = getGameStore();
   return {
     maxTries: async () => (await loadSettings()).maxTries,
-    create:
-      db &&
-      ((result, payment) =>
-        db.game.create({
-          data: {
-            ...result,
-            outcome: DB_OUTCOMES[result.outcome],
-            ...(payment && { paymentId: payment.id, name: payment.name }),
-          },
-        })),
+    create: store && store.create,
+    outcomes: store?.outcomes,
   };
 }
 
@@ -81,5 +127,40 @@ export async function saveGameResult(
   } catch (error) {
     console.warn("Ronde niet opgeslagen:", error);
     return false;
+  }
+}
+
+// De betaalde betaling van de speler op het moment dat een ronde klaar is
+export interface PaidGame extends GamePayment {
+  credits: number; // spelletjes voor de betaling
+  creditsLeft: number; // 0: dit was het laatste spelletje
+}
+
+export interface FinishedGame {
+  saved: boolean;
+  prizes: PrizeSummary | null; // alleen na het laatste spelletje, en alleen als er gewonnen is
+}
+
+// Ronde opslaan aan het eind van een spel. Met een betaling: nooit meer rondes dan er spelletjes
+// betaald zijn (de uitkomst komt uit de browser), en na het laatste spelletje het prijzenoverzicht.
+export async function finishGame(
+  input: unknown,
+  payment: PaidGame | null,
+  deps: SaveGameDeps = defaultDeps(),
+): Promise<FinishedGame> {
+  if (!payment || !deps.outcomes) return { saved: await saveGameResult(input, payment, deps), prizes: null };
+  try {
+    const earlier = await deps.outcomes(payment.id);
+    if (earlier.length >= payment.credits) {
+      console.warn(`Ronde niet opgeslagen: betaling ${payment.id} heeft al ${earlier.length} rondes.`);
+      return { saved: false, prizes: null };
+    }
+    const saved = await saveGameResult(input, payment, deps);
+    if (!saved || payment.creditsLeft > 0) return { saved, prizes: null };
+    // saveGameResult heeft de invoer gecontroleerd
+    return { saved, prizes: prizeSummary(payment, [...earlier, (input as GameResult).outcome]) };
+  } catch (error) {
+    console.warn("Rondes van de betaling niet gelezen:", error);
+    return { saved: false, prizes: null };
   }
 }

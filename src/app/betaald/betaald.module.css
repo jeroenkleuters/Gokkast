@@ -41,3 +41,15 @@
   text-decoration: none;
 }
 .button:focus-visible { outline: 3px solid #fff; outline-offset: 2px; }
+
+/* Groot vinkje als de betaling gelukt is */
+.check {
+  align-self: center;
+  width: 72px; height: 72px;
+  display: grid; place-items: center;
+  border-radius: 50%;
+  background: #2fbf71;
+  color: #fff;
+  font-size: 42px; font-weight: bold;
+  box-shadow: 0 0 24px rgba(47,191,113,.55);
+}

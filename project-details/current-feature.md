@@ -1,16 +1,29 @@
-# Current Feature
+# Current Feature: Betaald-pagina en score-popup
 
 ## Status
 
-Not Started
+Complete
 
 ## Goals
 
-<!-- Doelen van de feature, in te vullen met /feature load -->
+- `/betaald` is een duidelijke bevestigingspagina op de mobiel: na betalen via de QR-code ziet de speler meteen dat het gelukt is (ook zonder het cookie van de gokkast), met de tekst dat het bedrag betaald is voor het aantal spelletjes (bijv. "€ 1,00 is betaald voor 4 spelletjes")
+- Nog niet betaald / mislukt / in behandeling blijven als aparte, duidelijke meldingen op de pagina
+- Na het laatste spel van een betaling (credits op) verschijnt een popup met het score-overzicht van die betaling, maar alleen als er minstens één keer gewonnen is
+- Het overzicht telt de prijzen per plaatje: aantal gratis shotjes (shot), aantal kakkerlakken om te blingen (kakkerlak) en aantal vrije keuzes (vraagteken), met de naam van de rekeninghouder, zodat de beheerder de prijzen kan uitdelen
+- De popup sluit pas met een knop (bijv. "Prijzen uitgedeeld"), zodat hij niet per ongeluk verdwijnt
+- Vitest-tests voor het tellen van de prijzen en Playwright-tests voor de betaald-pagina en de popup
 
 ## Notes
 
-<!-- Extra context, beperkingen of details uit de spec -->
+- Bron: taak 10b in `project-details/to-do.md` (geen specbestand `context/features/10b.md`).
+- `/betaald` bestaat al uit taak 10 (`src/app/betaald/page.tsx`): met cookie en betaald → direct terug naar `/`; zonder cookie (telefoon via QR-code) alleen "Bedankt!" zonder te weten of het gelukt is. Mollie stuurt de speler terug naar de `redirectUrl`; om op de telefoon de status te tonen moet de pagina de betaling kunnen herkennen zonder cookie, bijvoorbeeld via een id/token in de `redirectUrl` (alleen tonen, geen credits of cookie geven).
+- Uitkomsten staan in `games.outcome` (`WON_SHOT`, `WON_KAKKERLAK`, `WON_VRAAGTEKEN`, `LOST`) met `games.payment_id`; `payments.name` is de naam van de rekeninghouder.
+- Zonder Mollie-key is het spel gratis en zijn er geen betalingen: dan geen score-popup (de popup hoort bij een betaling).
+- Besluiten gebruiker (14 oktober 2026):
+  - De score-popup verschijnt alleen na het laatste spelletje van een betaling (geen knop "Mijn scores").
+  - `/betaald` toont op de telefoon dat het bedrag betaald is voor het aantal spelletjes, bijv. "€ 1,00 is betaald voor 4 spelletjes" (uit de betaling, niet vast in de tekst).
+  - Het uitdelen van de prijzen wordt niet vastgelegd; de popup is alleen een overzicht.
+- Bekend open punt uit taak 10: een credit gaat verloren bij herladen midden in een spel (niet in deze taak, tenzij gewenst).
 
 ## History
 

@@ -69,6 +69,15 @@ export function newPaymentToken(): string {
 export const isPaymentToken = (value: unknown): value is string =>
   typeof value === "string" && /^[A-Za-z0-9_-]{32}$/.test(value);
 
+// Referentie in de terugkeer-URL (/betaald?ref=...): niet te raden, maar geen sleutel voor credits.
+// Korter dan het token, zodat de twee nooit door elkaar kunnen lopen.
+export function newPaymentReference(): string {
+  return randomBytes(12).toString("base64url");
+}
+
+export const isPaymentReference = (value: unknown): value is string =>
+  typeof value === "string" && /^[A-Za-z0-9_-]{16}$/.test(value);
+
 // Mollie kan localhost niet bereiken en weigert dan de hele betaling; lokaal geen webhook
 // (het spel vraagt de status dan zelf op).
 export function webhookUrl(origin: string): string | undefined {

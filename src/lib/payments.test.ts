@@ -3,10 +3,12 @@ import {
   DEFAULT_PRICE_CENTS,
   formatEuro,
   isFinalStatus,
+  isPaymentReference,
   isPaymentToken,
   memoryStoreAllowed,
   MOLLIE_API_URL,
   mollieAmount,
+  newPaymentReference,
   newPaymentToken,
   readPaymentConfig,
   webhookUrl,
@@ -104,5 +106,20 @@ describe("webhookUrl", () => {
   it("geen webhook op localhost (Mollie kan daar niet bij)", () => {
     expect(webhookUrl("http://localhost:3000")).toBeUndefined();
     expect(webhookUrl("http://127.0.0.1:3100")).toBeUndefined();
+  });
+});
+
+describe("referentie voor /betaald", () => {
+  it("maakt willekeurige, geldige referenties", () => {
+    const a = newPaymentReference();
+    expect(isPaymentReference(a)).toBe(true);
+    expect(a).not.toBe(newPaymentReference());
+  });
+
+  it("weigert alles wat geen referentie is, ook een token", () => {
+    for (const value of [undefined, "", "kort", "a".repeat(15), "a".repeat(17), "!".repeat(16), newPaymentToken(), 42]) {
+      expect(isPaymentReference(value)).toBe(false);
+    }
+    expect(isPaymentToken(newPaymentReference())).toBe(false);
   });
 });

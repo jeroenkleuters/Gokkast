@@ -5,7 +5,9 @@ import { getPaymentStore, type PaymentStore, type StatusUpdate, type StoredPayme
 import {
   formatEuro,
   isFinalStatus,
+  isPaymentReference,
   isPaymentToken,
+  newPaymentReference,
   newPaymentToken,
   readPaymentConfig,
   webhookUrl,
@@ -119,16 +121,18 @@ export async function startPayment(
 
     const credits = await deps.credits();
     const amountCents = deps.config.priceCents;
+    const reference = newPaymentReference();
     const mollie = await deps.mollie.createPayment({
       amountCents,
       description: `Gokkast: ${credits} ${credits === 1 ? "spel" : "spelletjes"}`,
-      redirectUrl: `${origin}/betaald`,
+      redirectUrl: `${origin}/betaald?ref=${reference}`,
       webhookUrl: webhookUrl(origin),
     });
     if (!mollie.checkoutUrl) throw new Error(`Mollie gaf geen betaalpagina voor ${mollie.id}`);
 
     const payment = await store.create({
       token: newPaymentToken(),
+      reference,
       mollieId: mollie.id,
       checkoutUrl: mollie.checkoutUrl,
       amountCents,
@@ -138,6 +142,28 @@ export async function startPayment(
   } catch (error) {
     console.error("Betaling niet gestart:", error);
     return { ok: false, error: PAYMENT_ERROR };
+  }
+}
+
+// Voor /betaald: wat er met een betaling is gebeurd en wat ervoor betaald is
+export interface ReturnPayment {
+  status: PaymentStatus;
+  amount: string; // bijv. "€ 1,00"
+  credits: number; // spelletjes voor deze betaling
+}
+
+// Terugkeer van Mollie naar /betaald?ref=..., ook op een telefoon zonder de cookie van het spel.
+// Alleen om te tonen: de referentie geeft geen credits en zet geen cookie. Onbekend of fout: null.
+export async function getReturnPayment(reference: string | undefined, deps: PaymentDeps): Promise<ReturnPayment | null> {
+  if (!isPaymentReference(reference) || !deps.store) return null;
+  try {
+    const found = await deps.store.findByReference(reference);
+    if (!found) return null;
+    const payment = await refreshPayment(found, deps);
+    return { status: payment.status, amount: formatEuro(payment.amountCents), credits: payment.credits };
+  } catch (error) {
+    console.warn("Betaling voor /betaald niet gelezen:", error);
+    return null;
   }
 }
 

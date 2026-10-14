@@ -365,6 +365,44 @@ html, body {
 #payment .cancel { background: #3a2f52; color: #eee; }
 #payment button:focus-visible, #payment .paylink:focus-visible { outline: 3px solid #fff; outline-offset: 2px; }
 
+/* Score-popup na het laatste spelletje van een betaling (taak 10b) */
+#prizes {
+  position: absolute; inset: 0;
+  background: rgba(0,0,0,.75);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 50;
+}
+#prizes .box {
+  width: 440px;
+  background: #1d1530; border: 3px solid #ffcf6a; border-radius: 12px;
+  padding: 24px 30px;
+  color: #eee; font-family: "Segoe UI", Arial, sans-serif;
+  box-shadow: 0 0 50px rgba(255,180,0,.45);
+  display: flex; flex-direction: column; align-items: center; gap: 14px;
+  text-align: center;
+}
+#prizes .box:focus { outline: none; }
+#prizes h3 {
+  font-family: "Arial Black", Arial, sans-serif; font-size: 32px; letter-spacing: 2px;
+  color: #ffcf6a; text-shadow: 0 0 12px rgba(255,174,0,.7);
+}
+#prizes .who { font-size: 17px; line-height: 1.5; }
+#prizes .who b { color: #ffd34a; font-size: 20px; }
+#prizes ul { list-style: none; align-self: stretch; display: flex; flex-direction: column; gap: 8px; }
+#prizes li {
+  display: flex; align-items: center; gap: 14px;
+  padding: 6px 12px; border-radius: 8px;
+  background: rgba(255,255,255,.06);
+  font-size: 19px; font-weight: bold; text-align: left;
+}
+#prizes li img { flex: none; }
+#prizes .ok {
+  font-family: inherit; font-size: 17px; font-weight: bold;
+  padding: 10px 22px; border-radius: 8px; border: none; cursor: pointer;
+  background: #ffcf6a; color: #2a1a00;
+}
+#prizes .ok:focus-visible { outline: 3px solid #fff; outline-offset: 2px; }
+
 /* Confetti / munten bij winst */
 .coin {
   position: absolute; z-index: 40; pointer-events: none;
