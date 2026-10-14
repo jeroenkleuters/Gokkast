@@ -1,29 +1,16 @@
-# Current Feature: Betaald-pagina en score-popup
+# Current Feature
 
 ## Status
 
-Complete
+Not Started
 
 ## Goals
 
-- `/betaald` is een duidelijke bevestigingspagina op de mobiel: na betalen via de QR-code ziet de speler meteen dat het gelukt is (ook zonder het cookie van de gokkast), met de tekst dat het bedrag betaald is voor het aantal spelletjes (bijv. "€ 1,00 is betaald voor 4 spelletjes")
-- Nog niet betaald / mislukt / in behandeling blijven als aparte, duidelijke meldingen op de pagina
-- Na het laatste spel van een betaling (credits op) verschijnt een popup met het score-overzicht van die betaling, maar alleen als er minstens één keer gewonnen is
-- Het overzicht telt de prijzen per plaatje: aantal gratis shotjes (shot), aantal kakkerlakken om te blingen (kakkerlak) en aantal vrije keuzes (vraagteken), met de naam van de rekeninghouder, zodat de beheerder de prijzen kan uitdelen
-- De popup sluit pas met een knop (bijv. "Prijzen uitgedeeld"), zodat hij niet per ongeluk verdwijnt
-- Vitest-tests voor het tellen van de prijzen en Playwright-tests voor de betaald-pagina en de popup
+<!-- Doelen van de feature, in te vullen met /feature load -->
 
 ## Notes
 
-- Bron: taak 10b in `project-details/to-do.md` (geen specbestand `context/features/10b.md`).
-- `/betaald` bestaat al uit taak 10 (`src/app/betaald/page.tsx`): met cookie en betaald → direct terug naar `/`; zonder cookie (telefoon via QR-code) alleen "Bedankt!" zonder te weten of het gelukt is. Mollie stuurt de speler terug naar de `redirectUrl`; om op de telefoon de status te tonen moet de pagina de betaling kunnen herkennen zonder cookie, bijvoorbeeld via een id/token in de `redirectUrl` (alleen tonen, geen credits of cookie geven).
-- Uitkomsten staan in `games.outcome` (`WON_SHOT`, `WON_KAKKERLAK`, `WON_VRAAGTEKEN`, `LOST`) met `games.payment_id`; `payments.name` is de naam van de rekeninghouder.
-- Zonder Mollie-key is het spel gratis en zijn er geen betalingen: dan geen score-popup (de popup hoort bij een betaling).
-- Besluiten gebruiker (14 oktober 2026):
-  - De score-popup verschijnt alleen na het laatste spelletje van een betaling (geen knop "Mijn scores").
-  - `/betaald` toont op de telefoon dat het bedrag betaald is voor het aantal spelletjes, bijv. "€ 1,00 is betaald voor 4 spelletjes" (uit de betaling, niet vast in de tekst).
-  - Het uitdelen van de prijzen wordt niet vastgelegd; de popup is alleen een overzicht.
-- Bekend open punt uit taak 10: een credit gaat verloren bij herladen midden in een spel (niet in deze taak, tenzij gewenst).
+<!-- Extra context, beperkingen of details uit de spec -->
 
 ## History
 
@@ -40,3 +27,4 @@ Complete
 - **Moeilijkheidsgraad aanpassen in de game-manager** (13 oktober 2026, taak 9) — sectie Moeilijkheidsgraad op `/game-manager` (`SettingsForm.tsx`, `useActionState`): winkans met snelkeuze (makkelijk 1 op 10, normaal 1 op 30, moeilijk 1 op 100) of eigen getal, plus pogingen en speelrondes per betaling (keuze gebruiker: alle drie); per veld "Terug naar standaard". Server action `updateSettings` doet `checkAdmin`, controleert met `parseSettingsForm` (zelfde grenzen als `.env`), slaat op met `saveStoredSettings` (upsert rij 1) en ververst `/` en `/game-manager`. Kolommen van `game_settings` optioneel, leeg = `.env`-waarde (migratie `20261013200000_game_settings_optional`); `mergeSettings` per veld. Zonder database een melding, database onbereikbaar → formulier verborgen. 85 Vitest- en 17 Playwright-tests (ondertekende testsessie in `e2e/auth.ts`); lokaal opgeslagen door de gebruiker in de `dev`-database. Commit `3f1a2d0`.
 - **Gewonnen plaatje opslaan in de uitkomst** (13 oktober 2026, taak 9b) — enum `GameOutcome` = `WON_SHOT`/`WON_KAKKERLAK`/`WON_VRAAGTEKEN` (in de database letterlijk `WON shot`, `WON kakkerlak`, `WON vraagteken` via `@map`) en `LOST`; migratie `20261013230000_games_outcome_symbol` verwijdert oude `WON`-rijen zonder plaatje (besluit gebruiker: geschiedenis niet belangrijk). `SYMBOL_NAMES` in `src/lib/game.ts`; `SlotMachine.tsx` stuurt `WON <plaatje>` mee; `parseGameResult` accepteert alleen de vier waarden, `DB_OUTCOMES` zet om naar de Prisma-enum. Plaatje beker hernoemd naar shot. 86 Vitest- en 17 Playwright-tests; in `dev` gecontroleerd met gespeelde winsten (`WON shot`, `WON vraagteken`) na herstart van de dev-server (oude Prisma Client in het geheugen). Commit `00f52cc`.
 - **Betalen met Mollie (testomgeving)** (14 oktober 2026, taak 10) — SPEEL zonder credits opent een popup (`PaymentDialog.tsx`) met de QR-code (`qrcode` 1.5.4, van de checkout-URL) van een eigen Mollie-betaling per speler, plus een link om op hetzelfde apparaat te betalen. 4 spelletjes voor € 1,00 (`GAME_ROUNDS_PER_PAYMENT` standaard 4, `GAME_PRICE_CENTS` 100); alleen een test-key (`MOLLIE_API_KEY=test_...`), zonder key is het spel gratis (productie tot taak 12). Eigen `fetch`-client (`src/lib/mollie.ts`); `paymentService.ts` start de betaling, haalt de status altijd bij Mollie op en boekt credits atomair af aan het begin van elk spel; token in httpOnly-cookie `gokkast-betaling`. Webhook `/api/mollie/webhook` (alleen het ID), terugkeerpagina `/betaald`, popup vraagt elke 3 s de status op. `payments` met Mollie-ID, betaallink, status, credits en naam rekeninghouder; `games.payment_id` + naam (migratie `20261014000000_payments_mollie`); rekeningnummer volgt versleuteld in taak 11. 136 Vitest- en 22 Playwright-tests (nep-Mollie `e2e/mollie-mock.ts`, tweede server op poort 3102 met `PAYMENTS_TEST_STORE`); lokaal getest met de echte Mollie-testomgeving (betaald, 4 credits, naam `T. TEST` gekoppeld aan de ronde). Open: credit gaat verloren bij herladen midden in een spel. Commit `779ddaa`.
+- **Betaald-pagina en score-popup** (14 oktober 2026, taak 10b) — `/betaald` toont ook op een telefoon zonder cookie de uitkomst: eigen referentie per betaling in de terugkeer-URL (`/betaald?ref=`, kolom `payments.reference`, migratie `20261014120000_payments_reference`), `getReturnPayment` haalt de status bij Mollie op en geeft alleen status, bedrag en aantal spelletjes (geen credits, geen cookie). Betaald → vinkje en "€ 1,00 is betaald voor 4 spelletjes"; mislukt, wordt verwerkt (ververst elke 3 s) of onbekend elk een eigen melding; zelfde browser en betaald → direct terug naar het spel. Score-popup `PrizeDialog.tsx` na het laatste spelletje van een betaling met minstens één winst (besluit gebruiker: alleen dan, niets vastleggen): naam rekeninghouder en prijzen per plaatje (`src/lib/prizes.ts`: gratis shotjes, kakkerlakken om te blingen, vrije keuzes); sluit alleen met "Prijzen uitgedeeld" (focus op de popup, niet op de knop); betaalpopup gaat dan dicht. `finishGame` (`gameStore.ts`) geeft het overzicht terug via `saveGame` en slaat nooit meer rondes per betaling op dan betaald; `GameStore` met geheugenversie voor Playwright. 156 Vitest- en 24 Playwright-tests; migratie toegepast op `dev`. Commit `24ca23d`.

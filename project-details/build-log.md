@@ -873,6 +873,17 @@ Melding gebruiker: in de database alleen `LOST`, ook na winst. Oorzaak: de dev-s
 3. Playwright-test drukt nu ook spatie en Enter bij de open score-popup. Lint, typecheck, 156 Vitest- en 24 Playwright-tests zonder fouten.
 4. Bewust gelaten: "Betaling wordt verwerkt" ververst zolang de betaling bij Mollie open staat (verloopt bij Mollie vanzelf); twee gelijktijdige `saveGame`-aanroepen kunnen samen de grens van 4 rondes passeren (niet atomair, klein risico); herladen tijdens het laatste spel geeft geen popup (bekend open punt taak 10).
 
+## Stap 64 — Feature afgerond: Betaald-pagina en score-popup (14 oktober 2026)
+
+**Vraag:**
+> /feature complete
+
+**Uitgevoerde handelingen:**
+1. Taak 10b afgevinkt in `to-do.md`; status Complete; diff gecontroleerd op geheimen (geen).
+2. Feature gecommit (`24ca23d`), fast-forward gemerged in `main`, lokale branch verwijderd (niet gepusht, dus geen remote branch).
+3. `current-feature.md` teruggezet en de feature toegevoegd aan History; reset gecommit; `main` één keer gepusht. De productie-run past de migratie `20261014120000_payments_reference` toe op Neon-branch `main` vóór de deploy.
+4. Dev-server gestopt, `.next` verwijderd en `npm run dev` opnieuw gestart.
+
 ---
 
 ## Huidige bestandsstructuur
