@@ -1,16 +1,23 @@
-# Current Feature
+# Current Feature: Instellingen (taak 15)
 
 ## Status
 
-Not Started
+Complete
 
 ## Goals
 
-<!-- Doelen van de feature, in te vullen met /feature load -->
+- Tab **Moeilijkheidsgraad** op `/game-manager` heet **Instellingen** (tablabel, kop `h2` en de bijbehorende `id`'s)
+- Instellingen is de **derde** tab: volgorde Speelrondes, Betalingen, Instellingen
+- Tabs blijven werken zoals in taak 14: pijltjes/Home/End, gekozen tab blijft bij bladeren, sorteren en filteren
+- Playwright-tests (`e2e/game-manager.spec.ts`) en README bijgewerkt; lint, typecheck, Vitest en Playwright zonder fouten
 
 ## Notes
 
-<!-- Extra context, beperkingen of details uit de spec -->
+- Bron: `project-details/to-do.md`, taak 15.
+- Betrokken bestanden: `src/app/game-manager/page.tsx` (tabs-lijst r. ~88, kop `<h2 id="moeilijkheidsgraad">` r. 21), `ManagerTabs.tsx` (generiek, geen wijziging verwacht), `e2e/game-manager.spec.ts` (o.a. r. 14, 62–74, 145–178), `README.md` (r. 221, 232).
+- De snelkeuzegroep in `SettingsForm.tsx` (`aria-label="Moeilijkheidsgraad"`, makkelijk/normaal/moeilijk) gaat over de winkans; die naam kan blijven.
+- Gevolg van de nieuwe volgorde: zonder gekozen tab (na herladen) opent de eerste tab, dus **Speelrondes** in plaats van de instellingen. Bij `start` bevestigen of dat de bedoeling is.
+- De tab-`id` bepaalt de element-`id`'s (`tab-…`, `paneel-…`); hernoemen naar `instellingen` is netjes, de tab staat niet in de URL dus er breken geen links.
 
 ## History
 

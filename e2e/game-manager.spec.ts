@@ -11,7 +11,7 @@ test("zonder inloggen stuurt /game-manager door naar de inlogpagina", async ({ p
   await expect(page).toHaveURL(/\/game-manager\/inloggen$/);
   await expect(page.getByRole("heading", { name: "Inloggen" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Inloggen met Google" })).toBeVisible();
-  await expect(page.getByText("Moeilijkheidsgraad")).toHaveCount(0);
+  await expect(page.getByText("Instellingen")).toHaveCount(0);
 });
 
 test("een vervalste sessiecookie geeft geen toegang", async ({ page, context }) => {
@@ -59,26 +59,28 @@ test.describe("ingelogd", () => {
     await page.goto("/game-manager");
 
     await expect(page.getByRole("alert").filter({ hasText: "Geen toegang" })).toContainText("iemand@example.test");
-    await expect(page.getByRole("heading", { name: "Moeilijkheidsgraad" })).toHaveCount(0);
+    await expect(page.getByRole("heading", { name: "Instellingen" })).toHaveCount(0);
   });
 
-  test("de beheerder ziet de moeilijkheidsgraad met de .env-waarden", async ({ page, context }) => {
+  test("de beheerder ziet de instellingen met de .env-waarden", async ({ page, context }) => {
     await loginAs(context, TEST_ADMIN);
     await page.goto("/game-manager");
 
     await expect(page.getByText(`Ingelogd als Test Beheerder (${TEST_ADMIN})`)).toBeVisible();
-    await expect(page.getByRole("heading", { name: "Moeilijkheidsgraad" })).toBeVisible();
+    await page.getByRole("tab", { name: "Instellingen" }).click();
+    await expect(page.getByRole("heading", { name: "Instellingen" })).toBeVisible();
     await expect(page.getByTestId("current-settings")).toContainText("winkans 1 op 30, 3 pogingen");
     await expect(page.getByTestId("current-settings")).toContainText("bron: .env");
     // De testserver heeft geen database
-    const difficulty = page.getByRole("region", { name: "Moeilijkheidsgraad" });
-    await expect(difficulty.getByRole("alert").filter({ hasText: "geen database" })).toBeVisible();
+    const settings = page.getByRole("region", { name: "Instellingen" });
+    await expect(settings.getByRole("alert").filter({ hasText: "geen database" })).toBeVisible();
     await expect(page.getByLabel("Winkans", { exact: true })).toHaveAttribute("placeholder", "standaard: 30");
   });
 
   test("niveaus vullen de winkans in en 'terug naar standaard' maakt het veld leeg", async ({ page, context }) => {
     await loginAs(context, TEST_ADMIN);
     await page.goto("/game-manager");
+    await page.getByRole("tab", { name: "Instellingen" }).click();
     const odds = page.getByLabel("Winkans", { exact: true });
 
     await page.getByRole("button", { name: "Moeilijk (1 op 100)" }).click();
@@ -98,6 +100,7 @@ test.describe("ingelogd", () => {
   }) => {
     await loginAs(context, TEST_ADMIN);
     await page.goto("/game-manager");
+    await page.getByRole("tab", { name: "Instellingen" }).click();
     const tries = page.getByLabel("Pogingen per spel", { exact: true });
 
     // Browsercontrole uit, zodat de controle op de server getest wordt
@@ -142,39 +145,46 @@ test.describe("ingelogd", () => {
     const tabs = page.getByRole("tab");
     const tab = (name: string) => page.getByRole("tab", { name });
 
-    await expect(tabs).toHaveText(["Moeilijkheidsgraad", "Speelrondes", "Betalingen"]);
-    // Eerst de moeilijkheidsgraad; de andere onderdelen zijn verborgen
-    await expect(tab("Moeilijkheidsgraad")).toHaveAttribute("aria-selected", "true");
+    await expect(tabs).toHaveText(["Speelrondes", "Betalingen", "Instellingen"]);
+    await expect(page.getByText("Moeilijkheidsgraad", { exact: true })).toHaveCount(0);
+    // Eerst de speelrondes; de andere onderdelen zijn verborgen
+    await expect(tab("Speelrondes")).toHaveAttribute("aria-selected", "true");
     await expect(page.getByRole("tabpanel")).toHaveCount(1);
-    await expect(page.getByRole("heading", { name: "Moeilijkheidsgraad" })).toBeVisible();
-    await expect(page.getByRole("heading", { name: "Betalingen" })).toBeHidden();
+    await expect(page.getByRole("heading", { name: "Speelrondes en statistieken" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Instellingen" })).toBeHidden();
 
-    await tab("Betalingen").click();
-    await expect(tab("Betalingen")).toHaveAttribute("aria-selected", "true");
-    await expect(tab("Moeilijkheidsgraad")).toHaveAttribute("aria-selected", "false");
-    await expect(page.getByRole("heading", { name: "Betalingen" })).toBeVisible();
-    await expect(page.getByRole("heading", { name: "Moeilijkheidsgraad" })).toBeHidden();
+    await tab("Instellingen").click();
+    await expect(tab("Instellingen")).toHaveAttribute("aria-selected", "true");
+    await expect(tab("Speelrondes")).toHaveAttribute("aria-selected", "false");
+    await expect(page.getByRole("heading", { name: "Instellingen" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Speelrondes en statistieken" })).toBeHidden();
 
     // Pijltjes, Home en End; na de laatste tab weer de eerste
     await page.keyboard.press("ArrowLeft");
-    await expect(tab("Speelrondes")).toBeFocused();
-    await expect(page.getByRole("heading", { name: "Speelrondes en statistieken" })).toBeVisible();
+    await expect(tab("Betalingen")).toBeFocused();
+    await expect(page.getByRole("heading", { name: "Betalingen" })).toBeVisible();
     await page.keyboard.press("End");
-    await expect(tab("Betalingen")).toHaveAttribute("aria-selected", "true");
+    await expect(tab("Instellingen")).toHaveAttribute("aria-selected", "true");
     await page.keyboard.press("ArrowRight");
-    await expect(tab("Moeilijkheidsgraad")).toHaveAttribute("aria-selected", "true");
-    await expect(tab("Moeilijkheidsgraad")).toBeFocused();
+    await expect(tab("Speelrondes")).toHaveAttribute("aria-selected", "true");
+    await expect(tab("Speelrondes")).toBeFocused();
+    await page.keyboard.press("ArrowLeft");
+    await expect(tab("Instellingen")).toHaveAttribute("aria-selected", "true");
+    await page.keyboard.press("Home");
+    await expect(tab("Speelrondes")).toHaveAttribute("aria-selected", "true");
+    await page.keyboard.press("ArrowLeft");
+    await expect(tab("Instellingen")).toHaveAttribute("aria-selected", "true");
 
     // Ingevulde velden blijven bewaard bij het wisselen van tab
     await page.getByLabel("Winkans", { exact: true }).fill("42");
     await tab("Speelrondes").click();
-    await tab("Moeilijkheidsgraad").click();
+    await tab("Instellingen").click();
     await expect(page.getByLabel("Winkans", { exact: true })).toHaveValue("42");
 
     // De tab staat niet in de URL: na herladen weer de eerste
     await tab("Betalingen").click();
     await expect(page).toHaveURL(/\/game-manager$/);
     await page.reload();
-    await expect(tab("Moeilijkheidsgraad")).toHaveAttribute("aria-selected", "true");
+    await expect(tab("Speelrondes")).toHaveAttribute("aria-selected", "true");
   });
 });

@@ -10,15 +10,15 @@ import SettingsForm from "./SettingsForm";
 import StatsSection from "./StatsSection";
 import styles from "./game-manager.module.css";
 
-async function DifficultySection() {
+async function SettingsSection() {
   const defaults = readSettings();
   const stored = await readStoredSettings();
   const row = stored.status === "ok" ? stored.row : null;
   const current = mergeSettings(row, defaults);
 
   return (
-    <section className={styles.card} aria-labelledby="moeilijkheidsgraad">
-      <h2 id="moeilijkheidsgraad">Moeilijkheidsgraad</h2>
+    <section className={styles.card} aria-labelledby="instellingen">
+      <h2 id="instellingen">Instellingen</h2>
       <p className={styles.muted} data-testid="current-settings">
         Nu in het spel: winkans 1 op {current.odds}, {current.maxTries} pogingen, {current.roundsPerPayment}{" "}
         speelronde(s) per betaling (bron: {current.source === "database" ? "database" : ".env"}).
@@ -87,9 +87,9 @@ export default async function GameManagerPage({
 
       <ManagerTabs
         tabs={[
-          { id: "moeilijkheidsgraad", label: "Moeilijkheidsgraad", content: <DifficultySection /> },
           { id: "speelrondes", label: "Speelrondes", content: <StatsSection query={query} /> },
           { id: "betalingen", label: "Betalingen", content: <PaymentsSection query={query} /> },
+          { id: "instellingen", label: "Instellingen", content: <SettingsSection /> },
         ]}
       />
 

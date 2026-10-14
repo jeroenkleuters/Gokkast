@@ -1062,6 +1062,67 @@ Melding gebruiker: in de database alleen `LOST`, ook na winst. Oorzaak: de dev-s
 
 ---
 
+## Stap 79 — Feature geladen: Instellingen (14 oktober 2026)
+
+**Vraag:**
+> /feature load 15
+
+**Uitgevoerde handelingen:**
+1. Taak 15 uit `to-do.md` geladen in `current-feature.md`: tab Moeilijkheidsgraad hernoemen naar Instellingen en als derde tab zetten.
+2. Betrokken bestanden genoteerd (`page.tsx`, `e2e/game-manager.spec.ts`, `README.md`) en het gevolg dat na herladen Speelrondes de eerste tab wordt.
+
+---
+
+## Stap 80 — Feature gestart: Instellingen (14 oktober 2026)
+
+**Vraag:**
+> /feature start
+
+**Uitgevoerde handelingen:**
+1. Branch `feature/instellingen` aangemaakt; status In Progress.
+2. `src/app/game-manager/page.tsx`: `DifficultySection` heet `SettingsSection`, kop en `id` `instellingen`; tabs in de volgorde Speelrondes, Betalingen, Instellingen. Na herladen opent nu Speelrondes (eerste tab).
+3. `e2e/game-manager.spec.ts`: tests voor de instellingen klikken eerst op de tab Instellingen; tabs-test controleert de nieuwe volgorde, Home en ArrowLeft rond de eerste tab, en dat "Moeilijkheidsgraad" nergens meer als tekst staat.
+4. README: tabvolgorde, alinea **Instellingen** na Betalingen, bestandsstructuur; CSS-commentaar bijgewerkt. Snelkeuzegroep `aria-label="Moeilijkheidsgraad"` in `SettingsForm.tsx` bewust laten staan (gaat over de winkans).
+5. Lint, typecheck, 229 Vitest- en 30 Playwright-tests zonder fouten.
+
+---
+
+## Stap 81 — Browsercontrole: Instellingen (14 oktober 2026)
+
+**Vraag:**
+> /feature browser
+
+**Uitgevoerde handelingen:**
+1. Bestaande dev-server op poort 3000 hergebruikt (Next 16 zet dev-uitvoer in `.next/dev`, los van de build van Playwright). Geen Playwright-MCP in deze sessie: een tijdelijk Playwright-script in de scratchpad, ingelogd met een sessiecookie ondertekend met de `AUTH_SECRET` uit `.env.local` voor een beheerder uit `GAME_MANAGER_ADMINS` (niets opgeslagen, alleen gelezen).
+2. Gecontroleerd en goed: tabvolgorde Speelrondes, Betalingen, Instellingen; Speelrondes open na laden en herladen; kop, sectie en `tab-`/`paneel-instellingen`, geen `moeilijkheid`-id's of -tekst meer; formulier zichtbaar; pijltjes (ook rondom), Home, End en focus; tab blijft bij sorteren (Betalingen), filteren en bladeren (Speelrondes); console zonder fouten of hydration-waarschuwingen; 390px zonder horizontale scroll (tabs lopen over twee regels).
+3. Screenshots en script verwijderd; dev-server laten draaien.
+
+---
+
+## Stap 82 — Review: Instellingen (14 oktober 2026)
+
+**Vraag:**
+> /feature review
+
+**Uitgevoerde handelingen:**
+1. Alle vier doelen gehaald; geen scope creep (alleen hernoemen, volgorde, tests, README, CSS-commentaar).
+2. Verbeterd: in de tabs-test drukte `Home` terwijl Speelrondes al gekozen was (bewees niets); nu eerst naar Instellingen, dan `Home`. 12 Playwright-tests in `game-manager.spec.ts` zonder fouten.
+3. Genoteerd, niet aangepast: de test op de inlogpagina zoekt "Instellingen" als deeltekst (vrij ruim, maar klopt); regeleinden in de werkkopie wisselen (LF/CRLF), in git blijft alles LF; op 390px lopen de tabs over twee regels.
+4. Oordeel: klaar om af te ronden.
+
+---
+
+## Stap 83 — Feature afgerond: Instellingen (14 oktober 2026)
+
+**Vraag:**
+> /feature complete
+
+**Uitgevoerde handelingen:**
+1. Taak 15 afgevinkt in `to-do.md`; feature gecommit, in `main` gemerged en de lokale branch verwijderd (stond niet op origin).
+2. `current-feature.md` teruggezet en de samenvatting toegevoegd aan History; `main` gepusht, dev-server gestopt, `.next` verwijderd en `npm run dev` opnieuw gestart.
+
+---
+
 ## Huidige bestandsstructuur
 
 ```

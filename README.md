@@ -218,7 +218,7 @@ sessie is een versleutelde cookie (geen databasetabellen). Het spel zelf blijft 
   iemand uit de lijst, dan ziet die direct "geen toegang", ook met een oude sessie.
 - Zonder sessie stuurt `/game-manager` door naar `/game-manager/inloggen`.
 
-De pagina heeft drie tabs: **Moeilijkheidsgraad**, **Speelrondes** en **Betalingen** (pijltjes,
+De pagina heeft drie tabs: **Speelrondes**, **Betalingen** en **Instellingen** (pijltjes,
 Home en End wisselen ook). De gekozen tab blijft staan bij bladeren, sorteren en filteren, maar staat
 niet in de URL: na herladen zie je weer de eerste tab.
 
@@ -228,14 +228,6 @@ waarden, zoals "Zonder naam", staan altijd onderaan. **Naam bevat** filtert op e
 zonder op hoofdletters te letten. Elke tabel heeft eigen parameters in de URL
 ([`src/lib/managerQuery.ts`](src/lib/managerQuery.ts)), bijvoorbeeld
 `?periode=vandaag&naam=jan&rondes_sorteer=-pogingen&betalingen_pagina=2`.
-
-**Moeilijkheidsgraad.** Op de pagina stel je de winkans (snelkeuze makkelijk 1 op 10, normaal 1 op 30,
-moeilijk 1 op 100, of een eigen getal), de pogingen per spel en de speelrondes per betaling in.
-Opslaan gaat via een server action die opnieuw controleert of je beheerder bent en de invoer op de
-server controleert (zelfde grenzen als `.env`). **Terug naar standaard** maakt een veld leeg: dan
-geldt weer de `.env`-waarde. Het spel gebruikt de nieuwe waarden bij het volgende laden. Let op: in
-productie geldt een wijziging direct voor het echte spel. Zonder database toont de pagina een melding
-(opslaan lukt dan niet); is de database even onbereikbaar, dan is het formulier verborgen.
 
 **Speelrondes en statistieken.** Per naam (de rekeninghouder van de betaling, A-Z) staat hoe vaak
 er gespeeld is, wat er gewonnen is per plaatje (shot, kakkerlak, vraagteken) en hoe vaak er verloren
@@ -254,6 +246,14 @@ wordt alleen op de server en alleen voor beheerders ontsleuteld met `PAYMENT_ENC
 geldige sleutel staat er "Geen sleutel" met een melding erboven; met een andere sleutel "Niet te
 ontsleutelen" (een waarschuwing in de serverlog, zonder nummers). Om op het rekeningnummer te kunnen
 sorteren, worden de betalingen in het geheugen gesorteerd en verdeeld over pagina's.
+
+**Instellingen.** Hier stel je de winkans (snelkeuze makkelijk 1 op 10, normaal 1 op 30,
+moeilijk 1 op 100, of een eigen getal), de pogingen per spel en de speelrondes per betaling in.
+Opslaan gaat via een server action die opnieuw controleert of je beheerder bent en de invoer op de
+server controleert (zelfde grenzen als `.env`). **Terug naar standaard** maakt een veld leeg: dan
+geldt weer de `.env`-waarde. Het spel gebruikt de nieuwe waarden bij het volgende laden. Let op: in
+productie geldt een wijziging direct voor het echte spel. Zonder database toont de pagina een melding
+(opslaan lukt dan niet); is de database even onbereikbaar, dan is het formulier verborgen.
 
 | Variabele             | Betekenis                                                         |
 | --------------------- | ----------------------------------------------------------------- |
@@ -349,7 +349,7 @@ Gokkast/
 ├── public/images/      plaatjes voor de rollen (shot, kakkerlak, vraagteken)
 ├── src/
 │   ├── app/            layout, pagina, server actions (actions.ts) en globale CSS (Next.js App Router)
-│   │   ├── game-manager/  beheerpagina met tabs (ManagerTabs): moeilijkheidsgraad (SettingsForm), speelrondes en statistieken (StatsSection), betalingen (PaymentsSection), sorteren/bladeren/filteren (TableParts), server actions en inlogpagina (inloggen/)
+│   │   ├── game-manager/  beheerpagina met tabs (ManagerTabs): speelrondes en statistieken (StatsSection), betalingen (PaymentsSection), instellingen (SettingsForm), sorteren/bladeren/filteren (TableParts), server actions en inlogpagina (inloggen/)
 │   │   ├── betaald/       terugkeer na betalen bij Mollie
 │   │   ├── api/auth/      Auth.js-routes (inloggen, terugkeer van Google, uitloggen)
 │   │   └── api/mollie/webhook/  webhook van Mollie (betaalstatus)

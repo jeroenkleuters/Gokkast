@@ -99,7 +99,7 @@ De taken staan in volgorde: latere taken bouwen voort op eerdere.
   - ik wil kunnen sorteren op alle kolommen
   - ik wil kunnen filteren op kolom naam 
 
-  - [ ] **15. Instellingen**
+  - [x] **15. Instellingen**
     - Hernoem tablad Moeilijkheidsgraad naar Instellingen
     - zet instellingen als derde tablad
 
