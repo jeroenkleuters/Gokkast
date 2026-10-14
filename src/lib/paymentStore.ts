@@ -16,6 +16,7 @@ export interface StoredPayment {
   credits: number;
   creditsLeft: number;
   name: string | null;
+  accountEncrypted: string | null; // rekeningnummer, versleuteld (src/lib/encryption.ts); nooit naar de browser
 }
 
 export type NewPayment = Pick<StoredPayment, "token" | "reference" | "mollieId" | "checkoutUrl" | "amountCents" | "credits">;
@@ -23,6 +24,7 @@ export type NewPayment = Pick<StoredPayment, "token" | "reference" | "mollieId" 
 export interface StatusUpdate {
   status: PaymentStatus;
   name: string | null;
+  accountEncrypted: string | null; // al versleuteld door paymentService
   paidAt: Date | null;
 }
 
@@ -53,6 +55,7 @@ export function prismaPaymentStore(db: PrismaClient): PaymentStore {
     credits: true,
     creditsLeft: true,
     name: true,
+    accountEncrypted: true,
   } as const;
   type Row = Omit<StoredPayment, "status"> & { status: DbPaymentStatus };
   const toPayment = (row: Row | null): StoredPayment | null => row && { ...row, status: fromDb(row.status) };
@@ -63,7 +66,7 @@ export function prismaPaymentStore(db: PrismaClient): PaymentStore {
     findByMollieId: async (mollieId) => toPayment(await db.payment.findUnique({ where: { mollieId }, select })),
     findByReference: async (reference) => toPayment(await db.payment.findUnique({ where: { reference }, select })),
 
-    async updateStatus(mollieId, { status, name, paidAt }) {
+    async updateStatus(mollieId, { status, name, accountEncrypted, paidAt }) {
       const current = await db.payment.findUnique({ where: { mollieId }, select });
       if (!current) return null;
       // Alleen bijwerken zolang de betaling nog niet betaald is (de where maakt het atomair)
@@ -71,8 +74,8 @@ export function prismaPaymentStore(db: PrismaClient): PaymentStore {
         where: { mollieId, status: { not: "PAID" } },
         data:
           status === "paid"
-            ? { status: "PAID", creditsLeft: current.credits, name, paidAt }
-            : { status: toDb(status), ...(name && { name }) },
+            ? { status: "PAID", creditsLeft: current.credits, name, accountEncrypted, paidAt }
+            : { status: toDb(status), ...(name && { name }), ...(accountEncrypted && { accountEncrypted }) },
       });
       return toPayment(await db.payment.findUnique({ where: { mollieId }, select }));
     },
@@ -92,19 +95,19 @@ export function memoryPaymentStore(): PaymentStore {
   const copy = (p: StoredPayment | undefined) => (p ? { ...p } : null);
   return {
     async create(data) {
-      const payment = { ...data, id: payments.length + 1, status: "open" as const, creditsLeft: 0, name: null };
+      const payment = { ...data, id: payments.length + 1, status: "open" as const, creditsLeft: 0, name: null, accountEncrypted: null };
       payments.push(payment);
       return { ...payment };
     },
     findByToken: async (token) => copy(payments.find((p) => p.token === token)),
     findByMollieId: async (mollieId) => copy(payments.find((p) => p.mollieId === mollieId)),
     findByReference: async (reference) => copy(payments.find((p) => p.reference === reference)),
-    async updateStatus(mollieId, { status, name }) {
+    async updateStatus(mollieId, { status, name, accountEncrypted }) {
       const p = payments.find((p) => p.mollieId === mollieId);
       if (!p) return null;
       if (p.status !== "paid") {
-        if (status === "paid") Object.assign(p, { status, creditsLeft: p.credits, name });
-        else Object.assign(p, { status, ...(name && { name }) });
+        if (status === "paid") Object.assign(p, { status, creditsLeft: p.credits, name, accountEncrypted });
+        else Object.assign(p, { status, ...(name && { name }), ...(accountEncrypted && { accountEncrypted }) });
       }
       return { ...p };
     },

@@ -1,6 +1,6 @@
 import { defineConfig, devices } from "@playwright/test";
 import { TEST_ADMIN, TEST_AUTH_SECRET } from "./e2e/auth";
-import { MOCK_API_KEY, MOLLIE_MOCK_PORT, PAID_APP_PORT } from "./e2e/payments";
+import { MOCK_API_KEY, MOCK_ENCRYPTION_KEY, MOLLIE_MOCK_PORT, PAID_APP_PORT } from "./e2e/payments";
 
 // Visuele tests (e2e/*.spec.ts) in een browser van 1024x768. Playwright bouwt en
 // start de app zelf op een eigen poort, zodat een draaiende `npm run dev` niet stoort.
@@ -68,6 +68,7 @@ export default defineConfig({
         MOLLIE_API_KEY: MOCK_API_KEY,
         MOLLIE_API_URL: `http://localhost:${MOLLIE_MOCK_PORT}/v2`,
         PAYMENTS_TEST_STORE: "true", // betalingen in het geheugen (er is geen database)
+        PAYMENT_ENCRYPTION_KEY: MOCK_ENCRYPTION_KEY, // rekeningnummer versleuteld (taak 11)
       },
     },
   ],

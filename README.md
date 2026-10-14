@@ -141,7 +141,11 @@ afgeschreven. Live betalen volgt in taak 12.
 - De credits staan op de server bij de betaling (tabel `payments`); de browser heeft alleen een
   willekeurige sleutel in een httpOnly-cookie. De naam van de rekeninghouder (van Mollie, o.a. bij
   iDEAL) komt bij de betaling en bij elke ronde die ermee gespeeld is (`games.name`, `games.payment_id`).
-  Het rekeningnummer volgt versleuteld in taak 11.
+- Het rekeningnummer van de rekeninghouder staat alleen versleuteld in de database
+  (`payments.account_encrypted`, AES-256-GCM met `PAYMENT_ENCRYPTION_KEY`, zie
+  `src/lib/encryption.ts`). Het wordt nooit gelogd en nooit naar de browser gestuurd. Zonder
+  (geldige) sleutel wordt het niet opgeslagen; de betaling gaat dan gewoon door, met een
+  waarschuwing in de serverlog.
 - De status komt altijd van Mollie zelf: de popup vraagt die elke 3 seconden op, de pagina `/betaald`
   (terugkeer na betalen) ook, en Mollie meldt elke wijziging via de webhook
   `POST /api/mollie/webhook`. Die krijgt alleen het ID en haalt de status zelf op bij Mollie.
@@ -150,6 +154,12 @@ afgeschreven. Live betalen volgt in taak 12.
 | ------------------ | ----------------------------------------------------------- | ---------------- |
 | `MOLLIE_API_KEY`   | Test-key uit het Mollie-dashboard (*Developers → API keys*). Leeg = betalen uit, het spel is gratis | leeg |
 | `GAME_PRICE_CENTS` | Prijs van één betaling in centen (1 t/m 10000)              | `100` (€ 1,00)   |
+| `PAYMENT_ENCRYPTION_KEY` | Sleutel voor het rekeningnummer: 32 willekeurige bytes als base64. Leeg = rekeningnummer niet opslaan | leeg |
+
+Sleutel maken: `node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"`.
+Bewaar de sleutel goed: zonder dezelfde sleutel zijn opgeslagen rekeningnummers niet meer te lezen.
+Gebruik per database één sleutel (Production een eigen, Preview en Development samen, want die
+delen Neon-branch `dev`).
 
 Betalen werkt alleen met een database. Lokaal kan Mollie de webhook niet bereiken (localhost); de app
 stuurt dan geen webhook mee en ziet de betaling via de popup of `/betaald`. In previews staat Vercel
@@ -273,6 +283,7 @@ De spelinstellingen (zie [Instellingen](#instellingen)) staan in Vercel onder
 | `GAME_MANAGER_ADMINS`     | beheerders | beheerders | beheerders |
 | `MOLLIE_API_KEY`          | leeg (taak 12) | Mollie test-key | Mollie test-key |
 | `GAME_PRICE_CENTS`        | `100`      | `100`   | `100`       |
+| `PAYMENT_ENCRYPTION_KEY`  | eigen sleutel | sleutel `dev` | sleutel `dev` (zelfde als Preview) |
 
 In previews werkt `?kans=` dus wel, in productie niet. Een wijziging geldt vanaf de volgende deploy
 (workflow opnieuw draaien via *Actions → CI/CD → Run workflow*). Development-waarden lokaal ophalen:

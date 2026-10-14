@@ -1,6 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 import { display, playButton } from "./helpers";
-import { MOCK_CONSUMER_NAME, PAID_APP_URL } from "./payments";
+import { MOCK_CONSUMER_ACCOUNT, MOCK_CONSUMER_NAME, PAID_APP_URL } from "./payments";
 
 // Betalen met Mollie (taak 10) op de tweede server: betalen aan, nep-Mollie, winkans 1
 // (elk spel is na één draai gewonnen en klaar), 4 spelletjes voor € 1,00.
@@ -82,6 +82,13 @@ test("zonder credits opent SPEEL de betaalpopup met QR-code", async ({ page }) =
 });
 
 test("betalen op dit apparaat: terug naar het spel met 4 credits, elk spel kost 1 credit, daarna de score-popup", async ({ page }) => {
+  // Het rekeningnummer (taak 11) mag nooit in een antwoord van de app naar de browser staan
+  const leaks: string[] = [];
+  page.on("response", async (response) => {
+    if (!response.url().startsWith(PAID_APP_URL)) return;
+    const text = await response.text().catch(() => "");
+    if (text.includes(MOCK_CONSUMER_ACCOUNT)) leaks.push(response.url());
+  });
   await openGame(page);
   await openPopup(page);
 
@@ -104,6 +111,8 @@ test("betalen op dit apparaat: terug naar het spel met 4 credits, elk spel kost 
   await expect(credits(page)).toHaveText("0");
   await expect(prizes(page)).toBeVisible();
   await expect(prizes(page)).toContainText(MOCK_CONSUMER_NAME);
+  expect(await page.content()).not.toContain(MOCK_CONSUMER_ACCOUNT);
+  expect(leaks).toEqual([]);
   await expect(prizes(page)).toContainText("4 van de 4 spelletjes gewonnen");
   const counts = await prizes(page).locator("li").allTextContents();
   expect(counts.reduce((sum, text) => sum + Number(text.match(/^\d+/)![0]), 0)).toBe(4);

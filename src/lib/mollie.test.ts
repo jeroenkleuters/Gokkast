@@ -31,11 +31,12 @@ describe("parseMolliePayment", () => {
       status: "open",
       checkoutUrl: "https://www.mollie.com/checkout/select-method/WDqYK6vllg",
       consumerName: null,
+      consumerAccount: null,
       paidAt: null,
     });
   });
 
-  it("neemt de naam van de rekeninghouder over na betalen", () => {
+  it("neemt naam en rekeningnummer van de rekeninghouder over na betalen", () => {
     const paid = {
       ...molliePayment,
       status: "paid",
@@ -43,9 +44,12 @@ describe("parseMolliePayment", () => {
       details: { consumerName: " T. TEST ", consumerAccount: "NL53INGB0654422370" },
       _links: {},
     };
-    expect(parseMolliePayment(paid)).toMatchObject({ status: "paid", consumerName: "T. TEST", checkoutUrl: null });
-    // Het rekeningnummer komt pas in taak 11 (versleuteld)
-    expect(parseMolliePayment(paid)).not.toHaveProperty("consumerAccount");
+    expect(parseMolliePayment(paid)).toMatchObject({
+      status: "paid",
+      consumerName: "T. TEST",
+      consumerAccount: "NL53INGB0654422370",
+      checkoutUrl: null,
+    });
   });
 
   it("weigert een antwoord dat geen betaling is", () => {

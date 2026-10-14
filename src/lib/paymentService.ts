@@ -1,5 +1,7 @@
 // Betaalflow (taak 10): betaling starten, status bij Mollie ophalen en credits afboeken.
+// Het rekeningnummer van de rekeninghouder wordt alleen versleuteld opgeslagen (taak 11).
 // Alleen op de server. De status komt altijd van Mollie zelf, nooit uit een verzoek van buiten.
+import { encrypt, readEncryptionKey } from "@/lib/encryption";
 import { createMollieClient, type MollieClient, type MolliePayment } from "@/lib/mollie";
 import { getPaymentStore, type PaymentStore, type StatusUpdate, type StoredPayment } from "@/lib/paymentStore";
 import {
@@ -21,6 +23,7 @@ export interface PaymentDeps {
   store: PaymentStore | null; // null: geen database, betalen lukt dan niet
   mollie: MollieClient;
   credits(): Promise<number>; // spelletjes per betaling (game-manager, anders .env)
+  encryptionKey: Buffer | null; // PAYMENT_ENCRYPTION_KEY; null: rekeningnummer niet opslaan
 }
 
 // null = betalen staat uit (geen MOLLIE_API_KEY): het spel is gratis
@@ -32,6 +35,7 @@ export function defaultPaymentDeps(): PaymentDeps | null {
     store: getPaymentStore(),
     mollie: createMollieClient(config),
     credits: async () => (await loadSettings()).roundsPerPayment,
+    encryptionKey: readEncryptionKey(),
   };
 }
 
@@ -60,11 +64,28 @@ export function toView(payment: StoredPayment | null): PaymentView {
   };
 }
 
+// Rekeningnummer → versleuteld voor de database. Zonder (geldige) sleutel of bij een fout: niet
+// opslaan, wel een waarschuwing; de betaling gaat gewoon door. Het rekeningnummer zelf nooit loggen.
+function encryptAccount(account: string | null, key: Buffer | null): string | null {
+  if (!account) return null;
+  if (!key) {
+    console.warn("Rekeningnummer niet opgeslagen: PAYMENT_ENCRYPTION_KEY ontbreekt of is ongeldig.");
+    return null;
+  }
+  try {
+    return encrypt(account, key);
+  } catch {
+    console.warn("Rekeningnummer niet opgeslagen: versleutelen mislukt.");
+    return null;
+  }
+}
+
 // Betaling zoals Mollie die teruggeeft → wat we ervan opslaan
-function statusUpdate(mollie: MolliePayment): StatusUpdate {
+function statusUpdate(mollie: MolliePayment, deps: PaymentDeps): StatusUpdate {
   return {
     status: mollie.status,
     name: mollie.consumerName,
+    accountEncrypted: encryptAccount(mollie.consumerAccount, deps.encryptionKey),
     paidAt: mollie.paidAt ? new Date(mollie.paidAt) : null,
   };
 }
@@ -75,7 +96,7 @@ export async function refreshPayment(payment: StoredPayment, deps: PaymentDeps):
   if (isFinalStatus(payment.status) || !deps.store) return payment;
   try {
     const mollie = await deps.mollie.getPayment(payment.mollieId);
-    return (await deps.store.updateStatus(payment.mollieId, statusUpdate(mollie))) ?? payment;
+    return (await deps.store.updateStatus(payment.mollieId, statusUpdate(mollie, deps))) ?? payment;
   } catch (error) {
     console.warn("Status van betaling niet opgehaald bij Mollie:", error);
     return payment;
@@ -176,7 +197,7 @@ export async function syncPaymentById(mollieId: string, deps: PaymentDeps): Prom
     const payment = await deps.store.findByMollieId(mollieId);
     if (!payment) return "unknown";
     const mollie = await deps.mollie.getPayment(mollieId);
-    await deps.store.updateStatus(mollieId, statusUpdate(mollie));
+    await deps.store.updateStatus(mollieId, statusUpdate(mollie, deps));
     return "updated";
   } catch (error) {
     console.error("Webhook van Mollie niet verwerkt:", error);

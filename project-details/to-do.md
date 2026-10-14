@@ -76,7 +76,7 @@ De taken staan in volgorde: latere taken bouwen voort op eerdere.
   - maak een pagina op /betaald zodat op de mobiel zichtbaar is dat het gelukt is
   - maak een popup met een overzicht van de scores als men minstens 1 maal gewonnen hebben. Wij kunnen dan de prijs(en) uitdelen: 1 of meer gratis shotjes,  1 of meer kakkelakken om te blingen of vrije keuze bij vraagteken.
 
-- [ ] **11. Betalingen versleuteld opslaan en koppelen aan spelletjes**
+- [x] **11. Betalingen versleuteld opslaan en koppelen aan spelletjes**
   - Naam, rekeningnummer en bedrag  opslaan (sleutel in `.env`)
   - rekeningnummer versleuteld
   - Spelletjes met naam koppelen aan de betaling waarmee ze gespeeld zijn

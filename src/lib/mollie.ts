@@ -7,6 +7,7 @@ export interface MolliePayment {
   status: PaymentStatus;
   checkoutUrl: string | null; // betaalpagina; er niet meer na betalen of verlopen
   consumerName: string | null; // naam van de rekeninghouder, pas na betalen (o.a. iDEAL)
+  consumerAccount: string | null; // rekeningnummer (IBAN); alleen versleuteld opslaan (taak 11), nooit loggen
   paidAt: string | null;
 }
 
@@ -39,6 +40,7 @@ export function parseMolliePayment(body: unknown): MolliePayment {
     status: p.status,
     checkoutUrl: text(links.checkout?.href),
     consumerName: text(details.consumerName),
+    consumerAccount: text(details.consumerAccount),
     paidAt: text(p.paidAt),
   };
 }

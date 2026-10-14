@@ -1,4 +1,6 @@
+import { randomBytes } from "node:crypto";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { decrypt } from "@/lib/encryption";
 import type { CreatePaymentInput, MollieClient, MolliePayment } from "@/lib/mollie";
 import {
   getPlayerPayment,
@@ -22,7 +24,7 @@ function fakeMollie() {
     async createPayment(input) {
       created.push(input);
       const id = `tr_test${payments.size + 1}`;
-      const payment = { id, status: "open" as const, checkoutUrl: `https://mollie.test/checkout/${id}`, consumerName: null, paidAt: null };
+      const payment = { id, status: "open" as const, checkoutUrl: `https://mollie.test/checkout/${id}`, consumerName: null, consumerAccount: null, paidAt: null };
       payments.set(id, payment);
       return { ...payment };
     },
@@ -32,11 +34,12 @@ function fakeMollie() {
       return { ...payment };
     },
   };
-  function setStatus(id: string, status: PaymentStatus, consumerName: string | null = null) {
+  function setStatus(id: string, status: PaymentStatus, consumerName: string | null = null, consumerAccount: string | null = null) {
     const payment = payments.get(id)!;
     Object.assign(payment, {
       status,
       consumerName,
+      consumerAccount,
       paidAt: status === "paid" ? "2026-10-14T10:00:00+00:00" : null,
       checkoutUrl: status === "open" ? payment.checkoutUrl : null,
     });
@@ -45,6 +48,8 @@ function fakeMollie() {
 }
 
 const ORIGIN = "https://gokkast.test";
+const KEY = randomBytes(32);
+const ACCOUNT = "NL53INGB0654422370";
 
 describe("betaalflow", () => {
   let mollie: ReturnType<typeof fakeMollie>;
@@ -59,6 +64,7 @@ describe("betaalflow", () => {
       store,
       mollie: mollie.client,
       credits: async () => 4,
+      encryptionKey: KEY,
     };
   });
   afterEach(() => vi.restoreAllMocks());
@@ -104,6 +110,54 @@ describe("betaalflow", () => {
     mollie.setStatus("tr_test1", "paid", "T. TEST");
     expect(await getPlayerPayment(token, deps)).toEqual({ status: "paid", creditsLeft: 4, checkoutUrl: null });
     expect(await store.findByToken(token)).toMatchObject({ status: "paid", name: "T. TEST" });
+  });
+
+  it("slaat het rekeningnummer na betalen alleen versleuteld op", async () => {
+    const { token } = await start();
+    mollie.setStatus("tr_test1", "paid", "T. TEST", ACCOUNT);
+    const view = await getPlayerPayment(token, deps);
+
+    const stored = (await store.findByToken(token))!;
+    expect(stored.accountEncrypted).toMatch(/^v1:/);
+    expect(stored.accountEncrypted).not.toContain(ACCOUNT);
+    expect(decrypt(stored.accountEncrypted!, KEY)).toBe(ACCOUNT);
+    // De browser krijgt het rekeningnummer niet te zien, ook niet versleuteld
+    expect(JSON.stringify(view)).not.toMatch(/NL53|v1:/);
+  });
+
+  it("ook via de webhook; een betaling zonder rekeningnummer blijft leeg", async () => {
+    const a = await start();
+    const b = await start();
+    mollie.setStatus("tr_test1", "paid", "T. TEST", ACCOUNT);
+    mollie.setStatus("tr_test2", "paid", "T. TEST");
+    await syncPaymentById("tr_test1", deps);
+    await syncPaymentById("tr_test2", deps);
+    expect(decrypt((await store.findByToken(a.token))!.accountEncrypted!, KEY)).toBe(ACCOUNT);
+    expect((await store.findByToken(b.token))!.accountEncrypted).toBeNull();
+  });
+
+  it("zonder sleutel: geen rekeningnummer opslaan, waarschuwen, betaling gaat door", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    deps.encryptionKey = null;
+    const { token } = await start();
+    mollie.setStatus("tr_test1", "paid", "T. TEST", ACCOUNT);
+
+    expect(await getPlayerPayment(token, deps)).toEqual({ status: "paid", creditsLeft: 4, checkoutUrl: null });
+    expect(await store.findByToken(token)).toMatchObject({ name: "T. TEST", accountEncrypted: null });
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining("PAYMENT_ENCRYPTION_KEY"));
+    // Het rekeningnummer zelf staat nooit in de log
+    expect(JSON.stringify(warn.mock.calls)).not.toContain(ACCOUNT);
+  });
+
+  it("versleutelen mislukt: geen rekeningnummer, betaling gaat door", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    deps.encryptionKey = randomBytes(16); // kan alleen als iemand de deps verkeerd maakt
+    const { token } = await start();
+    mollie.setStatus("tr_test1", "paid", "T. TEST", ACCOUNT);
+
+    expect((await getPlayerPayment(token, deps)).creditsLeft).toBe(4);
+    expect((await store.findByToken(token))!.accountEncrypted).toBeNull();
+    expect(JSON.stringify(warn.mock.calls)).not.toContain(ACCOUNT);
   });
 
   it("elk spel kost 1 credit; bij 0 credits is er een nieuwe betaling nodig", async () => {

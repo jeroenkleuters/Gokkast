@@ -1,18 +1,29 @@
-# Current Feature
+# Current Feature: Betalingen versleuteld opslaan en koppelen aan spelletjes
 
 ## Status
 
-Not Started
+Complete
 
 ## Goals
 
-<!-- Doelen van de feature, in te vullen met /feature load -->
+- Bij een betaalde Mollie-betaling worden naam rekeninghouder, rekeningnummer en bedrag opgeslagen in `payments`
+- Het rekeningnummer (`details.consumerAccount`) staat alleen versleuteld in de database; de sleutel staat in `.env` (nieuwe variabele, ook in `.env.example`, README en Vercel)
+- Versleutelen en ontsleutelen in een losse module in `src/lib/` met geauthenticeerde versleuteling (bijv. AES-256-GCM via `node:crypto`), alleen op de server
+- Spelletjes met naam zijn gekoppeld aan de betaling waarmee ze gespeeld zijn (controleren/aanvullen wat taak 10 al doet)
+- Zonder (geldige) sleutel geen rekeningnummer opslaan en een waarschuwing in de serverlog; de betaling en het spel gaan gewoon door
+- Vitest-tests voor versleutelen en ontsleutelen (heen en terug, verkeerde sleutel, gemanipuleerde tekst, ongeldige sleutel, elke keer andere uitkomst)
+- Lint, typecheck, Vitest en Playwright zonder fouten
 
 ## Notes
 
-<!-- Extra context, beperkingen of details uit de spec -->
+- Taak 11 uit `project-details/to-do.md`.
+- Al gedaan in taak 10: `payments` heeft Mollie-ID, status, credits, bedrag in centen en naam rekeninghouder (`details.consumerName`); `games.payment_id` + naam. `parseMolliePayment` (`src/lib/mollie.ts`) laat `consumerAccount` nu bewust weg (test in `mollie.test.ts`) — dat verandert in deze taak.
+- Nieuwe kolom voor het versleutelde rekeningnummer vraagt een migratie; toepassen op Neon-branch `dev`, productie via de workflow.
+- Ontsleuteld tonen hoort bij taak 14 (game-manager); open vraag in `to-do.md`: rekeningnummer tonen of alleen naam en bedrag.
+- Het rekeningnummer nooit loggen of naar de browser sturen.
 
 ## History
+
 
 <!-- Afgeronde features worden hier toegevoegd -->
 

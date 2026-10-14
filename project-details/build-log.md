@@ -884,6 +884,55 @@ Melding gebruiker: in de database alleen `LOST`, ook na winst. Oorzaak: de dev-s
 3. `current-feature.md` teruggezet en de feature toegevoegd aan History; reset gecommit; `main` één keer gepusht. De productie-run past de migratie `20261014120000_payments_reference` toe op Neon-branch `main` vóór de deploy.
 4. Dev-server gestopt, `.next` verwijderd en `npm run dev` opnieuw gestart.
 
+## Stap 65 — Feature geladen: Betalingen versleuteld opslaan en koppelen aan spelletjes (14 oktober 2026)
+
+**Vraag:**
+> /feature load 11
+
+**Uitgevoerde handelingen:**
+1. Taak 11 uit `to-do.md` geladen in `current-feature.md` (status Not Started): doelen voor naam, rekeningnummer (versleuteld, sleutel in `.env`) en bedrag opslaan, koppeling spelletjes–betaling en tests voor versleutelen/ontsleutelen.
+2. In de notities vastgelegd wat taak 10 al doet (naam, bedrag, `games.payment_id`) en dat `parseMolliePayment` het rekeningnummer nu nog bewust weglaat.
+
+## Stap 66 — Feature gestart: Betalingen versleuteld opslaan en koppelen aan spelletjes (14 oktober 2026)
+
+**Vraag:**
+> /feature start
+
+**Uitgevoerde handelingen:**
+1. Status In Progress; branch `feature/betalingen-versleuteld-opslaan`.
+2. `src/lib/encryption.ts`: AES-256-GCM (`node:crypto`), formaat `v1:<iv>:<tag>:<data>` (base64), elke keer een nieuwe iv; `parseEncryptionKey`/`readEncryptionKey` lezen `PAYMENT_ENCRYPTION_KEY` (32 bytes base64, anders null). `encryption.test.ts` (10 tests: heen en terug, rekeningnummer niet zichtbaar, elke keer anders, verkeerde sleutel, aangepaste iv/tag/data, geen versleutelde tekst, verkeerde sleutellengte, sleutel lezen).
+3. `mollie.ts` neemt `details.consumerAccount` over (test aangepast). `paymentService.ts`: `PaymentDeps.encryptionKey`; `statusUpdate` versleutelt het rekeningnummer; zonder sleutel of bij een fout niet opslaan en een waarschuwing zonder het rekeningnummer, betaling gaat door. `paymentStore.ts` slaat `accountEncrypted` op (database en geheugen), `toView` stuurt het niet naar de browser.
+4. Schema: `payments.account_encrypted` (optioneel), migratie `20261014200000_payments_account_encrypted`; `migrate diff` tegen het vorige schema geeft precies deze kolom. Per ongeluk `schema.prisma` gestasht met `git stash -- prisma/schema.prisma`, direct teruggezet met `git stash pop` (niets verloren).
+5. Koppeling spelletjes–betaling: al aanwezig sinds taak 10 (`games.payment_id` + naam bij `GameStore.create`), niets aan veranderd.
+6. Tests: 5 nieuwe in `paymentService.test.ts` (versleuteld opslaan, via webhook, zonder rekeningnummer, zonder sleutel, versleutelen mislukt), `paymentStore.test.ts` bijgewerkt. Playwright: nep-Mollie geeft een test-IBAN, betaalserver krijgt een nep-sleutel, betaaltest controleert dat het rekeningnummer in geen enkel antwoord van de app staat.
+7. `.env.example` en README (Betalen, Instellingen per omgeving) bijgewerkt; lokale sleutel toegevoegd aan `.env.local` (waarde niet getoond).
+8. `prisma migrate deploy` naar Neon `dev` gaf eerst P1001: de VPN van de gebruiker blokkeerde poort 5432 (TCP open, geen antwoord van Postgres; via HTTPS/443 werkte de database wel). Na het uitzetten van de VPN toegepast; `migrate diff` database → schema is leeg. Dev-server opnieuw gestart (oude Prisma Client in het geheugen gaf `PrismaClientValidationError`), `/` geeft 200 zonder fouten.
+9. Lint, typecheck, 170 Vitest- en 24 Playwright-tests zonder fouten.
+
+## Stap 67 — Feature gereviewd: Betalingen versleuteld opslaan en koppelen aan spelletjes (14 oktober 2026)
+
+**Vraag:**
+> /feature review
+
+**Uitgevoerde handelingen:**
+1. Doelen en diff nagelopen (`encryption.ts`, `mollie.ts`, `paymentService.ts`, `paymentStore.ts`, schema, migratie, tests, e2e, README, `.env.example`).
+2. Doelen gehaald; het rekeningnummer gaat nergens naar de browser (browser-onderdelen importeren alleen types uit `paymentService`, `toView` en `currentGamePayment` kiezen hun velden zelf).
+3. Open: sleutels in Vercel (gebruiker) en een betaling in de echte Mollie-testomgeving controleren.
+4. Kleine aandachtspunten, bewust gelaten: geen `import "server-only"` in `encryption.ts` (Vitest heeft er dan een alias voor nodig; nu alleen geïmporteerd door servercode), `accountEncrypted` wordt bij elke betaling mee gelezen, betaald zonder sleutel wordt later niet aangevuld (betaald is definitief).
+5. Oordeel: klaar om af te ronden na de controle met Mollie.
+
+## Stap 68 — Feature opnieuw gereviewd: Betalingen versleuteld opslaan en koppelen aan spelletjes (14 oktober 2026)
+
+**Vraag:**
+> /feature review
+
+**Uitgevoerde handelingen:**
+1. Code ongewijzigd sinds stap 67.
+2. In Neon `dev` (via HTTPS) gecontroleerd: betaling 6 (echte Mollie-testomgeving, na de migratie) is betaald, € 1,00, naam gevuld, `account_encrypted` begint met `v1:`, er staat geen leesbaar IBAN in, en 4 rondes zijn eraan gekoppeld. Oudere betalingen 4 en 5 (van voor de migratie) hebben geen rekeningnummer.
+3. Met de sleutel uit `.env.local` ontsleuteld: geldig IBAN-formaat, 18 tekens (het nummer zelf niet getoond). Tijdelijke controlescripts weer verwijderd.
+4. Open: sleutels in Vercel (Preview/Development dezelfde als `.env.local`, Production een eigen).
+5. Oordeel: klaar om af te ronden.
+
 ---
 
 ## Huidige bestandsstructuur
@@ -902,9 +951,9 @@ Gokkast/
 │   │   └── api/auth/[...nextauth]/route.ts
 │   ├── auth.ts           Auth.js (Google, alleen beheerders)
 │   ├── components/       SlotMachine, Reel, Lever, InfoPanel, Stats, SettingsDialog, GameClient, PaymentDialog, PrizeDialog
-│   ├── lib/              prizes.ts, payments.ts, paymentService.ts, paymentStore.ts, mollie.ts, qr.ts, game.ts, settings.ts, settingsStore.ts, db.ts, gameStore.ts, admins.ts, dal.ts, sound.ts, storage.ts, coinShower.ts, game.test.ts, settings.test.ts, settingsStore.test.ts, gameStore.test.ts, admins.test.ts
+│   ├── lib/              encryption.ts, encryption.test.ts, prizes.ts, payments.ts, paymentService.ts, paymentStore.ts, mollie.ts, qr.ts, game.ts, settings.ts, settingsStore.ts, db.ts, gameStore.ts, admins.ts, dal.ts, sound.ts, storage.ts, coinShower.ts, game.test.ts, settings.test.ts, settingsStore.test.ts, gameStore.test.ts, admins.test.ts
 │   └── generated/prisma/ Prisma Client (gegenereerd, niet in git)
-├── prisma/               schema.prisma, seed.ts, migrations/ (20261013000000_init, 20261013163330_games_name_optional, 20261013200000_game_settings_optional, 20261013230000_games_outcome_symbol, 20261014000000_payments_mollie, 20261014120000_payments_reference, migration_lock.toml)
+├── prisma/               schema.prisma, seed.ts, migrations/ (20261013000000_init, 20261013163330_games_name_optional, 20261013200000_game_settings_optional, 20261013230000_games_outcome_symbol, 20261014000000_payments_mollie, 20261014120000_payments_reference, 20261014200000_payments_account_encrypted, migration_lock.toml)
 ├── e2e/                  gokkast.spec.ts, game-manager.spec.ts, helpers.ts, auth.ts
 ├── v1/                   index.html, style.css, game.js (versie 1)
 ├── voorbeeld/            fruitmachine.jpg

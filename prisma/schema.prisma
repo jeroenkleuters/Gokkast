@@ -62,22 +62,24 @@ enum PaymentStatus {
 // Eén betaling via Mollie, per speler een eigen betaling (src/lib/payments.ts).
 // token: willekeurige sleutel in een httpOnly-cookie van de speler; zo weet het spel welke
 // betaling bij deze browser hoort. Na betalen krijgt de speler `credits` spelletjes.
-// De naam komt van Mollie (details.consumerName); het rekeningnummer volgt versleuteld in taak 11.
+// Naam en rekeningnummer komen van Mollie (details.consumerName/consumerAccount) na betalen.
+// Het rekeningnummer staat alleen versleuteld in de database (src/lib/encryption.ts, taak 11).
 model Payment {
-  id          Int           @id @default(autoincrement())
-  token       String        @unique
-  reference   String?       @unique // in de terugkeer-URL (/betaald?ref=...): alleen tonen, geeft geen credits
-  mollieId    String        @unique @map("mollie_id")
-  checkoutUrl String        @map("checkout_url")
-  status      PaymentStatus @default(OPEN)
-  amountCents Int           @map("amount_cents")
-  credits     Int // spelletjes voor deze betaling
-  creditsLeft Int           @default(0) @map("credits_left") // pas na betalen gelijk aan credits
-  name        String?
-  paidAt      DateTime?     @map("paid_at")
-  createdAt   DateTime      @default(now()) @map("created_at")
-  updatedAt   DateTime      @updatedAt @map("updated_at")
-  games       Game[]
+  id               Int           @id @default(autoincrement())
+  token            String        @unique
+  reference        String?       @unique // in de terugkeer-URL (/betaald?ref=...): alleen tonen, geeft geen credits
+  mollieId         String        @unique @map("mollie_id")
+  checkoutUrl      String        @map("checkout_url")
+  status           PaymentStatus @default(OPEN)
+  amountCents      Int           @map("amount_cents")
+  credits          Int // spelletjes voor deze betaling
+  creditsLeft      Int           @default(0) @map("credits_left") // pas na betalen gelijk aan credits
+  name             String?
+  accountEncrypted String?       @map("account_encrypted") // v1:<iv>:<tag>:<data>, sleutel PAYMENT_ENCRYPTION_KEY
+  paidAt           DateTime?     @map("paid_at")
+  createdAt        DateTime      @default(now()) @map("created_at")
+  updatedAt        DateTime      @updatedAt @map("updated_at")
+  games            Game[]
 
   @@map("payments")
 }

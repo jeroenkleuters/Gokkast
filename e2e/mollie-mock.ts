@@ -3,7 +3,7 @@
 // net als op de testpagina van Mollie, zelf kiest hoe de betaling afloopt.
 // Starten: npx tsx e2e/mollie-mock.ts (doet playwright.config.ts zelf)
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
-import { MOCK_API_KEY, MOCK_CONSUMER_NAME, MOLLIE_MOCK_PORT } from "./payments";
+import { MOCK_API_KEY, MOCK_CONSUMER_ACCOUNT, MOCK_CONSUMER_NAME, MOLLIE_MOCK_PORT } from "./payments";
 
 const port = MOLLIE_MOCK_PORT;
 const base = `http://localhost:${port}`;
@@ -28,7 +28,7 @@ function toJson(p: MockPayment) {
     amount: p.amount,
     description: p.description,
     redirectUrl: p.redirectUrl,
-    ...(p.status === "paid" && { paidAt: new Date().toISOString(), details: { consumerName: p.consumerName } }),
+    ...(p.status === "paid" && { paidAt: new Date().toISOString(), details: { consumerName: p.consumerName, consumerAccount: MOCK_CONSUMER_ACCOUNT } }),
     _links: p.status === "open" ? { checkout: { href: `${base}/checkout/${p.id}` } } : {},
   };
 }
