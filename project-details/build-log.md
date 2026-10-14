@@ -987,6 +987,17 @@ Melding gebruiker: in de database alleen `LOST`, ook na winst. Oorzaak: de dev-s
 
 ---
 
+## Stap 73 — Feature afgerond: Speelrondes en statistieken in de game-manager (14 oktober 2026)
+
+**Vraag:**
+> /feature complete
+
+**Uitgevoerde handelingen:**
+1. Taak 13 afgevinkt in `to-do.md`; feature gecommit (`f9482bc`), in `main` gemerged en de lokale branch verwijderd (stond niet op origin).
+2. `current-feature.md` teruggezet en de samenvatting toegevoegd aan History; `main` gepusht, `.next` verwijderd en `npm run dev` gestart.
+
+---
+
 ## Huidige bestandsstructuur
 
 ```
