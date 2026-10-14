@@ -1,39 +1,12 @@
-// Speelrondes en statistieken per naam voor de game-manager (taak 13). Alleen op de server,
-// en alleen na checkAdmin (src/app/game-manager/page.tsx).
+// Speelrondes en statistieken per naam voor de game-manager (taak 13, sorteren/filteren taak 14).
+// Alleen op de server, en alleen na checkAdmin (src/app/game-manager/page.tsx).
 import { DB_TIMEOUT_MS, withTimeout } from "@/lib/db";
 import { SYMBOL_NAMES, type SymbolName } from "@/lib/game";
 import { getGameStore, type GameStore, type OutcomeCount, type PlayedRound } from "@/lib/gameStore";
+import type { NameColumn, Period, StatsQuery } from "@/lib/managerQuery";
+import { clampPage, compareValues, pageCount, pageSlice, ROWS_PER_PAGE, sortRows, type Sort, type SortValue } from "@/lib/tables";
 
-export const ROUNDS_PER_PAGE = 25;
 export const TIME_ZONE = "Europe/Amsterdam";
-
-export type Period = "vandaag" | "alles";
-
-// Uit de URL van de game-manager: ?periode=vandaag&pagina=2
-export interface StatsQuery {
-  period: Period;
-  page: number; // vanaf 1
-}
-
-type SearchParams = Record<string, string | string[] | undefined>;
-
-const first = (value: string | string[] | undefined) => (Array.isArray(value) ? value[0] : value);
-
-// Onbekende of ongeldige waarden → alles, pagina 1
-export function parseStatsQuery(params: SearchParams): StatsQuery {
-  const period = first(params.periode) === "vandaag" ? "vandaag" : "alles";
-  const page = Number(first(params.pagina));
-  return { period, page: Number.isSafeInteger(page) && page >= 1 ? page : 1 };
-}
-
-// Link naar een andere periode of pagina; standaardwaarden blijven uit de URL
-export function statsHref({ period, page }: StatsQuery): string {
-  const params = new URLSearchParams();
-  if (period !== "alles") params.set("periode", period);
-  if (page > 1) params.set("pagina", String(page));
-  const query = params.toString();
-  return `/game-manager${query ? `?${query}` : ""}#speelrondes`;
-}
 
 // Verschil tussen de kloktijd in `timeZone` en UTC op dat moment, in ms
 function offsetMs(date: Date, timeZone: string): number {
@@ -63,8 +36,6 @@ export function startOfDay(now: Date, timeZone = TIME_ZONE): Date {
 
 export const sinceFor = (period: Period, now: Date): Date | null => (period === "vandaag" ? startOfDay(now) : null);
 
-export const pageCount = (total: number) => Math.max(1, Math.ceil(total / ROUNDS_PER_PAGE));
-
 // Wins en verlies van één naam (name null: gratis gespeeld of naam onbekend)
 export interface NameStats {
   name: string | null;
@@ -82,8 +53,6 @@ const emptyStats = (name: string | null): NameStats => ({
   lost: 0,
 });
 
-const byName = new Intl.Collator("nl", { sensitivity: "base", numeric: true });
-
 // Tellingen per naam en uitkomst → één regel per naam, op naam (A-Z); zonder naam onderaan
 export function buildNameStats(counts: OutcomeCount[]): NameStats[] {
   const stats = new Map<string | null, NameStats>();
@@ -97,10 +66,7 @@ export function buildNameStats(counts: OutcomeCount[]): NameStats[] {
     }
     stats.set(name, entry);
   }
-  return [...stats.values()].sort((a, b) => {
-    if (a.name === null || b.name === null) return a.name === null ? (b.name === null ? 0 : 1) : -1;
-    return byName.compare(a.name, b.name) || a.name.localeCompare(b.name);
-  });
+  return sortNameStats([...stats.values()], { column: "naam", dir: "asc" });
 }
 
 // Alle namen samen, voor de regel Totaal
@@ -115,14 +81,31 @@ export function totalStats(stats: NameStats[]): NameStats {
   return total;
 }
 
+// Waarde van een kolom in de tabel Per naam
+function nameValue(stats: NameStats, column: NameColumn): SortValue {
+  if (column === "naam") return stats.name;
+  if (column === "gespeeld") return stats.played;
+  if (column === "gewonnen") return stats.wonTotal;
+  if (column === "verloren") return stats.lost;
+  return stats.won[column];
+}
+
+// Gesorteerd op de kolom; bij gelijke waarden op naam (A-Z, zonder naam onderaan)
+export function sortNameStats(stats: NameStats[], sort: Sort<NameColumn>): NameStats[] {
+  return sortRows(stats, sort, nameValue, (a, b) => compareValues(a.name, b.name, "asc"));
+}
+
 export type GameStats =
   | {
       status: "ok";
-      query: StatsQuery; // met de pagina die echt getoond wordt
-      total: number; // aantal rondes in de periode
-      pageCount: number;
-      rounds: PlayedRound[];
-      names: NameStats[];
+      query: StatsQuery; // met de pagina's die echt getoond worden
+      total: number; // aantal rondes in de periode (met de naam)
+      roundPages: number;
+      rounds: PlayedRound[]; // deze pagina
+      nameCount: number; // aantal namen (regels in Per naam)
+      namePages: number;
+      names: NameStats[]; // deze pagina
+      totals: NameStats; // alle namen samen, niet alleen deze pagina
     }
   | { status: "no-database" }
   | { status: "error" };
@@ -135,13 +118,27 @@ export async function readGameStats(
   timeoutMs = DB_TIMEOUT_MS,
 ): Promise<GameStats> {
   if (!store) return { status: "no-database" };
-  const since = sinceFor(query.period, now);
+  const filter = { since: sinceFor(query.period, now), name: query.name };
   try {
-    const [total, counts] = await withTimeout(Promise.all([store.countRounds(since), store.countByName(since)]), timeoutMs);
-    const pages = pageCount(total);
-    const page = Math.min(query.page, pages);
-    const rounds = await withTimeout(store.listRounds(since, (page - 1) * ROUNDS_PER_PAGE, ROUNDS_PER_PAGE), timeoutMs);
-    return { status: "ok", query: { ...query, page }, total, pageCount: pages, rounds, names: buildNameStats(counts) };
+    const [total, counts] = await withTimeout(Promise.all([store.countRounds(filter), store.countByName(filter)]), timeoutMs);
+    const roundPage = clampPage(query.rounds.page, total);
+    const rounds = await withTimeout(
+      store.listRounds(filter, query.rounds.sort, (roundPage - 1) * ROWS_PER_PAGE, ROWS_PER_PAGE),
+      timeoutMs,
+    );
+    const names = buildNameStats(counts);
+    const namePage = clampPage(query.names.page, names.length);
+    return {
+      status: "ok",
+      query: { ...query, names: { ...query.names, page: namePage }, rounds: { ...query.rounds, page: roundPage } },
+      total,
+      roundPages: pageCount(total),
+      rounds,
+      nameCount: names.length,
+      namePages: pageCount(names.length),
+      names: pageSlice(sortNameStats(names, query.names.sort), namePage),
+      totals: totalStats(names),
+    };
   } catch (error) {
     console.warn("Speelrondes niet uit de database gelezen:", error);
     return { status: "error" };

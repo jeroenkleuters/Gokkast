@@ -115,12 +115,66 @@ test.describe("ingelogd", () => {
 
   test("speelrondes en statistieken: zonder database een melding in plaats van een overzicht", async ({ page, context }) => {
     await loginAs(context, TEST_ADMIN);
-    await page.goto("/game-manager?periode=vandaag&pagina=abc");
+    await page.goto("/game-manager?periode=vandaag&rondes_pagina=abc&rondes_sorteer=onzin");
+    await page.getByRole("tab", { name: "Speelrondes" }).click();
 
     const section = page.getByRole("region", { name: "Speelrondes en statistieken" });
     await expect(section.getByRole("alert")).toContainText("geen database");
     await expect(section.getByRole("table")).toHaveCount(0);
     // Taak 13 heeft de plek-tekst vervangen
     await expect(page.getByText("komt hier (taak 13)")).toHaveCount(0);
+  });
+
+  test("betalingen: zonder database een melding in plaats van een overzicht", async ({ page, context }) => {
+    await loginAs(context, TEST_ADMIN);
+    await page.goto("/game-manager");
+    await page.getByRole("tab", { name: "Betalingen" }).click();
+
+    const section = page.getByRole("region", { name: "Betalingen" });
+    await expect(section.getByRole("alert")).toContainText("geen database");
+    await expect(section.getByRole("table")).toHaveCount(0);
+    await expect(page.getByText("komt hier (taak 14)")).toHaveCount(0);
+  });
+
+  test("drie tabs: één onderdeel tegelijk, te kiezen met muis en toetsenbord", async ({ page, context }) => {
+    await loginAs(context, TEST_ADMIN);
+    await page.goto("/game-manager");
+    const tabs = page.getByRole("tab");
+    const tab = (name: string) => page.getByRole("tab", { name });
+
+    await expect(tabs).toHaveText(["Moeilijkheidsgraad", "Speelrondes", "Betalingen"]);
+    // Eerst de moeilijkheidsgraad; de andere onderdelen zijn verborgen
+    await expect(tab("Moeilijkheidsgraad")).toHaveAttribute("aria-selected", "true");
+    await expect(page.getByRole("tabpanel")).toHaveCount(1);
+    await expect(page.getByRole("heading", { name: "Moeilijkheidsgraad" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Betalingen" })).toBeHidden();
+
+    await tab("Betalingen").click();
+    await expect(tab("Betalingen")).toHaveAttribute("aria-selected", "true");
+    await expect(tab("Moeilijkheidsgraad")).toHaveAttribute("aria-selected", "false");
+    await expect(page.getByRole("heading", { name: "Betalingen" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Moeilijkheidsgraad" })).toBeHidden();
+
+    // Pijltjes, Home en End; na de laatste tab weer de eerste
+    await page.keyboard.press("ArrowLeft");
+    await expect(tab("Speelrondes")).toBeFocused();
+    await expect(page.getByRole("heading", { name: "Speelrondes en statistieken" })).toBeVisible();
+    await page.keyboard.press("End");
+    await expect(tab("Betalingen")).toHaveAttribute("aria-selected", "true");
+    await page.keyboard.press("ArrowRight");
+    await expect(tab("Moeilijkheidsgraad")).toHaveAttribute("aria-selected", "true");
+    await expect(tab("Moeilijkheidsgraad")).toBeFocused();
+
+    // Ingevulde velden blijven bewaard bij het wisselen van tab
+    await page.getByLabel("Winkans", { exact: true }).fill("42");
+    await tab("Speelrondes").click();
+    await tab("Moeilijkheidsgraad").click();
+    await expect(page.getByLabel("Winkans", { exact: true })).toHaveValue("42");
+
+    // De tab staat niet in de URL: na herladen weer de eerste
+    await tab("Betalingen").click();
+    await expect(page).toHaveURL(/\/game-manager$/);
+    await page.reload();
+    await expect(tab("Moeilijkheidsgraad")).toHaveAttribute("aria-selected", "true");
   });
 });

@@ -1,9 +1,11 @@
 import Link from "next/link";
 import { checkAdmin } from "@/lib/dal";
-import { parseStatsQuery } from "@/lib/gameStats";
+import { parseManagerQuery } from "@/lib/managerQuery";
 import { mergeSettings, readSettings } from "@/lib/settings";
 import { readStoredSettings } from "@/lib/settingsStore";
 import { signOutAdmin } from "./actions";
+import ManagerTabs from "./ManagerTabs";
+import PaymentsSection from "./PaymentsSection";
 import SettingsForm from "./SettingsForm";
 import StatsSection from "./StatsSection";
 import styles from "./game-manager.module.css";
@@ -69,6 +71,8 @@ export default async function GameManagerPage({
     );
   }
 
+  const query = parseManagerQuery(await searchParams);
+
   return (
     <>
       <header className={styles.header}>
@@ -81,14 +85,13 @@ export default async function GameManagerPage({
         <SignOutButton />
       </header>
 
-      <DifficultySection />
-
-      <StatsSection query={parseStatsQuery(await searchParams)} />
-
-      <section className={styles.card}>
-        <h2>Betalingen</h2>
-        <p className={styles.muted}>Overzicht van betalingen komt hier (taak 14).</p>
-      </section>
+      <ManagerTabs
+        tabs={[
+          { id: "moeilijkheidsgraad", label: "Moeilijkheidsgraad", content: <DifficultySection /> },
+          { id: "speelrondes", label: "Speelrondes", content: <StatsSection query={query} /> },
+          { id: "betalingen", label: "Betalingen", content: <PaymentsSection query={query} /> },
+        ]}
+      />
 
       <p>
         <Link href="/" className={styles.link}>

@@ -199,8 +199,9 @@ test("de game-manager toont de gespeelde ronde met de naam van de rekeninghouder
   // Andere tests op deze server spelen ook met deze naam: alleen controleren dat de ronde er staat
   await loginAs(context, TEST_ADMIN);
   await page.goto("/game-manager");
+  await page.getByRole("tab", { name: "Speelrondes" }).click();
   const section = page.getByRole("region", { name: "Speelrondes en statistieken" });
-  const perName = section.getByRole("table", { name: "Per naam" });
+  const perName = section.getByRole("table", { name: /Per naam/ });
   const rounds = section.getByRole("table", { name: /Speelrondes/ });
 
   await expect(perName.getByRole("columnheader")).toHaveText(["Naam", "Gespeeld", "Shot", "Kakkerlak", "Vraagteken", "Gewonnen", "Verloren"]);
@@ -208,14 +209,98 @@ test("de game-manager toont de gespeelde ronde met de naam van de rekeninghouder
   await expect(row).toHaveCount(1);
   expect(Number(await row.getByRole("cell").nth(4).textContent())).toBeGreaterThanOrEqual(1); // gewonnen
   await expect(rounds.getByRole("row").filter({ hasText: MOCK_CONSUMER_NAME }).first()).toContainText(/Gewonnen: (shot|kakkerlak|vraagteken)\s*1$/);
-  // Het rekeningnummer staat nooit op de pagina
-  expect(await page.content()).not.toContain(MOCK_CONSUMER_ACCOUNT);
 
-  // Vandaag: zelfde ronde, en de keuze staat in de URL
+  // Vandaag: zelfde ronde, de keuze staat in de URL en de tab blijft gekozen
   await section.getByRole("link", { name: "Vandaag" }).click();
-  await expect(page).toHaveURL(/\/game-manager\?periode=vandaag#speelrondes$/);
+  await expect(page).toHaveURL(/\/game-manager\?periode=vandaag$/);
   await expect(section.getByRole("link", { name: "Vandaag" })).toHaveAttribute("aria-current", "page");
+  await expect(page.getByRole("tab", { name: "Speelrondes" })).toHaveAttribute("aria-selected", "true");
   await expect(perName.getByRole("rowheader", { name: MOCK_CONSUMER_NAME })).toBeVisible();
+
+  // Filter op een deel van de naam, zonder op hoofdletters te letten
+  await section.getByLabel("Naam bevat").fill("t. te");
+  await section.getByRole("button", { name: "Filteren" }).click();
+  await expect(page).toHaveURL(/\?periode=vandaag&naam=t\.\+te$/);
+  await expect(perName.getByRole("rowheader")).toHaveText([MOCK_CONSUMER_NAME]);
+  await section.getByLabel("Naam bevat").fill("niemand");
+  await section.getByRole("button", { name: "Filteren" }).click();
+  await expect(section).toContainText('Geen speelrondes met een naam die "niemand" bevat (vandaag).');
+  await section.getByRole("link", { name: "Wissen" }).click();
+  await expect(page).toHaveURL(/\?periode=vandaag$/);
+  await expect(section.getByLabel("Naam bevat")).toHaveValue("");
+  await expect(page.getByRole("tab", { name: "Speelrondes" })).toHaveAttribute("aria-selected", "true");
+});
+
+// MOCK_CONSUMER_ACCOUNT in groepjes van vier
+const MOCK_ACCOUNT_SHOWN = MOCK_CONSUMER_ACCOUNT.replace(/(.{4})(?=.)/g, "$1 ");
+
+test("de game-manager toont de betaling met het ontsleutelde rekeningnummer", async ({ page, context }) => {
+  await openGame(page);
+  await pay(page);
+  await playOneGame(page);
+  await expect(credits(page)).toHaveText("3");
+
+  await loginAs(context, TEST_ADMIN);
+  await page.goto("/game-manager");
+  await page.getByRole("tab", { name: "Betalingen" }).click();
+  const section = page.getByRole("region", { name: "Betalingen" });
+  const table = section.getByRole("table", { name: "Betalingen" });
+
+  await expect(table.getByRole("columnheader")).toHaveText(["Datum", "Naam", "Rekeningnummer", "Bedrag", "Status", "Gespeeld"]);
+  // Andere tests op deze server betalen ook met deze naam: een betaalde betaling van T. TEST zoeken
+  const paid = table.getByRole("row").filter({ hasText: MOCK_CONSUMER_NAME }).filter({ hasText: "Betaald" }).first();
+  await expect(paid.getByRole("cell")).toHaveText([/^\d\d-\d\d-\d{4}/, MOCK_CONSUMER_NAME, MOCK_ACCOUNT_SHOWN, "€ 1,00", "Betaald", /^\d van 4$/]);
+  // Ontsleuteld op de server: de versleutelde tekst en de betaallink staan niet op de pagina
+  const html = await page.content();
+  expect(html).not.toMatch(/v1:[A-Za-z0-9+/=]+:/);
+  expect(html).not.toContain("/checkout/");
+
+  // Sorteren: eerste klik A-Z, tweede klik Z-A; de tab blijft gekozen
+  const nameHeader = table.getByRole("columnheader", { name: "Naam" });
+  await nameHeader.getByRole("link").click();
+  await expect(page).toHaveURL(/\?betalingen_sorteer=naam$/);
+  await expect(nameHeader).toHaveAttribute("aria-sort", "ascending");
+  await nameHeader.getByRole("link").click();
+  await expect(page).toHaveURL(/\?betalingen_sorteer=-naam$/);
+  await expect(nameHeader).toHaveAttribute("aria-sort", "descending");
+  await expect(page.getByRole("tab", { name: "Betalingen" })).toHaveAttribute("aria-selected", "true");
+
+  // Filteren op naam houdt de sortering
+  await section.getByLabel("Naam bevat").fill("test");
+  await section.getByRole("button", { name: "Filteren" }).click();
+  await expect(page).toHaveURL(/\?betalingen_sorteer=-naam&betalingen_naam=test$/);
+  await expect(table.getByRole("row").filter({ hasText: MOCK_CONSUMER_NAME }).first()).toBeVisible();
+  await expect(table.getByRole("row").filter({ hasNotText: MOCK_CONSUMER_NAME })).toHaveCount(1); // alleen de kop
+  await section.getByLabel("Naam bevat").fill("niemand");
+  await section.getByRole("button", { name: "Filteren" }).click();
+  await expect(section).toContainText('Geen betalingen met een naam die "niemand" bevat.');
+});
+
+test("de betalingen gaan per 15 over pagina's", async ({ page, context, browser }) => {
+  test.slow();
+  // 16 spelers openen de betaalpopup: elk een eigen (open) betaling
+  for (let i = 0; i < 16; i++) {
+    const player = await browser.newContext({ baseURL: PAID_APP_URL });
+    const playerPage = await player.newPage();
+    await openGame(playerPage);
+    await openPopup(playerPage);
+    await player.close();
+  }
+
+  await loginAs(context, TEST_ADMIN);
+  await page.goto("/game-manager");
+  await page.getByRole("tab", { name: "Betalingen" }).click();
+  const section = page.getByRole("region", { name: "Betalingen" });
+  const table = section.getByRole("table", { name: "Betalingen" });
+  const pages = section.getByRole("navigation", { name: "Pagina's betalingen" });
+
+  await expect(table.getByRole("row")).toHaveCount(16); // kop + 15
+  await expect(pages).toContainText(/Pagina 1 van \d+/);
+  await pages.getByRole("link", { name: "Volgende" }).click();
+  await expect(page).toHaveURL(/\?betalingen_pagina=2$/);
+  await expect(pages).toContainText(/Pagina 2 van \d+/);
+  await expect(page.getByRole("tab", { name: "Betalingen" })).toHaveAttribute("aria-selected", "true");
+  await expect(pages.getByRole("link", { name: "Vorige" })).toBeVisible();
 });
 
 test("/betaald zonder of met een onbekende referentie geeft alleen een bedankje", async ({ page }) => {

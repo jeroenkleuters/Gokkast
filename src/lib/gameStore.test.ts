@@ -1,8 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import type { PrismaClient } from "@/generated/prisma/client";
 import {
   finishGame,
   memoryGameStore,
   parseGameResult,
+  prismaGameStore,
   saveGameResult,
   type GamePayment,
   type GameResult,
@@ -158,5 +160,39 @@ describe("finishGame", () => {
     const failing = { ...deps(), outcomes: async () => Promise.reject(new Error("db weg")) };
     expect(await finishGame(won, paid(0), failing)).toEqual({ saved: false, prizes: null });
     expect(warn).toHaveBeenCalled();
+  });
+});
+
+describe("prismaGameStore voor de game-manager", () => {
+  function fakeDb() {
+    const game = { findMany: vi.fn(async () => []), count: vi.fn(async () => 0), groupBy: vi.fn(async () => []) };
+    return { store: prismaGameStore({ game } as unknown as PrismaClient), game };
+  }
+  const since = new Date("2026-10-13T22:00:00Z");
+
+  it("filtert op periode en een deel van de naam (hoofdletterongevoelig)", async () => {
+    const { store, game } = fakeDb();
+    await store.countRounds({ since, name: "jan" });
+    expect(game.count).toHaveBeenCalledWith({
+      where: { playedAt: { gte: since }, name: { contains: "jan", mode: "insensitive" } },
+    });
+    await store.countByName({ since: null, name: "" });
+    expect(game.groupBy).toHaveBeenCalledWith(expect.objectContaining({ where: {} }));
+  });
+
+  it("sorteert op de kolom, zonder naam onderaan, en daarna nieuwste eerst", async () => {
+    const { store, game } = fakeDb();
+    const filter = { since: null, name: "" };
+    const orderBy = async (column: "datum" | "naam" | "uitkomst" | "pogingen", dir: "asc" | "desc") => {
+      await store.listRounds(filter, { column, dir }, 15, 15);
+      return (game.findMany.mock.lastCall as unknown as [{ orderBy: unknown[]; skip: number; take: number }])[0];
+    };
+    const tail = [{ playedAt: "desc" }, { id: "desc" }];
+    expect((await orderBy("naam", "desc")).orderBy).toEqual([{ name: { sort: "desc", nulls: "last" } }, ...tail]);
+    expect((await orderBy("datum", "asc")).orderBy).toEqual([{ playedAt: "asc" }, ...tail]);
+    expect((await orderBy("uitkomst", "asc")).orderBy).toEqual([{ outcome: "asc" }, ...tail]);
+    const last = await orderBy("pogingen", "desc");
+    expect(last.orderBy).toEqual([{ tries: "desc" }, ...tail]);
+    expect(last).toMatchObject({ skip: 15, take: 15 });
   });
 });

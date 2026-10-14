@@ -143,7 +143,8 @@ afgeschreven. Live betalen volgt in taak 12.
   iDEAL) komt bij de betaling en bij elke ronde die ermee gespeeld is (`games.name`, `games.payment_id`).
 - Het rekeningnummer van de rekeninghouder staat alleen versleuteld in de database
   (`payments.account_encrypted`, AES-256-GCM met `PAYMENT_ENCRYPTION_KEY`, zie
-  `src/lib/encryption.ts`). Het wordt nooit gelogd en nooit naar de browser gestuurd. Zonder
+  `src/lib/encryption.ts`). Het wordt nooit gelogd en nooit naar het spel gestuurd; alleen beheerders
+  zien het ontsleuteld in de game-manager (tab Betalingen). Zonder
   (geldige) sleutel wordt het niet opgeslagen; de betaling gaat dan gewoon door, met een
   waarschuwing in de serverlog.
 - De status komt altijd van Mollie zelf: de popup vraagt die elke 3 seconden op, de pagina `/betaald`
@@ -217,6 +218,17 @@ sessie is een versleutelde cookie (geen databasetabellen). Het spel zelf blijft 
   iemand uit de lijst, dan ziet die direct "geen toegang", ook met een oude sessie.
 - Zonder sessie stuurt `/game-manager` door naar `/game-manager/inloggen`.
 
+De pagina heeft drie tabs: **Moeilijkheidsgraad**, **Speelrondes** en **Betalingen** (pijltjes,
+Home en End wisselen ook). De gekozen tab blijft staan bij bladeren, sorteren en filteren, maar staat
+niet in de URL: na herladen zie je weer de eerste tab.
+
+Alle tabellen tonen 15 rijen per pagina. Klik op een kolomkop om daarop te sorteren (tekst eerst A-Z,
+getallen en datums eerst het grootst of nieuwst; nog een keer klikken draait de volgorde om). Lege
+waarden, zoals "Zonder naam", staan altijd onderaan. **Naam bevat** filtert op een deel van de naam,
+zonder op hoofdletters te letten. Elke tabel heeft eigen parameters in de URL
+([`src/lib/managerQuery.ts`](src/lib/managerQuery.ts)), bijvoorbeeld
+`?periode=vandaag&naam=jan&rondes_sorteer=-pogingen&betalingen_pagina=2`.
+
 **Moeilijkheidsgraad.** Op de pagina stel je de winkans (snelkeuze makkelijk 1 op 10, normaal 1 op 30,
 moeilijk 1 op 100, of een eigen getal), de pogingen per spel en de speelrondes per betaling in.
 Opslaan gaat via een server action die opnieuw controleert of je beheerder bent en de invoer op de
@@ -228,11 +240,20 @@ productie geldt een wijziging direct voor het echte spel. Zonder database toont 
 **Speelrondes en statistieken.** Per naam (de rekeninghouder van de betaling, A-Z) staat hoe vaak
 er gespeeld is, wat er gewonnen is per plaatje (shot, kakkerlak, vraagteken) en hoe vaak er verloren
 is; rondes zonder betaling staan onderaan als "Zonder naam", met een regel Totaal. Daaronder de
-speelrondes zelf (datum, naam, uitkomst, pogingen), nieuwste eerst, 25 per pagina. **Vandaag** toont
-alleen de rondes vanaf 00:00 Nederlandse tijd, **Alles** alle rondes; periode en pagina staan in de URL
-(`?periode=vandaag&pagina=2`). Dezelfde persoon kan onder verschillende schrijfwijzen staan (zoals
-Mollie de naam doorgeeft). Rekeningnummers staan hier niet. Zonder database of als die onbereikbaar
-is, toont de sectie een melding ([`src/lib/gameStats.ts`](src/lib/gameStats.ts)).
+speelrondes zelf (datum, naam, uitkomst, pogingen), standaard nieuwste eerst. **Vandaag** toont
+alleen de rondes vanaf 00:00 Nederlandse tijd, **Alles** alle rondes. Het filter op naam geldt voor
+beide tabellen; Totaal telt alle namen die bij het filter passen, niet alleen die op de pagina.
+Dezelfde persoon kan onder verschillende schrijfwijzen staan (zoals Mollie de naam doorgeeft).
+Rekeningnummers staan hier niet. Zonder database of als die onbereikbaar is, toont de tab een melding
+([`src/lib/gameStats.ts`](src/lib/gameStats.ts)).
+
+**Betalingen.** Per betaling de datum, de naam van de rekeninghouder, het rekeningnummer, het bedrag,
+de status (open, betaald, verlopen, ...) en hoeveel van de spelletjes er gespeeld zijn, standaard
+nieuwste eerst ([`src/lib/paymentOverview.ts`](src/lib/paymentOverview.ts)). Het rekeningnummer
+wordt alleen op de server en alleen voor beheerders ontsleuteld met `PAYMENT_ENCRYPTION_KEY`. Zonder
+geldige sleutel staat er "Geen sleutel" met een melding erboven; met een andere sleutel "Niet te
+ontsleutelen" (een waarschuwing in de serverlog, zonder nummers). Om op het rekeningnummer te kunnen
+sorteren, worden de betalingen in het geheugen gesorteerd en verdeeld over pagina's.
 
 | Variabele             | Betekenis                                                         |
 | --------------------- | ----------------------------------------------------------------- |
@@ -328,13 +349,13 @@ Gokkast/
 ├── public/images/      plaatjes voor de rollen (shot, kakkerlak, vraagteken)
 ├── src/
 │   ├── app/            layout, pagina, server actions (actions.ts) en globale CSS (Next.js App Router)
-│   │   ├── game-manager/  beheerpagina met moeilijkheidsgraad (SettingsForm), speelrondes en statistieken (StatsSection), server actions en inlogpagina (inloggen/)
+│   │   ├── game-manager/  beheerpagina met tabs (ManagerTabs): moeilijkheidsgraad (SettingsForm), speelrondes en statistieken (StatsSection), betalingen (PaymentsSection), sorteren/bladeren/filteren (TableParts), server actions en inlogpagina (inloggen/)
 │   │   ├── betaald/       terugkeer na betalen bij Mollie
 │   │   ├── api/auth/      Auth.js-routes (inloggen, terugkeer van Google, uitloggen)
 │   │   └── api/mollie/webhook/  webhook van Mollie (betaalstatus)
 │   ├── auth.ts         Auth.js-instellingen (Google, alleen beheerders)
 │   ├── components/     SlotMachine, Reel, Lever, InfoPanel, Stats, SettingsDialog, PaymentDialog, GameClient
-│   ├── lib/            spellogica (game.ts), instellingen (settings.ts, settingsStore.ts), database (db.ts), rondes opslaan en lezen (gameStore.ts, gameStats.ts), betalen (payments.ts, mollie.ts, paymentStore.ts, paymentService.ts, qr.ts), beheerders (admins.ts, dal.ts), geluid, opslag, muntenregen, tests (*.test.ts)
+│   ├── lib/            spellogica (game.ts), instellingen (settings.ts, settingsStore.ts), database (db.ts), rondes opslaan en lezen (gameStore.ts, gameStats.ts), tabellen en URL van de game-manager (tables.ts, managerQuery.ts), betalen (payments.ts, mollie.ts, paymentStore.ts, paymentService.ts, paymentOverview.ts, qr.ts), beheerders (admins.ts, dal.ts), geluid, opslag, muntenregen, tests (*.test.ts)
 │   └── generated/      Prisma Client (gegenereerd, niet in git)
 ├── prisma/             schema.prisma, migrations/, seed.ts
 ├── prisma.config.ts    instellingen voor de Prisma CLI

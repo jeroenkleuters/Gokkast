@@ -92,19 +92,23 @@ De taken staan in volgorde: latere taken bouwen voort op eerdere.
   - Overzicht van speelrondes
   - Aantal wins/loses per naam
 
-- [ ] **14. Betalingen in de game-manager**
+- [x] **14. Betalingen in de game-manager**
   - Overzicht van betalingen: naam en bedrag (ontsleuteld weergegeven)
   - de moeilijkheidsgraad, speelronders/statistieken en betalingen panels wil ik in 3 tabs kunnen switchen zodat het niet zoveel hoogte in neemt
   - maximaal 15 rijen, rest met paginatie
   - ik wil kunnen sorteren op alle kolommen
   - ik wil kunnen filteren op kolom naam 
 
+  - [ ] **15. Instellingen**
+    - Hernoem tablad Moeilijkheidsgraad naar Instellingen
+    - zet instellingen als derde tablad
+
 ## Open vragen
 
 - ~~Waarvoor wordt betaald: per spel van 3 pogingen, of een tegoed voor meerdere spellen? Wat kost het?~~ Besloten (taak 10): 4 spelletjes (credits) voor € 1,00.
 - ~~Waar komt de naam van de speler vandaan?~~ Besloten (taak 7): uit de transactie als er betaald wordt via een QR-code; geen naam invullen in het spel. Highscores alleen in de game-manager, niet in het spel.
 - ~~Welke OAuth-provider voor de game-manager?~~ Besloten (taak 8): Google; inloggen alleen lokaal en in productie.
-- Moet het rekeningnummer getoond worden in de game-manager, of alleen naam en bedrag?
+- ~~Moet het rekeningnummer getoond worden in de game-manager, of alleen naam en bedrag?~~ Besloten (taak 14): rekeningnummer ontsleuteld tonen, alleen voor beheerders.
 
 ## Ideeën
 

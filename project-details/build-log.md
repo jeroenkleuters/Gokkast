@@ -998,6 +998,59 @@ Melding gebruiker: in de database alleen `LOST`, ook na winst. Oorzaak: de dev-s
 
 ---
 
+## Stap 74 — Feature geladen: Betalingen in de game-manager (14 oktober 2026)
+
+**Vraag:**
+> /feature load 14
+
+**Uitgevoerde handelingen:**
+1. Geen `context/features/14.md` gevonden; taak 14 uit `to-do.md` gebruikt.
+2. `current-feature.md` gevuld met doelen (betalingsoverzicht, 3 tabs, 15 rijen met paginatie, sorteren op alle kolommen, filteren op naam) en notities met open vragen voor `start`.
+
+---
+
+## Stap 75 — Keuzes voor taak 14 (14 oktober 2026)
+
+**Vraag:**
+> 1 ja, 2 ja, 3 nee, 4 ja
+
+**Uitgevoerde handelingen:**
+1. Besluiten vastgelegd in `current-feature.md`: rekeningnummer ontsleuteld tonen; 15 rijen, sorteren en filteren ook voor de tabellen van taak 13; tab niet in de URL (wel behouden bij paginatie/sorteren/filteren); filter op naam is bevat-zoeken zonder onderscheid in hoofdletters.
+2. Open vraag over het rekeningnummer in `to-do.md` als besloten gemarkeerd.
+
+---
+
+## Stap 76 — Feature gestart: Betalingen in de game-manager (14 oktober 2026)
+
+**Vraag:**
+> /feature start
+
+**Uitgevoerde handelingen:**
+1. Branch `feature/betalingen-in-de-game-manager`, status In Progress.
+2. `src/lib/tables.ts`: 15 rijen per pagina (`ROWS_PER_PAGE`), `parsePage`, `parseSort`/`formatSort` (`naam` oplopend, `-naam` aflopend), `nextSort`, `parseNameFilter` (max 100 tekens), `matchesName` (bevat, hoofdletterongevoelig), `compareValues`/`sortRows` (lege waarden altijd onderaan).
+3. `src/lib/managerQuery.ts`: alle URL-parameters van de game-manager, per tabel eigen namen (`periode`, `naam`, `namen_pagina`, `namen_sorteer`, `rondes_pagina`, `rondes_sorteer`, `betalingen_naam`, `betalingen_pagina`, `betalingen_sorteer`; standaardwaarden niet in de URL); `firstDir`: tekst eerst A-Z, getallen/datums eerst het grootst. Vervangt `parseStatsQuery`/`statsHref` (`?pagina=` wordt `?rondes_pagina=`; geen `#speelrondes` meer, links met `scroll={false}`).
+4. `gameStore.ts`: `RoundFilter` (`since`, `name`) voor `countRounds`/`listRounds`/`countByName`; Prisma met `contains` + `mode: "insensitive"` en `orderBy` per kolom (naam met `nulls: "last"`, daarna nieuwste eerst); geheugenversie met dezelfde volgorde.
+5. `gameStats.ts`: filter op naam, sortering en paginering voor Per naam (in het geheugen, `sortNameStats`) en Speelrondes (in de database); Totaal over alle namen die bij het filter passen.
+6. `paymentStore.ts`: `createdAt` en `listByName`. Nieuw `src/lib/paymentOverview.ts`: rekeningnummer ontsleuteld op de server (`decryptAccount`: ok / geen / geen sleutel / niet te ontsleutelen, één waarschuwing zonder nummers), `formatIban`, statuslabels, gespeeld = afgeboekte credits; sorteren en bladeren in het geheugen (nodig voor sorteren op rekeningnummer).
+7. UI: `ManagerTabs.tsx` (tablist met pijltjes/Home/End, panelen blijven op de pagina met `hidden`), `TabProvider` in `layout.tsx` zodat de tab blijft bij navigatie binnen `/game-manager`; `TableParts.tsx` (sorteerbare kolomkop met `aria-sort` en pijltje via CSS, `Pagination`, `NameFilter` met `next/form` en verborgen velden voor de andere tabellen); `StatsSection.tsx` herschreven; nieuw `PaymentsSection.tsx`; CSS voor tabs, filter en sorteren.
+8. Tests: `tables.test.ts`, `managerQuery.test.ts`, `paymentOverview.test.ts` nieuw, `gameStats.test.ts` aangepast, Prisma-test in `gameStore.test.ts` → 229 Vitest-tests. Playwright: tabs (muis, toetsenbord, velden blijven, na herladen eerste tab), betalingen zonder database, betaling met ontsleuteld rekeningnummer, sorteren en filteren (tab blijft gekozen), paginering met 16 betalingen, filter bij speelrondes → 30 tests.
+9. Controle: typecheck, lint, build en alle tests zonder fouten; met een tijdelijk script tegen de `dev`-database (51 rondes, 4 pagina's; filter `t. te` → 17 rondes; 7 betalingen, rekeningnummers ontsleuteld, zonder naam onderaan).
+10. README: tabs, sorteren/filteren/15 rijen, sectie Betalingen, rekeningnummer zichtbaar voor beheerders; projectstructuur bijgewerkt.
+
+---
+
+## Stap 77 — Review: Betalingen in de game-manager (14 oktober 2026)
+
+**Vraag:**
+> /feature review
+
+**Uitgevoerde handelingen:**
+1. Alle wijzigingen nagelopen tegen de doelen in `current-feature.md`: alle zes doelen gehaald; ontsleutelen alleen na `checkAdmin`, geen token/betaallink/versleutelde tekst naar de browser.
+2. Kleine punten genoteerd (niet aangepast): leeg filterveld geeft `?naam=` in de URL; status en uitkomst sorteren op de volgorde van Mollie/de enum in plaats van op de Nederlandse tekst; "Gespeeld" bij betalingen telt afgeboekte credits (ook een gestart maar afgebroken spel); de Playwright-test kopieert de IBAN-opmaak in plaats van `formatIban` te gebruiken; oude links met `?pagina=` werken niet meer.
+3. Oordeel: klaar om af te ronden.
+
+---
+
 ## Huidige bestandsstructuur
 
 ```
@@ -1010,11 +1063,11 @@ Gokkast/
 ├── public/images/        shot.png, kakkerlak.png, vraagteken.png
 ├── src/
 │   ├── app/              layout.tsx, page.tsx, actions.ts, globals.css
-│   │   ├── game-manager/ layout.tsx, page.tsx, actions.ts, actions.test.ts, SettingsForm.tsx, StatsSection.tsx, game-manager.module.css, inloggen/page.tsx
+│   │   ├── game-manager/ layout.tsx, page.tsx, actions.ts, actions.test.ts, ManagerTabs.tsx, SettingsForm.tsx, StatsSection.tsx, PaymentsSection.tsx, TableParts.tsx, game-manager.module.css, inloggen/page.tsx
 │   │   └── api/auth/[...nextauth]/route.ts
 │   ├── auth.ts           Auth.js (Google, alleen beheerders)
 │   ├── components/       SlotMachine, Reel, Lever, InfoPanel, Stats, SettingsDialog, GameClient, PaymentDialog, PrizeDialog
-│   ├── lib/              encryption.ts, encryption.test.ts, prizes.ts, payments.ts, paymentService.ts, paymentStore.ts, mollie.ts, qr.ts, game.ts, settings.ts, settingsStore.ts, db.ts, gameStore.ts, gameStats.ts, admins.ts, dal.ts, sound.ts, storage.ts, coinShower.ts, game.test.ts, settings.test.ts, settingsStore.test.ts, gameStore.test.ts, gameStats.test.ts, admins.test.ts
+│   ├── lib/              encryption.ts, encryption.test.ts, prizes.ts, payments.ts, paymentService.ts, paymentStore.ts, mollie.ts, qr.ts, game.ts, settings.ts, settingsStore.ts, db.ts, gameStore.ts, gameStats.ts, tables.ts, managerQuery.ts, paymentOverview.ts, admins.ts, dal.ts, sound.ts, storage.ts, coinShower.ts, game.test.ts, settings.test.ts, settingsStore.test.ts, gameStore.test.ts, gameStats.test.ts, tables.test.ts, managerQuery.test.ts, paymentOverview.test.ts, admins.test.ts
 │   └── generated/prisma/ Prisma Client (gegenereerd, niet in git)
 ├── prisma/               schema.prisma, seed.ts, migrations/ (20261013000000_init, 20261013163330_games_name_optional, 20261013200000_game_settings_optional, 20261013230000_games_outcome_symbol, 20261014000000_payments_mollie, 20261014120000_payments_reference, 20261014200000_payments_account_encrypted, migration_lock.toml)
 ├── e2e/                  gokkast.spec.ts, game-manager.spec.ts, helpers.ts, auth.ts

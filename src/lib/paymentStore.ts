@@ -4,6 +4,7 @@ import type { PaymentStatus as DbPaymentStatus } from "@/generated/prisma/enums"
 import type { PrismaClient } from "@/generated/prisma/client";
 import { getDb } from "@/lib/db";
 import { memoryStoreAllowed, type PaymentStatus } from "@/lib/payments";
+import { matchesName } from "@/lib/tables";
 
 export interface StoredPayment {
   id: number;
@@ -17,6 +18,7 @@ export interface StoredPayment {
   creditsLeft: number;
   name: string | null;
   accountEncrypted: string | null; // rekeningnummer, versleuteld (src/lib/encryption.ts); nooit naar de browser
+  createdAt: Date;
 }
 
 export type NewPayment = Pick<StoredPayment, "token" | "reference" | "mollieId" | "checkoutUrl" | "amountCents" | "credits">;
@@ -38,6 +40,9 @@ export interface PaymentStore {
   updateStatus(mollieId: string, update: StatusUpdate): Promise<StoredPayment | null>;
   // Eén credit afboeken als er een betaalde betaling met credits is; anders null
   spendCredit(token: string): Promise<StoredPayment | null>;
+  // Voor de game-manager (taak 14): alle betalingen met een naam die `name` bevat, zonder op
+  // hoofdletters te letten ("": alle betalingen, ook zonder naam)
+  listByName(name: string): Promise<StoredPayment[]>;
 }
 
 const toDb = (status: PaymentStatus) => status.toUpperCase() as DbPaymentStatus;
@@ -56,6 +61,7 @@ export function prismaPaymentStore(db: PrismaClient): PaymentStore {
     creditsLeft: true,
     name: true,
     accountEncrypted: true,
+    createdAt: true,
   } as const;
   type Row = Omit<StoredPayment, "status"> & { status: DbPaymentStatus };
   const toPayment = (row: Row | null): StoredPayment | null => row && { ...row, status: fromDb(row.status) };
@@ -87,15 +93,32 @@ export function prismaPaymentStore(db: PrismaClient): PaymentStore {
       });
       return count ? toPayment(await db.payment.findUnique({ where: { token }, select })) : null;
     },
+
+    async listByName(name) {
+      const rows = await db.payment.findMany({
+        where: name ? { name: { contains: name, mode: "insensitive" } } : {},
+        orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+        select,
+      });
+      return rows.map((row) => toPayment(row)!);
+    },
   };
 }
 
-export function memoryPaymentStore(): PaymentStore {
+export function memoryPaymentStore(now: () => Date = () => new Date()): PaymentStore {
   const payments: StoredPayment[] = [];
   const copy = (p: StoredPayment | undefined) => (p ? { ...p } : null);
   return {
     async create(data) {
-      const payment = { ...data, id: payments.length + 1, status: "open" as const, creditsLeft: 0, name: null, accountEncrypted: null };
+      const payment = {
+        ...data,
+        id: payments.length + 1,
+        status: "open" as const,
+        creditsLeft: 0,
+        name: null,
+        accountEncrypted: null,
+        createdAt: now(),
+      };
       payments.push(payment);
       return { ...payment };
     },
@@ -117,6 +140,7 @@ export function memoryPaymentStore(): PaymentStore {
       p.creditsLeft--;
       return { ...p };
     },
+    listByName: async (name) => payments.filter((p) => matchesName(p.name, name)).reverse().map((p) => ({ ...p })),
   };
 }
 

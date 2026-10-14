@@ -98,3 +98,31 @@
 .table tbody th { font-weight: 400; }
 .table tfoot th, .table tfoot td { font-weight: 700; border-bottom: 0; }
 .pagination { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+
+/* Tabs (taak 14) */
+.tabs { display: flex; flex-direction: column; gap: 16px; }
+.tabList { display: flex; flex-wrap: wrap; gap: 4px; border-bottom: 1px solid rgba(255,255,255,.12); }
+.tab {
+  padding: 10px 16px;
+  border: 0; border-bottom: 3px solid transparent;
+  background: transparent;
+  color: #b9aed0;
+  font: inherit; font-weight: 700;
+  cursor: pointer;
+}
+.tab:hover { color: #f3eefc; }
+.tab[aria-selected="true"] { color: #ffcf6a; border-bottom-color: #ffcf6a; }
+.tab:focus-visible { outline: 3px solid #fff; outline-offset: -3px; }
+
+/* Sorteren, filteren (taak 14) */
+.toolbar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; }
+.filter { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 0; }
+.card form.filter { margin-top: 0; }
+.filter .input { width: 180px; }
+.sortLink { color: inherit; text-decoration: none; }
+.sortLink:hover { color: #f3eefc; text-decoration: underline; }
+.sortLink:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+.table th[aria-sort] { color: #ffcf6a; }
+.table th[aria-sort="ascending"] .sortLink::after { content: " ▲"; font-size: 11px; }
+.table th[aria-sort="descending"] .sortLink::after { content: " ▼"; font-size: 11px; }
+.mono { font-family: Consolas, "Courier New", monospace; }

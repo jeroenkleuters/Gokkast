@@ -1,29 +1,55 @@
 import Link from "next/link";
 import { SYMBOL_NAMES } from "@/lib/game";
 import type { GameOutcome } from "@/lib/gameStore";
-import { readGameStats, statsHref, totalStats, TIME_ZONE, type NameStats, type Period, type StatsQuery } from "@/lib/gameStats";
+import { readGameStats, type NameStats } from "@/lib/gameStats";
+import {
+  managerHref,
+  managerParams,
+  withNames,
+  withRounds,
+  withStats,
+  type ManagerQuery,
+  type NameColumn,
+  type Period,
+  type RoundColumn,
+} from "@/lib/managerQuery";
+import { formatDateTime, NameFilter, NO_NAME, Pagination, SortHeader } from "./TableParts";
 import styles from "./game-manager.module.css";
 
-const NO_NAME = "Zonder naam";
-
-const dateTime = new Intl.DateTimeFormat("nl-NL", { timeZone: TIME_ZONE, dateStyle: "short", timeStyle: "short" });
-
 const outcomeLabel = (outcome: GameOutcome) => (outcome === "LOST" ? "Verloren" : `Gewonnen: ${outcome.slice("WON ".length)}`);
+
+const capitalize = (text: string) => text[0].toUpperCase() + text.slice(1);
 
 const PERIODS: { period: Period; label: string }[] = [
   { period: "vandaag", label: "Vandaag" },
   { period: "alles", label: "Alles" },
 ];
 
-function PeriodLinks({ current }: { current: Period }) {
+const NAME_HEADERS: { column: NameColumn; label: string }[] = [
+  { column: "naam", label: "Naam" },
+  { column: "gespeeld", label: "Gespeeld" },
+  ...SYMBOL_NAMES.map((symbol) => ({ column: symbol, label: capitalize(symbol) })),
+  { column: "gewonnen", label: "Gewonnen" },
+  { column: "verloren", label: "Verloren" },
+];
+
+const ROUND_HEADERS: { column: RoundColumn; label: string }[] = [
+  { column: "datum", label: "Datum" },
+  { column: "naam", label: "Naam" },
+  { column: "uitkomst", label: "Uitkomst" },
+  { column: "pogingen", label: "Pogingen" },
+];
+
+function PeriodLinks({ query }: { query: ManagerQuery }) {
   return (
     <nav className={styles.levels} aria-label="Periode">
       {PERIODS.map(({ period, label }) => (
         <Link
           key={period}
-          href={statsHref({ period, page: 1 })}
+          href={managerHref(withStats(query, { period }))}
+          scroll={false}
           className={`${styles.button} ${styles.secondary}`}
-          aria-current={period === current ? "page" : undefined}
+          aria-current={period === query.stats.period ? "page" : undefined}
         >
           {label}
         </Link>
@@ -46,120 +72,126 @@ function StatsRow({ stats }: { stats: NameStats }) {
   );
 }
 
-function NameStatsTable({ names }: { names: NameStats[] }) {
-  return (
-    <div className={styles.tableWrap}>
-      <table className={styles.table} aria-labelledby="per-naam">
-        <thead>
-          <tr>
-            <th scope="col">Naam</th>
-            <th scope="col">Gespeeld</th>
-            {SYMBOL_NAMES.map((symbol) => (
-              <th scope="col" key={symbol}>
-                {symbol[0].toUpperCase() + symbol.slice(1)}
-              </th>
-            ))}
-            <th scope="col">Gewonnen</th>
-            <th scope="col">Verloren</th>
-          </tr>
-        </thead>
-        <tbody>
-          {names.map((stats) => (
-            <StatsRow key={stats.name ?? ""} stats={stats} />
-          ))}
-        </tbody>
-        {names.length > 1 && (
-          <tfoot>
-            <StatsRow stats={totalStats(names)} />
-          </tfoot>
-        )}
-      </table>
-    </div>
-  );
-}
+export default async function StatsSection({ query }: { query: ManagerQuery }) {
+  const stats = await readGameStats(query.stats);
 
-function Pagination({ query, pageCount }: { query: StatsQuery; pageCount: number }) {
-  if (pageCount <= 1) return null;
-  const { page } = query;
-  return (
-    <nav className={styles.pagination} aria-label="Pagina's speelrondes">
-      {page > 1 ? (
-        <Link href={statsHref({ ...query, page: page - 1 })} className={`${styles.button} ${styles.secondary}`}>
-          Vorige
-        </Link>
-      ) : (
-        <span />
-      )}
-      <span className={styles.muted}>
-        Pagina {page} van {pageCount}
-      </span>
-      {page < pageCount ? (
-        <Link href={statsHref({ ...query, page: page + 1 })} className={`${styles.button} ${styles.secondary}`}>
-          Volgende
-        </Link>
-      ) : (
-        <span />
-      )}
-    </nav>
-  );
-}
+  if (stats.status !== "ok") {
+    return (
+      <section className={styles.card} aria-labelledby="speelrondes-titel">
+        <h2 id="speelrondes-titel">Speelrondes en statistieken</h2>
+        <p className={styles.error} role="alert">
+          {stats.status === "no-database"
+            ? "Er is geen database ingesteld (DATABASE_URL): er zijn geen speelrondes om te tonen."
+            : "De database is nu niet bereikbaar: de speelrondes kunnen niet getoond worden. Probeer het later opnieuw."}
+        </p>
+      </section>
+    );
+  }
 
-export default async function StatsSection({ query }: { query: StatsQuery }) {
-  const stats = await readGameStats(query);
+  // Met de pagina's die echt getoond worden (een pagina voorbij het einde wordt de laatste)
+  const shown: ManagerQuery = { ...query, stats: stats.query };
+  const { name, period } = stats.query;
 
   return (
-    <section className={styles.card} id="speelrondes" aria-labelledby="speelrondes-titel">
+    <section className={styles.card} aria-labelledby="speelrondes-titel">
       <h2 id="speelrondes-titel">Speelrondes en statistieken</h2>
-      {stats.status === "no-database" ? (
-        <p className={styles.error} role="alert">
-          Er is geen database ingesteld (DATABASE_URL): er zijn geen speelrondes om te tonen.
-        </p>
-      ) : stats.status === "error" ? (
-        <p className={styles.error} role="alert">
-          De database is nu niet bereikbaar: de speelrondes kunnen niet getoond worden. Probeer het later opnieuw.
-        </p>
-      ) : (
-        <div className={styles.stats}>
-          <PeriodLinks current={stats.query.period} />
-          {stats.total === 0 ? (
-            <p className={styles.muted}>
-              {stats.query.period === "vandaag" ? "Vandaag is er nog niet gespeeld." : "Er is nog niet gespeeld."}
-            </p>
-          ) : (
-            <>
-              <h3 id="per-naam">Per naam</h3>
-              <NameStatsTable names={stats.names} />
-
-              <h3 id="rondes">
-                Speelrondes <span className={styles.muted}>({stats.total})</span>
-              </h3>
-              <div className={styles.tableWrap}>
-                <table className={styles.table} aria-labelledby="rondes">
-                  <thead>
-                    <tr>
-                      <th scope="col">Datum</th>
-                      <th scope="col">Naam</th>
-                      <th scope="col">Uitkomst</th>
-                      <th scope="col">Pogingen</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {stats.rounds.map((round) => (
-                      <tr key={round.id}>
-                        <td>{dateTime.format(round.playedAt)}</td>
-                        <td>{round.name ?? <span className={styles.muted}>{NO_NAME}</span>}</td>
-                        <td>{outcomeLabel(round.outcome)}</td>
-                        <td>{round.tries}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-              <Pagination query={stats.query} pageCount={stats.pageCount} />
-            </>
-          )}
+      <div className={styles.stats}>
+        <div className={styles.toolbar}>
+          <PeriodLinks query={shown} />
+          <NameFilter
+            id="speelrondes-naam"
+            param="naam"
+            value={name}
+            keep={managerParams(withStats(shown, { name: "" }))}
+            clearHref={managerHref(withStats(shown, { name: "" }))}
+          />
         </div>
-      )}
+        {stats.total === 0 ? (
+          <p className={styles.muted}>
+            {name
+              ? `Geen speelrondes met een naam die "${name}" bevat${period === "vandaag" ? " (vandaag)" : ""}.`
+              : period === "vandaag"
+                ? "Vandaag is er nog niet gespeeld."
+                : "Er is nog niet gespeeld."}
+          </p>
+        ) : (
+          <>
+            <h3 id="per-naam">
+              Per naam <span className={styles.muted}>({stats.nameCount})</span>
+            </h3>
+            <div className={styles.tableWrap}>
+              <table className={styles.table} aria-labelledby="per-naam">
+                <thead>
+                  <tr>
+                    {NAME_HEADERS.map(({ column, label }) => (
+                      <SortHeader
+                        key={column}
+                        column={column}
+                        label={label}
+                        sort={stats.query.names.sort}
+                        href={(sort) => managerHref(withNames(shown, { sort, page: 1 }))}
+                      />
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {stats.names.map((s) => (
+                    <StatsRow key={s.name ?? ""} stats={s} />
+                  ))}
+                </tbody>
+                {stats.nameCount > 1 && (
+                  <tfoot>
+                    <StatsRow stats={stats.totals} />
+                  </tfoot>
+                )}
+              </table>
+            </div>
+            <Pagination
+              label="Pagina's per naam"
+              page={stats.query.names.page}
+              pageCount={stats.namePages}
+              href={(page) => managerHref(withNames(shown, { page }))}
+            />
+
+            <h3 id="rondes">
+              Speelrondes <span className={styles.muted}>({stats.total})</span>
+            </h3>
+            <div className={styles.tableWrap}>
+              <table className={styles.table} aria-labelledby="rondes">
+                <thead>
+                  <tr>
+                    {ROUND_HEADERS.map(({ column, label }) => (
+                      <SortHeader
+                        key={column}
+                        column={column}
+                        label={label}
+                        sort={stats.query.rounds.sort}
+                        href={(sort) => managerHref(withRounds(shown, { sort, page: 1 }))}
+                      />
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {stats.rounds.map((round) => (
+                    <tr key={round.id}>
+                      <td>{formatDateTime(round.playedAt)}</td>
+                      <td>{round.name ?? <span className={styles.muted}>{NO_NAME}</span>}</td>
+                      <td>{outcomeLabel(round.outcome)}</td>
+                      <td>{round.tries}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <Pagination
+              label="Pagina's speelrondes"
+              page={stats.query.rounds.page}
+              pageCount={stats.roundPages}
+              href={(page) => managerHref(withRounds(shown, { page }))}
+            />
+          </>
+        )}
+      </div>
     </section>
   );
 }

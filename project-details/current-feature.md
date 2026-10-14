@@ -1,16 +1,30 @@
-# Current Feature
+# Current Feature: Betalingen in de game-manager
 
 ## Status
 
-Not Started
+Complete
 
 ## Goals
 
-<!-- Doelen van de feature, in te vullen met /feature load -->
+- Overzicht van betalingen op `/game-manager`: naam rekeninghouder en bedrag (plus datum en status), met het rekeningnummer ontsleuteld weergegeven
+- De panels Moeilijkheidsgraad, Speelrondes/statistieken en Betalingen staan in 3 tabs, zodat de pagina minder hoog is
+- Tabellen tonen maximaal 15 rijen per pagina, de rest via paginatie (ook de tabellen van taak 13, nu 25 per pagina)
+- Sorteren op alle kolommen (oplopend/aflopend)
+- Filteren op de kolom naam
+- Vitest-tests voor het lezen, sorteren, filteren en pagineren; Playwright-tests voor tabs, sorteren, filteren en paginatie
 
 ## Notes
 
-<!-- Extra context, beperkingen of details uit de spec -->
+- Bron: taak 14 in `project-details/to-do.md`.
+- Alleen het rekeningnummer is versleuteld (`payments.account_encrypted`, taak 11, `src/lib/encryption.ts`); naam en bedrag staan leesbaar in de database.
+- Ontsleutelen alleen op de server na `checkAdmin`; zonder geldige `PAYMENT_ENCRYPTION_KEY` of bij een fout een melding in de cel, nooit de pagina laten falen.
+- Bestaande sectie Speelrondes en statistieken: `StatsSection.tsx`, `src/lib/gameStats.ts`, `?pagina=` en `?periode=` (taak 13). Bij tabs en sorteren/filteren de query-parameters per tab uit elkaar houden (bijv. `?betalingen_pagina=` naast `?pagina=`).
+- Besluiten gebruiker (14 oktober 2026):
+  1. Rekeningnummer wel tonen, ontsleuteld (alleen op de server na `checkAdmin`).
+  2. 15 rijen, sorteren op alle kolommen en filteren op naam gelden ook voor de tabellen van taak 13 (Per naam, Speelrondes).
+  3. Gekozen tab niet in de URL; tabs wisselen in de browser. Bij paginatie, sorteren en filteren (soft navigation) moet de gekozen tab wel blijven staan.
+  4. Filter op naam: bevat-zoeken, hoofdletterongevoelig.
+- `GameStore`/geheugenversies voor Playwright (`PAYMENTS_TEST_STORE`) uitbreiden voor het betalingsoverzicht.
 
 ## History
 
