@@ -88,12 +88,16 @@ De taken staan in volgorde: latere taken bouwen voort op eerdere.
 
 ### Game-manager uitbreiden
 
-- [ ] **13. Speelrondes en statistieken in de game-manager**
+- [x] **13. Speelrondes en statistieken in de game-manager**
   - Overzicht van speelrondes
   - Aantal wins/loses per naam
 
 - [ ] **14. Betalingen in de game-manager**
   - Overzicht van betalingen: naam en bedrag (ontsleuteld weergegeven)
+  - de moeilijkheidsgraad, speelronders/statistieken en betalingen panels wil ik in 3 tabs kunnen switchen zodat het niet zoveel hoogte in neemt
+  - maximaal 15 rijen, rest met paginatie
+  - ik wil kunnen sorteren op alle kolommen
+  - ik wil kunnen filteren op kolom naam 
 
 ## Open vragen
 

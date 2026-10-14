@@ -1,10 +1,7 @@
 // Instellingen uit de database lezen (met .env als terugval) en opslaan vanuit de game-manager.
 // Alleen op de server.
-import { getDb } from "@/lib/db";
+import { DB_TIMEOUT_MS, getDb, withTimeout } from "@/lib/db";
 import { mergeSettings, readSettings, type GameSettings, type SettingsRow } from "@/lib/settings";
-
-// Zo lang mag de database erover doen (Neon kan na een pauze even nodig hebben om te starten)
-export const DB_TIMEOUT_MS = 5000;
 
 export type FetchSettingsRow = () => Promise<SettingsRow | null>;
 
@@ -17,14 +14,6 @@ function fetchFromDb(): FetchSettingsRow | null {
       where: { id: 1 },
       select: { odds: true, maxTries: true, roundsPerPayment: true },
     });
-}
-
-function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
-  let timer: ReturnType<typeof setTimeout> | undefined;
-  const timeout = new Promise<never>((_, reject) => {
-    timer = setTimeout(() => reject(new Error(`geen antwoord binnen ${ms} ms`)), ms);
-  });
-  return Promise.race([promise, timeout]).finally(() => clearTimeout(timer));
 }
 
 // Database → anders .env → anders de vaste standaard. Een databasefout stopt het spel niet.

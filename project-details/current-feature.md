@@ -1,16 +1,29 @@
-# Current Feature
+# Current Feature: Speelrondes en statistieken in de game-manager
 
 ## Status
 
-Not Started
+In Progress
 
 ## Goals
 
-<!-- Doelen van de feature, in te vullen met /feature load -->
+- Sectie "Speelrondes en statistieken" op `/game-manager` vervangt de plek-tekst van taak 13
+- Overzicht van speelrondes: datum/tijd, naam (of "onbekend"/gratis), uitkomst met gewonnen plaatje (shot, kakkerlak, vraagteken) of verlies, aantal pogingen; nieuwste eerst, begrensd (bijv. laatste 50 of met paginering, te bepalen bij start)
+- Statistieken per naam: aantal gespeeld, gewonnen (eventueel per plaatje) en verloren; rondes zonder naam apart gegroepeerd
+- Gegevens alleen op de server na `checkAdmin`; niets van betalingen (rekeningnummer) in deze sectie
+- Zonder database een melding, database onbereikbaar → nette foutmelding in plaats van een kapotte pagina (zelfde aanpak als Moeilijkheidsgraad)
+- Tests: Vitest voor het ophalen/groeperen van de statistieken, Playwright voor de sectie op de pagina
 
 ## Notes
 
-<!-- Extra context, beperkingen of details uit de spec -->
+- Bron: taak 13 in `project-details/to-do.md`. Taak 12 (Mollie productieomgeving) was geladen maar niet gestart en is hiervoor vervangen; staat nog open in `to-do.md`.
+- Plek in `src/app/game-manager/page.tsx` (sectie met "komt hier (taak 13)"); `DifficultySection` is het voorbeeld voor een async server-sectie.
+- Tabel `games`: `name` (optioneel), `outcome` (`WON_SHOT`/`WON_KAKKERLAK`/`WON_VRAAGTEKEN`/`LOST`, in de database `WON shot` enz.), `tries`, `playedAt`, `paymentId`; index op `name` en `paymentId`. `SYMBOL_NAMES` in `src/lib/game.ts` voor de plaatjesnamen.
+- Groeperen per naam kan met Prisma `groupBy` op `name` + `outcome`; de naam is die van de rekeninghouder uit Mollie (taak 10), dus dezelfde persoon kan onder verschillende schrijfwijzen staan.
+- Playwright draait zonder database (`GameStore` heeft een geheugenversie voor tests); voor de game-manager-tests een geheugen- of nepbron nodig, en de ondertekende testsessie uit `e2e/auth.ts`.
+- Te bepalen bij start: hoeveel rondes tonen (limiet of paginering), filter op periode (bijv. vandaag/avond) en of de statistieken als highscore-lijst gesorteerd worden (meeste winsten eerst).
+- Taak 14 (betalingen in de game-manager) blijft een aparte sectie.
+- Keuzes gebruiker bij start: paginering (25 per pagina, `?pagina=`), periode Vandaag/Alles (`?periode=vandaag`, vanaf 00:00 Nederlandse tijd) en statistieken op naam (A-Z), zonder naam onderaan.
+- Gebouwd: `src/lib/gameStats.ts` (`parseStatsQuery`, `statsHref`, `startOfDay` met zomer-/wintertijd, `buildNameStats`, `totalStats`, `readGameStats` met timeout), `GameStore` uitgebreid met `countRounds`/`listRounds`/`countByName` (Prisma `count`/`findMany`/`groupBy` en geheugenversie), `withTimeout`/`DB_TIMEOUT_MS` verplaatst naar `db.ts`, `StatsSection.tsx` met tabellen Per naam (met Totaal) en Speelrondes plus Vorige/Volgende. 22 nieuwe Vitest-tests (192 totaal), 2 nieuwe Playwright-tests (26 totaal); gecontroleerd tegen de `dev`-database (47 rondes, 2 pagina's; vandaag 13).
 
 ## History
 

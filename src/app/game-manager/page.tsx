@@ -1,9 +1,11 @@
 import Link from "next/link";
 import { checkAdmin } from "@/lib/dal";
+import { parseStatsQuery } from "@/lib/gameStats";
 import { mergeSettings, readSettings } from "@/lib/settings";
 import { readStoredSettings } from "@/lib/settingsStore";
 import { signOutAdmin } from "./actions";
 import SettingsForm from "./SettingsForm";
+import StatsSection from "./StatsSection";
 import styles from "./game-manager.module.css";
 
 async function DifficultySection() {
@@ -47,7 +49,11 @@ function SignOutButton() {
   );
 }
 
-export default async function GameManagerPage() {
+export default async function GameManagerPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
   // Zonder sessie stuurt checkAdmin door naar /game-manager/inloggen
   const admin = await checkAdmin();
 
@@ -77,10 +83,7 @@ export default async function GameManagerPage() {
 
       <DifficultySection />
 
-      <section className={styles.card}>
-        <h2>Speelrondes en statistieken</h2>
-        <p className={styles.muted}>Overzicht van speelrondes en wins/loses per naam komt hier (taak 13).</p>
-      </section>
+      <StatsSection query={parseStatsQuery(await searchParams)} />
 
       <section className={styles.card}>
         <h2>Betalingen</h2>

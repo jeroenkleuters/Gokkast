@@ -946,6 +946,47 @@ Melding gebruiker: in de database alleen `LOST`, ook na winst. Oorzaak: de dev-s
 
 ---
 
+## Stap 70 — Feature geladen: Mollie productieomgeving (14 oktober 2026)
+
+**Vraag:**
+> /feature load 12
+
+**Uitgevoerde handelingen:**
+1. Taak 12 uit `to-do.md` geladen in `current-feature.md` (status Not Started): doelen voor een live-key alleen in de productie-omgeving van Vercel, altijd testmodus in preview/ontwikkeling, tests per omgeving en bijgewerkte documentatie.
+2. In de notities vastgelegd dat `readPaymentConfig` nu alleen `test_...` accepteert, dat `VERCEL_ENV` al gebruikt wordt in `memoryStoreAllowed`, en wat de gebruiker zelf moet doen (Mollie-profiel activeren, live-key en `PAYMENT_ENCRYPTION_KEY` in Vercel).
+
+---
+
+## Stap 71 — Feature geladen: Speelrondes en statistieken in de game-manager (14 oktober 2026)
+
+**Vraag:**
+> /feature load 13
+
+**Uitgevoerde handelingen:**
+1. Taak 13 uit `to-do.md` geladen in `current-feature.md` (status Not Started) in plaats van taak 12, die nog niet gestart was: doelen voor een overzicht van speelrondes en wins/loses per naam op `/game-manager`, alleen voor beheerders, met tests.
+2. In de notities vastgelegd waar de sectie komt (`page.tsx`, voorbeeld `DifficultySection`), welke kolommen `games` heeft en wat bij de start nog bepaald moet worden (limiet/paginering, periode, sortering).
+
+---
+
+## Stap 72 — Feature gestart: Speelrondes en statistieken in de game-manager (14 oktober 2026)
+
+**Vraag:**
+> /feature start
+
+**Keuzes gebruiker:** paginering (in plaats van een vaste limiet), periode Vandaag/Alles, statistieken op naam (A-Z).
+
+**Uitgevoerde handelingen:**
+1. Branch `feature/speelrondes-en-statistieken` gemaakt, status In Progress.
+2. `withTimeout` en `DB_TIMEOUT_MS` van `settingsStore.ts` naar `db.ts` verplaatst, zodat ook de statistieken ze gebruiken.
+3. `GameStore` (`gameStore.ts`) uitgebreid met `countRounds`, `listRounds` (nieuwste eerst, `skip`/`take`) en `countByName` (Prisma `groupBy` op naam en uitkomst); de geheugenversie voor Playwright bewaart nu ook naam, pogingen en tijdstip.
+4. `src/lib/gameStats.ts`: URL lezen en maken (`?periode=vandaag&pagina=2`), `startOfDay` (00:00 Nederlandse tijd, ook op de dagen van de zomer-/wintertijd), statistieken per naam (gespeeld, gewonnen per plaatje, verloren; A-Z, zonder naam onderaan) en totaal, `readGameStats` (25 rondes per pagina, pagina voorbij het einde → laatste pagina; geen database / fout / 5 s timeout → melding).
+5. `StatsSection.tsx` vervangt de plek-tekst op `/game-manager`: knoppen Vandaag/Alles, tabel Per naam met Totaal, tabel Speelrondes (datum in Nederlandse tijd, naam of "Zonder naam", uitkomst, pogingen), Vorige/Volgende. Tabelstijlen in `game-manager.module.css` (horizontaal scrollen op smalle schermen).
+6. Tests: `gameStats.test.ts` (22 tests); Playwright: melding zonder database (server 3100) en op de betaalserver betalen, spelen en de ronde met naam `T. TEST` terugzien in de game-manager, ook bij Vandaag. Bestaande test van de moeilijkheidsgraad beperkt tot die sectie (er zijn nu twee meldingen "geen database").
+7. Controle: typecheck, lint, build, 192 Vitest- en 26 Playwright-tests zonder fouten; met een tijdelijk script tegen de `dev`-database gelezen (47 rondes over 2 pagina's, vandaag 13, groepering per naam klopt).
+8. README: alinea Speelrondes en statistieken bij Game-manager, projectstructuur bijgewerkt.
+
+---
+
 ## Huidige bestandsstructuur
 
 ```
@@ -958,11 +999,11 @@ Gokkast/
 ├── public/images/        shot.png, kakkerlak.png, vraagteken.png
 ├── src/
 │   ├── app/              layout.tsx, page.tsx, actions.ts, globals.css
-│   │   ├── game-manager/ layout.tsx, page.tsx, actions.ts, actions.test.ts, SettingsForm.tsx, game-manager.module.css, inloggen/page.tsx
+│   │   ├── game-manager/ layout.tsx, page.tsx, actions.ts, actions.test.ts, SettingsForm.tsx, StatsSection.tsx, game-manager.module.css, inloggen/page.tsx
 │   │   └── api/auth/[...nextauth]/route.ts
 │   ├── auth.ts           Auth.js (Google, alleen beheerders)
 │   ├── components/       SlotMachine, Reel, Lever, InfoPanel, Stats, SettingsDialog, GameClient, PaymentDialog, PrizeDialog
-│   ├── lib/              encryption.ts, encryption.test.ts, prizes.ts, payments.ts, paymentService.ts, paymentStore.ts, mollie.ts, qr.ts, game.ts, settings.ts, settingsStore.ts, db.ts, gameStore.ts, admins.ts, dal.ts, sound.ts, storage.ts, coinShower.ts, game.test.ts, settings.test.ts, settingsStore.test.ts, gameStore.test.ts, admins.test.ts
+│   ├── lib/              encryption.ts, encryption.test.ts, prizes.ts, payments.ts, paymentService.ts, paymentStore.ts, mollie.ts, qr.ts, game.ts, settings.ts, settingsStore.ts, db.ts, gameStore.ts, gameStats.ts, admins.ts, dal.ts, sound.ts, storage.ts, coinShower.ts, game.test.ts, settings.test.ts, settingsStore.test.ts, gameStore.test.ts, gameStats.test.ts, admins.test.ts
 │   └── generated/prisma/ Prisma Client (gegenereerd, niet in git)
 ├── prisma/               schema.prisma, seed.ts, migrations/ (20261013000000_init, 20261013163330_games_name_optional, 20261013200000_game_settings_optional, 20261013230000_games_outcome_symbol, 20261014000000_payments_mollie, 20261014120000_payments_reference, 20261014200000_payments_account_encrypted, migration_lock.toml)
 ├── e2e/                  gokkast.spec.ts, game-manager.spec.ts, helpers.ts, auth.ts

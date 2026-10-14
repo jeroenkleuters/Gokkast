@@ -199,7 +199,7 @@ Aan het eind van elk spel stuurt de gokkast de ronde naar de server action `save
 ([`src/lib/gameStore.ts`](src/lib/gameStore.ts): uitkomst `WON <plaatje>` of `LOST`, pogingen 1 t/m het
 maximum, verlies alleen na alle pogingen) en slaat de ronde op. Zonder database of bij een fout
 wordt er niets opgeslagen (waarschuwing in de serverlog) en gaat het spel gewoon door.
-Highscores staan niet in het spel, alleen straks in de game-manager.
+Highscores staan niet in het spel, alleen in de [game-manager](#game-manager) (speelrondes en statistieken).
 
 De Prisma Client wordt gegenereerd in `src/generated/prisma` (niet in git) bij elke `npm install`.
 Het schema wijzigen: `prisma/schema.prisma` aanpassen en `npm run db:migrate -- --name <naam>`.
@@ -224,6 +224,15 @@ server controleert (zelfde grenzen als `.env`). **Terug naar standaard** maakt e
 geldt weer de `.env`-waarde. Het spel gebruikt de nieuwe waarden bij het volgende laden. Let op: in
 productie geldt een wijziging direct voor het echte spel. Zonder database toont de pagina een melding
 (opslaan lukt dan niet); is de database even onbereikbaar, dan is het formulier verborgen.
+
+**Speelrondes en statistieken.** Per naam (de rekeninghouder van de betaling, A-Z) staat hoe vaak
+er gespeeld is, wat er gewonnen is per plaatje (shot, kakkerlak, vraagteken) en hoe vaak er verloren
+is; rondes zonder betaling staan onderaan als "Zonder naam", met een regel Totaal. Daaronder de
+speelrondes zelf (datum, naam, uitkomst, pogingen), nieuwste eerst, 25 per pagina. **Vandaag** toont
+alleen de rondes vanaf 00:00 Nederlandse tijd, **Alles** alle rondes; periode en pagina staan in de URL
+(`?periode=vandaag&pagina=2`). Dezelfde persoon kan onder verschillende schrijfwijzen staan (zoals
+Mollie de naam doorgeeft). Rekeningnummers staan hier niet. Zonder database of als die onbereikbaar
+is, toont de sectie een melding ([`src/lib/gameStats.ts`](src/lib/gameStats.ts)).
 
 | Variabele             | Betekenis                                                         |
 | --------------------- | ----------------------------------------------------------------- |
@@ -319,13 +328,13 @@ Gokkast/
 ├── public/images/      plaatjes voor de rollen (shot, kakkerlak, vraagteken)
 ├── src/
 │   ├── app/            layout, pagina, server actions (actions.ts) en globale CSS (Next.js App Router)
-│   │   ├── game-manager/  beheerpagina met moeilijkheidsgraad (SettingsForm), server actions en inlogpagina (inloggen/)
+│   │   ├── game-manager/  beheerpagina met moeilijkheidsgraad (SettingsForm), speelrondes en statistieken (StatsSection), server actions en inlogpagina (inloggen/)
 │   │   ├── betaald/       terugkeer na betalen bij Mollie
 │   │   ├── api/auth/      Auth.js-routes (inloggen, terugkeer van Google, uitloggen)
 │   │   └── api/mollie/webhook/  webhook van Mollie (betaalstatus)
 │   ├── auth.ts         Auth.js-instellingen (Google, alleen beheerders)
 │   ├── components/     SlotMachine, Reel, Lever, InfoPanel, Stats, SettingsDialog, PaymentDialog, GameClient
-│   ├── lib/            spellogica (game.ts), instellingen (settings.ts, settingsStore.ts), database (db.ts), rondes opslaan (gameStore.ts), betalen (payments.ts, mollie.ts, paymentStore.ts, paymentService.ts, qr.ts), beheerders (admins.ts, dal.ts), geluid, opslag, muntenregen, tests (*.test.ts)
+│   ├── lib/            spellogica (game.ts), instellingen (settings.ts, settingsStore.ts), database (db.ts), rondes opslaan en lezen (gameStore.ts, gameStats.ts), betalen (payments.ts, mollie.ts, paymentStore.ts, paymentService.ts, qr.ts), beheerders (admins.ts, dal.ts), geluid, opslag, muntenregen, tests (*.test.ts)
 │   └── generated/      Prisma Client (gegenereerd, niet in git)
 ├── prisma/             schema.prisma, migrations/, seed.ts
 ├── prisma.config.ts    instellingen voor de Prisma CLI

@@ -72,7 +72,7 @@
 .field { border: 0; display: flex; flex-direction: column; gap: 8px; }
 .field label { font-weight: 700; }
 .levels, .inputRow { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
-.levels .button[aria-pressed="true"] { background: #ffcf6a; color: #2a1400; border-color: #ffcf6a; }
+.levels .button[aria-pressed="true"], .levels .button[aria-current="page"] { background: #ffcf6a; color: #2a1400; border-color: #ffcf6a; }
 .input {
   width: 140px;
   padding: 9px 12px;
@@ -86,3 +86,15 @@
 .fieldError { color: #ffb3b3; font-size: 14px; }
 .success { color: #9be89b; font-size: 14px; }
 .fieldError:empty, .success:empty { display: none; }
+
+/* Speelrondes en statistieken */
+.stats { display: flex; flex-direction: column; gap: 16px; margin-top: 16px; }
+.stats h3 { font-size: 16px; }
+.stats a.button { text-decoration: none; }
+.tableWrap { overflow-x: auto; }
+.table { width: 100%; border-collapse: collapse; font-size: 14px; font-variant-numeric: tabular-nums; }
+.table th, .table td { padding: 8px 10px; text-align: left; border-bottom: 1px solid rgba(255,255,255,.12); white-space: nowrap; }
+.table thead th { color: #b9aed0; font-weight: 600; }
+.table tbody th { font-weight: 400; }
+.table tfoot th, .table tfoot td { font-weight: 700; border-bottom: 0; }
+.pagination { display: flex; align-items: center; justify-content: space-between; gap: 8px; }

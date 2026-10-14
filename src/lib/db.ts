@@ -12,3 +12,14 @@ export function getDb(): PrismaClient | null {
   globalForPrisma.prisma ??= new PrismaClient({ adapter: new PrismaNeon({ connectionString }) });
   return globalForPrisma.prisma;
 }
+
+// Zo lang mag de database erover doen (Neon kan na een pauze even nodig hebben om te starten)
+export const DB_TIMEOUT_MS = 5000;
+
+export function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const timeout = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => reject(new Error(`geen antwoord binnen ${ms} ms`)), ms);
+  });
+  return Promise.race([promise, timeout]).finally(() => clearTimeout(timer));
+}

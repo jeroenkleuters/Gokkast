@@ -48,11 +48,31 @@ export interface GamePayment {
   name: string | null;
 }
 
+// Eén gespeelde ronde voor het overzicht in de game-manager (taak 13)
+export interface PlayedRound extends GameResult {
+  id: number;
+  name: string | null; // null: gratis gespeeld of naam onbekend
+  playedAt: Date;
+}
+
+// Aantal rondes met deze naam en uitkomst
+export interface OutcomeCount {
+  name: string | null;
+  outcome: GameOutcome;
+  count: number;
+}
+
 export interface GameStore {
   create(result: GameResult, payment: GamePayment | null): Promise<unknown>;
   // Uitkomsten van de rondes die met een betaling gespeeld zijn
   outcomes(paymentId: number): Promise<GameOutcome[]>;
+  // Voor de game-manager: rondes gespeeld vanaf `since` (null: alle)
+  countRounds(since: Date | null): Promise<number>;
+  listRounds(since: Date | null, skip: number, take: number): Promise<PlayedRound[]>; // nieuwste eerst
+  countByName(since: Date | null): Promise<OutcomeCount[]>;
 }
+
+const sinceWhere = (since: Date | null) => (since ? { playedAt: { gte: since } } : {});
 
 export function prismaGameStore(db: PrismaClient): GameStore {
   return {
@@ -68,17 +88,49 @@ export function prismaGameStore(db: PrismaClient): GameStore {
       const rows = await db.game.findMany({ where: { paymentId }, select: { outcome: true } });
       return rows.map((row) => FROM_DB[row.outcome]);
     },
+    countRounds: (since) => db.game.count({ where: sinceWhere(since) }),
+    async listRounds(since, skip, take) {
+      const rows = await db.game.findMany({
+        where: sinceWhere(since),
+        orderBy: [{ playedAt: "desc" }, { id: "desc" }],
+        skip,
+        take,
+        select: { id: true, name: true, outcome: true, tries: true, playedAt: true },
+      });
+      return rows.map((row) => ({ ...row, outcome: FROM_DB[row.outcome] }));
+    },
+    async countByName(since) {
+      const groups = await db.game.groupBy({ by: ["name", "outcome"], where: sinceWhere(since), _count: { _all: true } });
+      return groups.map((g) => ({ name: g.name, outcome: FROM_DB[g.outcome], count: g._count._all }));
+    },
   };
 }
 
 // Voor de Playwright-tests zonder database (zelfde voorwaarde als de geheugenopslag van betalingen)
-export function memoryGameStore(): GameStore {
-  const games: { outcome: GameOutcome; paymentId: number | null }[] = [];
+export function memoryGameStore(now: () => Date = () => new Date()): GameStore {
+  const games: (PlayedRound & { paymentId: number | null })[] = [];
+  const since = (from: Date | null) => games.filter((g) => !from || g.playedAt >= from);
   return {
     async create(result, payment) {
-      games.push({ outcome: result.outcome, paymentId: payment?.id ?? null });
+      games.push({ ...result, id: games.length + 1, name: payment?.name ?? null, playedAt: now(), paymentId: payment?.id ?? null });
     },
     outcomes: async (paymentId) => games.filter((g) => g.paymentId === paymentId).map((g) => g.outcome),
+    countRounds: async (from) => since(from).length,
+    listRounds: async (from, skip, take) =>
+      since(from)
+        .toSorted((a, b) => b.playedAt.getTime() - a.playedAt.getTime() || b.id - a.id)
+        .slice(skip, skip + take)
+        .map(({ id, name, outcome, tries, playedAt }) => ({ id, name, outcome, tries, playedAt })),
+    async countByName(from) {
+      const counts = new Map<string, OutcomeCount>();
+      for (const g of since(from)) {
+        const key = JSON.stringify([g.name, g.outcome]);
+        const entry = counts.get(key) ?? { name: g.name, outcome: g.outcome, count: 0 };
+        entry.count++;
+        counts.set(key, entry);
+      }
+      return [...counts.values()];
+    },
   };
 }
 

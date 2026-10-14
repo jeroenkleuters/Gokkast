@@ -1,4 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
+import { loginAs, TEST_ADMIN } from "./auth";
 import { display, playButton } from "./helpers";
 import { MOCK_CONSUMER_ACCOUNT, MOCK_CONSUMER_NAME, PAID_APP_URL } from "./payments";
 
@@ -187,6 +188,34 @@ test("geen score-popup als er met een betaling niets gewonnen is", async ({ page
   await expect(display(page)).toHaveText("DRUK OP SPEEL!");
   await page.waitForTimeout(2000); // de popup zou na 1,5 s verschijnen
   await expect(prizes(page)).toBeHidden();
+});
+
+test("de game-manager toont de gespeelde ronde met de naam van de rekeninghouder", async ({ page, context }) => {
+  await openGame(page);
+  await pay(page);
+  await playOneGame(page); // winkans 1: gewonnen
+  await expect(credits(page)).toHaveText("3");
+
+  // Andere tests op deze server spelen ook met deze naam: alleen controleren dat de ronde er staat
+  await loginAs(context, TEST_ADMIN);
+  await page.goto("/game-manager");
+  const section = page.getByRole("region", { name: "Speelrondes en statistieken" });
+  const perName = section.getByRole("table", { name: "Per naam" });
+  const rounds = section.getByRole("table", { name: /Speelrondes/ });
+
+  await expect(perName.getByRole("columnheader")).toHaveText(["Naam", "Gespeeld", "Shot", "Kakkerlak", "Vraagteken", "Gewonnen", "Verloren"]);
+  const row = perName.getByRole("row").filter({ has: page.getByRole("rowheader", { name: MOCK_CONSUMER_NAME }) });
+  await expect(row).toHaveCount(1);
+  expect(Number(await row.getByRole("cell").nth(4).textContent())).toBeGreaterThanOrEqual(1); // gewonnen
+  await expect(rounds.getByRole("row").filter({ hasText: MOCK_CONSUMER_NAME }).first()).toContainText(/Gewonnen: (shot|kakkerlak|vraagteken)\s*1$/);
+  // Het rekeningnummer staat nooit op de pagina
+  expect(await page.content()).not.toContain(MOCK_CONSUMER_ACCOUNT);
+
+  // Vandaag: zelfde ronde, en de keuze staat in de URL
+  await section.getByRole("link", { name: "Vandaag" }).click();
+  await expect(page).toHaveURL(/\/game-manager\?periode=vandaag#speelrondes$/);
+  await expect(section.getByRole("link", { name: "Vandaag" })).toHaveAttribute("aria-current", "page");
+  await expect(perName.getByRole("rowheader", { name: MOCK_CONSUMER_NAME })).toBeVisible();
 });
 
 test("/betaald zonder of met een onbekende referentie geeft alleen een bedankje", async ({ page }) => {
