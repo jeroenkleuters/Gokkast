@@ -1,30 +1,16 @@
-# Current Feature: Betalingen in de game-manager
+# Current Feature
 
 ## Status
 
-Complete
+Not Started
 
 ## Goals
 
-- Overzicht van betalingen op `/game-manager`: naam rekeninghouder en bedrag (plus datum en status), met het rekeningnummer ontsleuteld weergegeven
-- De panels Moeilijkheidsgraad, Speelrondes/statistieken en Betalingen staan in 3 tabs, zodat de pagina minder hoog is
-- Tabellen tonen maximaal 15 rijen per pagina, de rest via paginatie (ook de tabellen van taak 13, nu 25 per pagina)
-- Sorteren op alle kolommen (oplopend/aflopend)
-- Filteren op de kolom naam
-- Vitest-tests voor het lezen, sorteren, filteren en pagineren; Playwright-tests voor tabs, sorteren, filteren en paginatie
+<!-- Doelen van de feature, in te vullen met /feature load -->
 
 ## Notes
 
-- Bron: taak 14 in `project-details/to-do.md`.
-- Alleen het rekeningnummer is versleuteld (`payments.account_encrypted`, taak 11, `src/lib/encryption.ts`); naam en bedrag staan leesbaar in de database.
-- Ontsleutelen alleen op de server na `checkAdmin`; zonder geldige `PAYMENT_ENCRYPTION_KEY` of bij een fout een melding in de cel, nooit de pagina laten falen.
-- Bestaande sectie Speelrondes en statistieken: `StatsSection.tsx`, `src/lib/gameStats.ts`, `?pagina=` en `?periode=` (taak 13). Bij tabs en sorteren/filteren de query-parameters per tab uit elkaar houden (bijv. `?betalingen_pagina=` naast `?pagina=`).
-- Besluiten gebruiker (14 oktober 2026):
-  1. Rekeningnummer wel tonen, ontsleuteld (alleen op de server na `checkAdmin`).
-  2. 15 rijen, sorteren op alle kolommen en filteren op naam gelden ook voor de tabellen van taak 13 (Per naam, Speelrondes).
-  3. Gekozen tab niet in de URL; tabs wisselen in de browser. Bij paginatie, sorteren en filteren (soft navigation) moet de gekozen tab wel blijven staan.
-  4. Filter op naam: bevat-zoeken, hoofdletterongevoelig.
-- `GameStore`/geheugenversies voor Playwright (`PAYMENTS_TEST_STORE`) uitbreiden voor het betalingsoverzicht.
+<!-- Extra context, beperkingen of details uit de spec -->
 
 ## History
 
@@ -46,3 +32,4 @@ Complete
 - **Betaald-pagina en score-popup** (14 oktober 2026, taak 10b) — `/betaald` toont ook op een telefoon zonder cookie de uitkomst: eigen referentie per betaling in de terugkeer-URL (`/betaald?ref=`, kolom `payments.reference`, migratie `20261014120000_payments_reference`), `getReturnPayment` haalt de status bij Mollie op en geeft alleen status, bedrag en aantal spelletjes (geen credits, geen cookie). Betaald → vinkje en "€ 1,00 is betaald voor 4 spelletjes"; mislukt, wordt verwerkt (ververst elke 3 s) of onbekend elk een eigen melding; zelfde browser en betaald → direct terug naar het spel. Score-popup `PrizeDialog.tsx` na het laatste spelletje van een betaling met minstens één winst (besluit gebruiker: alleen dan, niets vastleggen): naam rekeninghouder en prijzen per plaatje (`src/lib/prizes.ts`: gratis shotjes, kakkerlakken om te blingen, vrije keuzes); sluit alleen met "Prijzen uitgedeeld" (focus op de popup, niet op de knop); betaalpopup gaat dan dicht. `finishGame` (`gameStore.ts`) geeft het overzicht terug via `saveGame` en slaat nooit meer rondes per betaling op dan betaald; `GameStore` met geheugenversie voor Playwright. 156 Vitest- en 24 Playwright-tests; migratie toegepast op `dev`. Commit `24ca23d`.
 - **Betalingen versleuteld opslaan en koppelen aan spelletjes** (14 oktober 2026, taak 11) — `src/lib/encryption.ts`: AES-256-GCM via `node:crypto`, formaat `v1:<iv>:<tag>:<data>` (base64, elke keer een nieuwe iv), sleutel `PAYMENT_ENCRYPTION_KEY` (32 bytes base64; Production een eigen, Preview/Development samen omdat ze Neon `dev` delen). `parseMolliePayment` neemt `details.consumerAccount` over; `paymentService.ts` versleutelt het in `statusUpdate` en slaat het op in `payments.account_encrypted` (migratie `20261014200000_payments_account_encrypted`). Zonder geldige sleutel of bij een fout: niet opslaan, waarschuwing zonder het nummer, betaling gaat door; nooit naar de browser. Koppeling rondes–betaling bestond al (taak 10). 170 Vitest- (o.a. 10 in `encryption.test.ts`) en 24 Playwright-tests (nep-Mollie met test-IBAN, controle dat geen antwoord het nummer bevat). Migratie op `dev` (P1001 kwam door de VPN op poort 5432); echte Mollie-testbetaling: versleuteld opgeslagen, te ontsleutelen, 4 rondes gekoppeld. Open: sleutels in Vercel zetten (gebruiker). Commit `a6456ef`.
 - **Speelrondes en statistieken in de game-manager** (14 oktober 2026, taak 13) — sectie op `/game-manager` (`StatsSection.tsx`): tabel Per naam (gespeeld, gewonnen per plaatje shot/kakkerlak/vraagteken, totaal gewonnen, verloren; A-Z, "Zonder naam" onderaan, regel Totaal) en tabel Speelrondes (datum in Nederlandse tijd, naam, uitkomst, pogingen; nieuwste eerst). Keuzes gebruiker: paginering (25 per pagina, `?pagina=`, voorbij het einde → laatste pagina), periode Vandaag/Alles (`?periode=vandaag`, vanaf 00:00 Nederlandse tijd via `startOfDay`, ook bij zomer-/wintertijd), sortering op naam. `src/lib/gameStats.ts` (`readGameStats` met 5 s timeout; geen database/fout → melding); `GameStore` met `countRounds`/`listRounds`/`countByName` (Prisma `count`/`findMany`/`groupBy` en geheugenversie); `withTimeout`/`DB_TIMEOUT_MS` naar `db.ts`. Verschillende schrijfwijzen van een naam blijven apart; geen rekeningnummers. 192 Vitest- (22 in `gameStats.test.ts`) en 26 Playwright-tests (melding zonder database; betalen, spelen en de ronde van `T. TEST` terugzien, ook bij Vandaag); gecontroleerd tegen de `dev`-database (47 rondes, 2 pagina's, vandaag 13). Commit `f9482bc`.
+- **Betalingen in de game-manager** (14 oktober 2026, taak 14) — tab Betalingen (`PaymentsSection.tsx`, `src/lib/paymentOverview.ts`): datum, naam, rekeningnummer ontsleuteld op de server na `checkAdmin` (in groepjes van vier; "Geen sleutel" met melding of "Niet te ontsleutelen" met één waarschuwing zonder nummers), bedrag, status en gespeeld (afgeboekte credits); sorteren en bladeren in het geheugen (nodig voor sorteren op rekeningnummer). Moeilijkheidsgraad, Speelrondes en Betalingen in drie tabs (`ManagerTabs.tsx`, pijltjes/Home/End); keuze gebruiker: tab niet in de URL, `TabProvider` in `layout.tsx` houdt de tab bij bladeren, sorteren en filteren. Alle tabellen 15 rijen per pagina, sorteren op elke kolom (lege waarden onderaan) en filter "Naam bevat" (hoofdletterongevoelig, ook voor Per naam en Speelrondes) via `src/lib/tables.ts`, `src/lib/managerQuery.ts` (eigen URL-parameters per tabel, `?pagina=` werd `?rondes_pagina=`) en `TableParts.tsx` (`next/form`). `GameStore` met `RoundFilter` en sortering in Prisma (`mode: "insensitive"`, `nulls: "last"`), `PaymentStore.listByName` en `createdAt`. 229 Vitest- en 30 Playwright-tests; gecontroleerd tegen de `dev`-database. Commit `63624a6`.
