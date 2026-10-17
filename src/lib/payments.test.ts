@@ -31,14 +31,40 @@ describe("readMollieConfig", () => {
       apiKey: "test_abc",
       apiUrl: MOLLIE_API_URL,
       priceCents: DEFAULT_PRICE_CENTS,
+      live: false,
     });
     expect(DEFAULT_PRICE_CENTS).toBe(100);
+    expect(readMollieConfig({ MOLLIE_API_KEY: " test_abc ", VERCEL_ENV: "preview" })).toMatchObject({
+      apiKey: "test_abc",
+      live: false,
+    });
   });
 
-  it("weigert een live-key: geen echte betalingen in deze versie", () => {
+  it("weigert buiten productie een live-key: nooit echt geld in preview of lokaal (taak 12a)", () => {
     const error = vi.spyOn(console, "error").mockImplementation(() => {});
     expect(readMollieConfig({ MOLLIE_API_KEY: "live_abc" })).toBeNull();
+    expect(readMollieConfig({ MOLLIE_API_KEY: "live_abc", VERCEL_ENV: "preview" })).toBeNull();
+    expect(readMollieConfig({ MOLLIE_API_KEY: "live_abc", VERCEL_ENV: "development" })).toBeNull();
     expect(readMollieConfig({ MOLLIE_API_KEY: "iets_anders" })).toBeNull();
+    expect(error).toHaveBeenCalledTimes(4);
+  });
+
+  it("productie met een live-key: de echte Mollie-API, ook als MOLLIE_API_URL iets anders zegt", () => {
+    const live = { MOLLIE_API_KEY: "live_abc", VERCEL_ENV: "production" };
+    expect(readMollieConfig(live)).toEqual({
+      apiKey: "live_abc",
+      apiUrl: MOLLIE_API_URL,
+      priceCents: DEFAULT_PRICE_CENTS,
+      live: true,
+    });
+    expect(readMollieConfig({ ...live, MOLLIE_API_URL: "http://localhost:3101/v2" })?.apiUrl).toBe(MOLLIE_API_URL);
+    expect(readMollieConfig({ ...live, GAME_PRICE_CENTS: "250" })?.priceCents).toBe(250);
+  });
+
+  it("productie zonder live-key: Mollie uit (nooit de testmodus in productie)", () => {
+    const error = vi.spyOn(console, "error").mockImplementation(() => {});
+    expect(readMollieConfig({ MOLLIE_API_KEY: "test_abc", VERCEL_ENV: "production" })).toBeNull();
+    expect(readMollieConfig({ MOLLIE_API_KEY: "iets_anders", VERCEL_ENV: "production" })).toBeNull();
     expect(error).toHaveBeenCalledTimes(2);
   });
 

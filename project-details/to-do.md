@@ -82,7 +82,7 @@ De taken staan in volgorde: latere taken bouwen voort op eerdere.
   - Spelletjes met naam koppelen aan de betaling waarmee ze gespeeld zijn
   - Tests voor versleutelen en ontsleutelen
 
-- [ ] **12a. Mollie productieomgeving**
+- [x] **12a. Mollie productieomgeving**
   - Live-API-key alleen in de productie-omgeving van Vercel
   - Controleren dat preview/ontwikkeling altijd de testmodus gebruikt
 
@@ -118,13 +118,17 @@ De taken staan in volgorde: latere taken bouwen voort op eerdere.
     - Hernoem tablad Moeilijkheidsgraad naar Instellingen
     - zet instellingen als derde tablad
 
-- [ ] ** Domein en naamspel **
-  - het domein wordt jackpot.broadsight.nl
-  - hernoem het spel naar Jackpot
-  - in vercel, neon, paypall, molie, google auth houden wij de oude naam
+  - [ ] **16 Domein en naamspel**
+    - het productie domein wordt jackpot.broadsight.nl
+    - hernoem het spel naar Jackpot
+    - pas de API productie urls aan in Mollie, Paypall, Vercel
+    - in vercel, neon, paypall, molie, google auth houden wij de oude werktitel Gokkast
 
 ## Versie 3 — Open
-- [ ] **Redesign**
+  [ ] **1 Redesign**
+    - gebruik de voorbeeld afbeelding om een nieuwe frontend look te maken
+    - pas de playwright testen  aan op de nieuwe layout
+  
 
 ## Open vragen
 

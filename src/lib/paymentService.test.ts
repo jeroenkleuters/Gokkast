@@ -26,6 +26,7 @@ function fakeMollie() {
   const payments = new Map<string, MolliePayment>();
   const created: CreatePaymentInput[] = [];
   const client: MollieClient = {
+    live: false,
     async createPayment(input) {
       created.push(input);
       const id = `tr_test${payments.size + 1}`;
@@ -454,13 +455,16 @@ describe("choosePaymentProvider", () => {
   });
 });
 
-describe("isTestPayment (taak 12b)", () => {
-  const deps = (paypal: { live: boolean } | null) => ({ paypal }) as unknown as PaymentDeps;
+describe("isTestPayment (taak 12a en 12b)", () => {
+  type Live = { live: boolean } | null;
+  const deps = (mollie: Live, paypal: Live) => ({ mollie, paypal }) as unknown as PaymentDeps;
 
-  it("Mollie is altijd een test (alleen een test-key); PayPal alleen echt met de live-API", () => {
-    expect(isTestPayment("mollie", deps({ live: true }))).toBe(true);
-    expect(isTestPayment("paypal", deps({ live: false }))).toBe(true);
-    expect(isTestPayment("paypal", deps(null))).toBe(true);
-    expect(isTestPayment("paypal", deps({ live: true }))).toBe(false);
+  it("alleen echt met de live-key van Mollie of de live-API van PayPal, per methode", () => {
+    expect(isTestPayment("mollie", deps({ live: false }, { live: true }))).toBe(true);
+    expect(isTestPayment("mollie", deps(null, { live: true }))).toBe(true);
+    expect(isTestPayment("mollie", deps({ live: true }, { live: false }))).toBe(false);
+    expect(isTestPayment("paypal", deps({ live: true }, { live: false }))).toBe(true);
+    expect(isTestPayment("paypal", deps({ live: true }, null))).toBe(true);
+    expect(isTestPayment("paypal", deps({ live: false }, { live: true }))).toBe(false);
   });
 });

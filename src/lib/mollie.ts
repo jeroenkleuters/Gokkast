@@ -4,7 +4,9 @@ import { isPaymentStatus, mollieAmount, type MollieConfig, type PaymentClient, t
 
 export type { CreatePaymentInput } from "@/lib/payments";
 export type MolliePayment = ProviderPayment; // id is tr_...; naam en IBAN komen uit details (o.a. iDEAL)
-export type MollieClient = PaymentClient;
+export interface MollieClient extends PaymentClient {
+  live: boolean; // echte betalingen (live-key); false = testmodus
+}
 
 export const isMollieId = (value: unknown): value is string => typeof value === "string" && /^tr_[A-Za-z0-9]{1,64}$/.test(value);
 
@@ -27,7 +29,7 @@ export function parseMolliePayment(body: unknown): MolliePayment {
   };
 }
 
-export function createMollieClient(config: Pick<MollieConfig, "apiKey" | "apiUrl">, fetchFn: typeof fetch = fetch): MollieClient {
+export function createMollieClient(config: Pick<MollieConfig, "apiKey" | "apiUrl" | "live">, fetchFn: typeof fetch = fetch): MollieClient {
   async function call(path: string, init: RequestInit = {}): Promise<MolliePayment> {
     const response = await fetchFn(`${config.apiUrl}${path}`, {
       ...init,
@@ -44,6 +46,7 @@ export function createMollieClient(config: Pick<MollieConfig, "apiKey" | "apiUrl
   }
 
   return {
+    live: config.live,
     createPayment: ({ amountCents, description, redirectUrl, webhookUrl }) =>
       call("/payments", {
         method: "POST",

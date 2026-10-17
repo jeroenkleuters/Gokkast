@@ -134,8 +134,11 @@ ontwikkelen en testen; laat dit in productie uit.
 
 Betalen gaat via [Mollie](https://docs.mollie.com/docs/getting-started) of
 [PayPal](https://developer.paypal.com/api/invoicing/v2/) (zie [Betalen met PayPal](#betalen-met-paypal)),
-Mollie draait **alleen in de testmodus** (alleen een test-key `test_...`; live volgt in taak 12a).
-PayPal is **live in productie** met `PAYPAL_ENV=live` (taak 12b) en gebruikt overal anders de sandbox.
+Beide zijn **live in productie** en draaien overal anders in de testmodus. Mollie: in productie alleen
+een live-key `live_...` (een test-key zet Mollie daar uit), elders alleen een test-key `test_...` (een
+live-key wordt geweigerd) (taak 12a). PayPal: live in productie met `PAYPAL_ENV=live` en overal anders
+de sandbox (taak 12b). Zo wordt er buiten productie nooit echt geld geïnd, en in productie nooit
+zonder.
 De betaalpopup zegt "Testomgeving: er wordt geen echt geld afgeschreven" alleen bij een testbetaling.
 Welke methode spelers gebruiken kies je in de game-manager (tab Instellingen); standaard is dat Mollie.
 
@@ -159,7 +162,7 @@ Welke methode spelers gebruiken kies je in de game-manager (tab Instellingen); s
 
 | Variabele          | Betekenis                                                   | Standaard        |
 | ------------------ | ----------------------------------------------------------- | ---------------- |
-| `MOLLIE_API_KEY`   | Test-key uit het Mollie-dashboard (*Developers → API keys*). Leeg = betalen uit, het spel is gratis | leeg |
+| `MOLLIE_API_KEY`   | Key uit het Mollie-dashboard (*Developers → API keys*): live-key in productie, test-key elders. Leeg = Mollie uit (zonder PayPal is het spel gratis) | leeg |
 | `GAME_PRICE_CENTS` | Prijs van één betaling in centen (1 t/m 10000)              | `100` (€ 1,00)   |
 | `PAYMENT_ENCRYPTION_KEY` | Sleutel voor het rekeningnummer: 32 willekeurige bytes als base64. Leeg = rekeningnummer niet opslaan | leeg |
 
@@ -380,7 +383,7 @@ De spelinstellingen (zie [Instellingen](#instellingen)) staan in Vercel onder
 | `AUTH_SECRET`             | eigen sleutel | eigen sleutel | eigen sleutel |
 | `AUTH_GOOGLE_ID` / `AUTH_GOOGLE_SECRET` | Google OAuth-client | idem | idem |
 | `GAME_MANAGER_ADMINS`     | beheerders | beheerders | beheerders |
-| `MOLLIE_API_KEY`          | leeg (taak 12a) | Mollie test-key | Mollie test-key |
+| `MOLLIE_API_KEY`          | Mollie live-key (`live_...`) | Mollie test-key | Mollie test-key |
 | `PAYPAL_ENV`              | `live`     | leeg (sandbox) | leeg (sandbox) |
 | `PAYPAL_CLIENT_ID` / `PAYPAL_CLIENT_SECRET` | PayPal-live-app | PayPal-sandbox-app | PayPal-sandbox-app |
 | `PAYPAL_WEBHOOK_ID`       | webhook-ID live-app | webhook-ID sandbox-app | leeg |

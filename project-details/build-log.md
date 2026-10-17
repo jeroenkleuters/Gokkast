@@ -1285,6 +1285,79 @@ Melding gebruiker: in de database alleen `LOST`, ook na winst. Oorzaak: de dev-s
 
 ---
 
+## Stap 96 — Feature geladen: Mollie productieomgeving (17 oktober 2026)
+
+**Vraag:**
+> /feature load 12a
+
+**Uitgevoerde handelingen:**
+1. Taak 12a uit `to-do.md` geladen in `current-feature.md`: live-key (`live_...`) alleen in productie, test-key elders (live-key buiten productie geweigerd), `MollieConfig.live` en "Testomgeving" in de popup alleen bij een testbetaling, live-key alleen in Vercel Production, tests en README.
+2. Genoteerd: Mollie-account moet nog geverifieerd worden voor een live-key; bij de start nagaan welke `MOLLIE_API_KEY` nu in Vercel Production staat.
+
+---
+
+## Stap 97 — Feature gestart: Mollie productieomgeving (17 oktober 2026)
+
+**Vraag:**
+> /feature start
+
+**Uitgevoerde handelingen:**
+1. Branch `feature/mollie-productieomgeving`; status In Progress.
+2. `readMollieConfig` (`src/lib/payments.ts`): in productie (`VERCEL_ENV=production`) alleen een live-key (`live_...`), altijd met de echte Mollie-API (`MOLLIE_API_URL` genegeerd), `live: true`; een test-key zet Mollie daar uit. Elders alleen een test-key (`live: false`); een live-key wordt geweigerd.
+3. `MollieClient` (`src/lib/mollie.ts`) heeft nu `live`, zoals `PayPalClient`; `PaymentDeps.mollie` is een `MollieClient`. `isTestPayment` (`paymentService.ts`) kijkt per methode naar `live`, zodat "Testomgeving" bij een live Mollie-betaling verdwijnt.
+4. Tests: `readMollieConfig` (live-key buiten productie geweigerd, productie live/test-key, live-API in productie), `createMollieClient().live`, `isTestPayment` voor beide methodes. 281 Vitest- en 33 Playwright-tests; lint en typecheck zonder fouten.
+5. README (sectie Betalen, variabelentabel, Vercel-tabel: Production een live-key) en `.env.example` bijgewerkt.
+6. Vercel gecontroleerd (zonder waarden): één `MOLLIE_API_KEY` voor Production en Preview (de test-key). Na deze deploy staat Mollie uit in productie tot de gebruiker daar een live-key zet; Preview houdt de test-key. Development heeft geen key in Vercel (lokaal `.env.local`).
+
+---
+
+## Stap 98 — Review: Mollie productieomgeving (17 oktober 2026)
+
+**Vraag:**
+> /feature review
+
+**Uitgevoerde handelingen:**
+1. Diff van `payments.ts`, `mollie.ts`, `paymentService.ts` en de tests nagelopen tegen de doelen; geen scope creep.
+2. Doelen in de code gehaald (live-key alleen in productie, test-key elders, `live` op config en client, "Testomgeving" per methode, tests, README/`.env.example`). Open: de live-key in Vercel Production (wacht op verificatie door Mollie) en een controle op een echte preview.
+3. Kleine punten: `isTestPayment` herhaalt de keuze uit `clientFor`; zolang de test-key ook in Production staat logt productie bij elk verzoek dat Mollie uit staat. Oordeel: klaar om af te ronden.
+
+---
+
+## Stap 99 — Live-key van Mollie in Vercel Production (17 oktober 2026)
+
+**Vraag:**
+> vercel has a mollie production api key
+
+**Uitgevoerde handelingen:**
+1. `vercel env ls` (zonder waarden): `MOLLIE_API_KEY` staat nu apart voor Production (nieuw, door de gebruiker) en Preview (de test-key). Development heeft geen key in Vercel (lokaal `.env.local`).
+2. Het begin van de key (`live_`) controleren via een tijdelijk `vercel env pull` is geweigerd (geen sleutels op schijf); controle na de deploy via de game-manager (tab Instellingen: Mollie niet "niet ingesteld") en de serverlog.
+
+---
+
+## Stap 100 — Production-key van Mollie is een access-token (17 oktober 2026)
+
+**Vraag:**
+> the production key starts with access_
+
+**Uitgevoerde handelingen:**
+1. `access_...` is een organization access token van Mollie, geen API-key: die vraagt een profiel-ID bij elke betaling en de modus via `testmode`. De code accepteert in productie alleen `live_...`, dus Mollie blijft daar veilig uit.
+2. Besluit gebruiker: geen ondersteuning voor access-tokens; de Live API key (`live_...`) uit het Mollie-dashboard (*Developers → API keys*) in Vercel Production zetten. Geen codewijziging.
+
+---
+
+## Stap 101 — Feature afgerond: Mollie productieomgeving (17 oktober 2026)
+
+**Vraag:**
+> /feature complete
+
+**Uitgevoerde handelingen:**
+1. Taak 12a afgevinkt in `to-do.md`; feature gecommit op `feature/mollie-productieomgeving`, gemerged in `main` en de branch verwijderd.
+2. `current-feature.md` teruggezet met de samenvatting in History; `main` gepusht: CI test en deployt productie.
+3. Dev-server gestopt, `.next` verwijderd en `npm run dev` opnieuw gestart.
+4. Open: de Live API key (`live_...`) in Vercel Production in plaats van het access-token, daarna een echte betaling van € 1,00 met Mollie op productie en terugbetalen.
+
+---
+
 ## Huidige bestandsstructuur
 
 ```

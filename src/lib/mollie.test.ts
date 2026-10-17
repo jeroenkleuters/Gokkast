@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { createMollieClient, isMollieId, parseMolliePayment } from "@/lib/mollie";
 
-const config = { apiKey: "test_abc", apiUrl: "https://mollie.test/v2", priceCents: 100 };
+const config = { apiKey: "test_abc", apiUrl: "https://mollie.test/v2", priceCents: 100, live: false };
 
 const molliePayment = {
   resource: "payment",
@@ -67,6 +67,12 @@ describe("isMollieId", () => {
 });
 
 describe("createMollieClient", () => {
+  it("geeft door of het om echte betalingen gaat (taak 12a)", () => {
+    const { fetchFn } = fakeFetch(() => json(molliePayment));
+    expect(createMollieClient(config, fetchFn).live).toBe(false);
+    expect(createMollieClient({ ...config, apiKey: "live_abc", live: true }, fetchFn).live).toBe(true);
+  });
+
   it("maakt een betaling met bedrag, omschrijving, terugkeer en webhook", async () => {
     const { fetchFn, calls } = fakeFetch(() => json(molliePayment, 201));
     const payment = await createMollieClient(config, fetchFn).createPayment({

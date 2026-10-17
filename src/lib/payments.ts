@@ -28,8 +28,9 @@ export const PAYMENT_COOKIE_MAX_AGE = 30 * 24 * 60 * 60; // 30 dagen
 
 export interface MollieConfig {
   apiKey: string;
-  apiUrl: string; // anders dan Mollie alleen voor tests (nep-Mollie van Playwright)
+  apiUrl: string; // anders dan Mollie alleen voor tests (nep-Mollie van Playwright), nooit in productie
   priceCents: number;
+  live: boolean; // echte betalingen (live-key, alleen in productie)
 }
 
 export interface PayPalConfig {
@@ -49,16 +50,28 @@ export function readPriceCents(env: Env = process.env): number {
   return parsePositiveInt(env.GAME_PRICE_CENTS, MAX_PRICE_CENTS) ?? DEFAULT_PRICE_CENTS;
 }
 
-// null = Mollie staat uit (geen MOLLIE_API_KEY, bijv. productie tot taak 12a).
-// Alleen een test-key (test_...) wordt gebruikt: in deze versie zijn echte betalingen niet mogelijk.
+// null = Mollie staat uit: geen MOLLIE_API_KEY, of een key die in deze omgeving niet mag (taak 12a).
+// Bij Mollie bepaalt de key de modus: live_... is echt geld, test_... de testmodus.
+// - Productie (VERCEL_ENV=production): alleen een live-key, altijd met de echte Mollie-API. Een
+//   test-key zet Mollie uit, zodat er nooit "betaald" kan worden zonder echt geld.
+// - Elders (preview, lokaal, tests): alleen een test-key; een live-key wordt geweigerd, zodat er
+//   buiten productie nooit echt geld wordt geïnd.
 export function readMollieConfig(env: Env = process.env): MollieConfig | null {
   const apiKey = (env.MOLLIE_API_KEY ?? "").trim();
   if (!apiKey) return null;
+  const priceCents = readPriceCents(env);
+  if (env.VERCEL_ENV === "production") {
+    if (!apiKey.startsWith("live_")) {
+      console.error("Mollie staat uit in productie: MOLLIE_API_KEY moet een live-key (live_...) zijn.");
+      return null;
+    }
+    return { apiKey, apiUrl: MOLLIE_API_URL, priceCents, live: true };
+  }
   if (!apiKey.startsWith("test_")) {
-    console.error("MOLLIE_API_KEY is geen test-key (test_...); Mollie staat uit. Echte betalingen volgen in taak 12a.");
+    console.error("MOLLIE_API_KEY is geen test-key (test_...); buiten productie mag alleen de testmodus. Mollie staat uit.");
     return null;
   }
-  return { apiKey, apiUrl: trimUrl(env.MOLLIE_API_URL) || MOLLIE_API_URL, priceCents: readPriceCents(env) };
+  return { apiKey, apiUrl: trimUrl(env.MOLLIE_API_URL) || MOLLIE_API_URL, priceCents, live: false };
 }
 
 // null = PayPal staat uit: geen PAYPAL_CLIENT_ID/PAYPAL_CLIENT_SECRET, of een omgeving die niet mag.

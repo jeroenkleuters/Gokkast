@@ -3,7 +3,7 @@
 // Het rekeningnummer van de rekeninghouder wordt alleen versleuteld opgeslagen (taak 11).
 // Alleen op de server. De status komt altijd van Mollie of PayPal zelf, nooit uit een verzoek van buiten.
 import { encrypt, readEncryptionKey } from "@/lib/encryption";
-import { createMollieClient } from "@/lib/mollie";
+import { createMollieClient, type MollieClient } from "@/lib/mollie";
 import { getPaymentStore, providerId, type PaymentStore, type StatusUpdate, type StoredPayment } from "@/lib/paymentStore";
 import {
   formatEuro,
@@ -28,8 +28,8 @@ import { loadPaymentProvider, loadSettings } from "@/lib/settingsStore";
 export interface PaymentDeps {
   priceCents: number;
   store: PaymentStore | null; // null: geen database, betalen lukt dan niet
-  mollie: PaymentClient | null; // null: geen (test-)key voor Mollie
-  paypal: PayPalClient | null; // null: geen PayPal-sleutels, of in productie (taak 12b)
+  mollie: MollieClient | null; // null: geen Mollie-key, of een key die in deze omgeving niet mag (taak 12a)
+  paypal: PayPalClient | null; // null: geen PayPal-sleutels, of een omgeving die niet mag (taak 12b)
   provider(): Promise<PaymentProvider>; // gekozen in de game-manager, anders .env, anders Mollie
   credits(): Promise<number>; // spelletjes per betaling (game-manager, anders .env)
   encryptionKey: Buffer | null; // PAYMENT_ENCRYPTION_KEY; null: rekeningnummer niet opslaan
@@ -66,10 +66,10 @@ export function defaultPaymentDeps(): PaymentDeps | null {
 const clientFor = (provider: PaymentProvider, deps: PaymentDeps): PaymentClient | null =>
   provider === "paypal" ? deps.paypal : deps.mollie;
 
-// Testbetaling (geen echt geld)? Mollie draait alleen met een test-key (live volgt in taak 12a);
-// PayPal is alleen echt met de live-API in productie (taak 12b).
+// Testbetaling (geen echt geld)? Alleen echt met de live-key van Mollie (taak 12a) of de live-API van
+// PayPal (taak 12b), en die zijn er alleen in productie.
 export const isTestPayment = (provider: PaymentProvider, deps: PaymentDeps): boolean =>
-  provider === "mollie" || !deps.paypal?.live;
+  !(provider === "paypal" ? deps.paypal : deps.mollie)?.live;
 
 // Wat de browser van de betaling mag weten
 export interface PaymentView {
