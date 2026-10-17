@@ -1209,6 +1209,19 @@ Melding gebruiker: in de database alleen `LOST`, ook na winst. Oorzaak: de dev-s
 
 ---
 
+## Stap 90 — PayPal-webhook op de preview gecontroleerd (17 oktober 2026)
+
+**Vraag:**
+> saved
+
+**Uitgevoerde handelingen:**
+1. CI-run 39022294571 op `feature/paypal`: tests en deploy geslaagd; `gokkast-preview.vercel.app` wijst naar de nieuwe preview.
+2. Webhook van de sandbox-app via de API (PATCH) op `https://gokkast-preview.vercel.app/api/paypal/webhook?x-vercel-protection-bypass=<geheim>` gezet (zelfde ID en events).
+3. Nagemaakt bericht naar de preview: zonder geheim houdt Vercel het tegen (401, JSON-blokpagina); met geheim komt het bij de app, die de nagemaakte handtekening weigert (lege 401). Bypass werkt.
+4. README: webhooks in previews (Mollie en PayPal), vast preview-adres en bypass-geheim. Tijdelijke scripts verwijderd.
+
+---
+
 ## Huidige bestandsstructuur
 
 ```

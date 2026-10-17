@@ -170,7 +170,8 @@ delen Neon-branch `dev`).
 
 Betalen werkt alleen met een database. Lokaal kan Mollie de webhook niet bereiken (localhost); de app
 stuurt dan geen webhook mee en ziet de betaling via de popup of `/betaald`. In previews staat Vercel
-Deployment Protection aan, waardoor de webhook daar niet aankomt; de popup werkt wel.
+Deployment Protection aan; de app zet daarom het bypass-geheim van Vercel (`VERCEL_AUTOMATION_BYPASS_SECRET`,
+zie [Deployen](#deployen-vercel)) in de webhook-URL, zodat Mollie er wel door komt. Nooit in productie.
 
 Zelf proberen: zet de test-key in `.env.local`, herstart `npm run dev`, klik op SPEEL en kies op de
 testpagina van Mollie een betaalmethode en de status *Paid*.
@@ -211,9 +212,13 @@ Sandbox-app maken (eenmalig): log in op [developer.paypal.com](https://developer
 bij *Features* **Invoicing** aan en sla op: zonder dat recht geeft PayPal `403 Authorization failed
 due to insufficient permissions` en toont de popup "Betalen lukt nu niet". Bij *Sandbox
 accounts* staat een persoonlijk testaccount (e-mail en wachtwoord) waarmee je een factuur betaalt.
-Webhook (alleen voor previews): in de app *Add Webhook* met
-`https://<preview-url>/api/paypal/webhook`; in previews houdt Vercel Deployment Protection de webhook
-wel tegen, net als bij Mollie.
+Webhook: in de sandbox-app staat één webhook (events *Invoice paid* en *Invoice cancelled*) op het vaste
+preview-adres, met het bypass-geheim van Vercel erbij:
+`https://gokkast-preview.vercel.app/api/paypal/webhook?x-vercel-protection-bypass=<geheim>`. Het ID
+ervan staat als `PAYPAL_WEBHOOK_ID` in `.env.local` en in Vercel (Preview). Lokaal komt de webhook
+dus niet aan; wil je dat wel, dan kan het met een tijdelijke tunnel (`cloudflared tunnel --url
+http://localhost:3000`) en de webhook-URL tijdelijk op dat adres. Let op: client-ID, secret en
+webhook-ID moeten van dezelfde **Sandbox**-app zijn (niet Live), anders weigert PayPal de handtekening.
 
 ## Database
 
@@ -339,6 +344,10 @@ Het spel draait op [Vercel](https://vercel.com/). Deployen gaat automatisch via 
      pull request (onder *Deployments*), en in de samenvatting van de workflow-run.
      Previews zijn beschermd met Vercel Deployment Protection: alleen te openen als je bij Vercel
      bent ingelogd (of met `npx vercel@60.1.3 curl / --deployment <url>`).
+     De laatste preview krijgt ook het vaste adres **https://gokkast-preview.vercel.app** (stap
+     "Vast preview-adres"), voor de webhook van de PayPal-sandbox. Webhooks komen door
+     Deployment Protection met het geheim van *Settings → Deployment Protection → Protection Bypass
+     for Automation*; Vercel geeft dat aan de app als `VERCEL_AUTOMATION_BYPASS_SECRET`.
 
 Een mislukte deploy onderzoeken: in GitHub *Re-run jobs → Enable debug logging*; de Vercel CLI
 logt dan uitgebreid (`--debug`).
