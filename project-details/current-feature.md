@@ -1,29 +1,16 @@
-# Current Feature: Mollie productieomgeving
+# Current Feature
 
 ## Status
 
-Complete
+Not Started
 
 ## Goals
 
-- In productie (`VERCEL_ENV=production`) gebruikt Mollie een live-key (`live_...`); een test-key in productie zet Mollie uit (nooit testbetalingen op productie), net als PayPal in 12b
-- Buiten productie (preview, lokaal, tests) alleen een test-key (`test_...`); een live-key daar wordt geweigerd en zet Mollie uit, zodat er nooit echt geld wordt geïnd
-- `MollieConfig` krijgt `live` (zoals `PayPalConfig.live`); `isTestPayment` toont "Testomgeving" in de popup alleen bij een testbetaling, ook voor Mollie
-- Live-API-key alleen in de Production-omgeving van Vercel; Preview en Development houden de test-key
-- Controleren dat preview en ontwikkeling altijd de testmodus gebruiken
-- Vitest-tests voor `readMollieConfig` (productie/elders × live/test-key) en `isTestPayment`; bestaande Playwright-tests blijven groen
-- README (tabel omgevingen, sectie Betalen) en `.env.example` bijgewerkt
+<!-- Doelen van de feature, in te vullen met /feature load -->
 
 ## Notes
 
-- Spec: taak 12a in `project-details/to-do.md` ("Live-API-key alleen in de productie-omgeving van Vercel", "Controleren dat preview/ontwikkeling altijd de testmodus gebruikt").
-- Nu: `readMollieConfig` (`src/lib/payments.ts`) accepteert alleen `test_...` en weigert elke andere key; `isTestPayment` (`src/lib/paymentService.ts`) zegt voor Mollie altijd test.
-- Voorbeeld: `readPayPalConfig` uit 12b (productie alleen live met `PAYPAL_ENV=live`, elders altijd sandbox). Bij Mollie bepaalt de key zelf de modus (`live_` / `test_`); de API-URL is voor beide gelijk (`https://api.mollie.com/v2`). `MOLLIE_API_URL` (nep-Mollie) alleen buiten productie toestaan.
-- Webhook: Mollie krijgt de webhook-URL per betaling mee (`webhookUrl` in `payments.ts`), dus geen aparte instelling in het Mollie-dashboard nodig; in productie zonder bypass-geheim.
-- Afhankelijk van de gebruiker: het Mollie-account moet nog door Mollie geverifieerd worden (stap 92) voordat er een live-key is. Zonder live-key: Mollie in productie uit, PayPal (live) blijft werken. Live-key zelf door de gebruiker in Vercel Production zetten (sensitive).
-- Te controleren bij start: welke `MOLLIE_API_KEY` nu in Vercel Production staat (README-tabel zegt leeg, stap 92 zegt dat productie met de test-key betaalt). Na deze taak zet een test-key in productie Mollie uit.
-- Na de taak: één echte betaling van € 1,00 in productie met Mollie en terugbetalen via het Mollie-dashboard (zodra het account geverifieerd is).
-- Taak 16 (domein `jackpot.broadsight.nl`) komt later; de redirect-/webhook-URL's komen uit de origin, dus geen vaste domeinnaam in deze taak.
+<!-- Extra context, beperkingen of details uit de spec -->
 
 ## History
 
@@ -49,3 +36,4 @@ Complete
 - **Instellingen** (14 oktober 2026, taak 15) — tab Moeilijkheidsgraad op `/game-manager` hernoemd naar Instellingen (tablabel, kop `h2`, `id`'s `instellingen`/`tab-instellingen`/`paneel-instellingen`; `DifficultySection` werd `SettingsSection` in `page.tsx`) en als derde tab gezet: Speelrondes, Betalingen, Instellingen. Na laden en herladen opent nu Speelrondes. Snelkeuzegroep `aria-label="Moeilijkheidsgraad"` in `SettingsForm.tsx` bewust laten staan (gaat over de winkans). `ManagerTabs.tsx` ongewijzigd. Playwright-tests klikken eerst op de tab Instellingen; tabs-test controleert volgorde, pijltjes rondom, Home en End. README (tabvolgorde, alinea Instellingen na Betalingen). 229 Vitest- en 30 Playwright-tests; in de browser gecontroleerd tegen de dev-server (ook 390px, console zonder fouten). Commit `bea07a9`.
 - **PayPal als tweede betaalmogelijkheid** (15–17 oktober 2026, taak 13b) — PayPal Invoicing v2 (`src/lib/paypal.ts`): per speler een factuur van € 1,00, verstuurd zonder e-mail, met de QR-code van PayPal (`generate-qr-code`, PNG; anders eigen QR van de link); token gedeeld en vernieuwd na 401/403; statussen afgebeeld op die van het spel. Alleen de sandbox: uit in productie en bij een live-URL (live volgt in 12b; taak 12 werd 12a/12b). Betaalmethode kiezen in Instellingen (`game_settings.payment_provider`, standaard `GAME_PAYMENT_PROVIDER`, anders Mollie; gekozen methode zonder sleutels → de andere, met melding); methode per betaling (`payments.provider`, `paypal_id`, `mollie_id` optioneel, migratie `20261015000000_payments_paypal`), kolom Methode in Betalingen. Webhook `/api/paypal/webhook` laat de handtekening door PayPal controleren (`PAYPAL_WEBHOOK_ID`) en haalt daarna zelf de status op. Besluit gebruiker na sandbox-test: geen naam bij PayPal (staat niet in de factuur; alleen Transaction Search, die niet actief werd). Previews: vast adres `gokkast-preview.vercel.app` (workflow) en het bypass-geheim van Vercel in de webhook-URL's (ook Mollie); PayPal-sleutels in Vercel Preview. 275 Vitest- en 33 Playwright-tests (nep-PayPal op 3103, derde server op 3104); echte sandbox-betaling: factuur, QR, 4 credits, 4 rondes, webhook 200. Commits `c65dd91`, `fff294e`.
 - **PayPal productieomgeving** (17 oktober 2026, taak 12b) — `readPayPalConfig` (`src/lib/payments.ts`): in productie alleen met `PAYPAL_ENV=live`, en dan altijd de live-API (`https://api-m.paypal.com`, `live: true`); zonder die vlag PayPal uit in productie (nooit de sandbox daar); buiten productie altijd de sandbox, `PAYPAL_ENV=live` of een live-URL geweigerd. `PayPalClient.live` en `isTestPayment` (`paymentService.ts`): de popup toont "Testomgeving" alleen bij een testbetaling (Mollie blijft test tot 12a). Live-app van de gebruiker met Invoicing en een webhook op `https://gokkast.vercel.app/api/paypal/webhook`; in Vercel Production `PAYPAL_ENV=live` en de live-sleutels en het webhook-ID (gecontroleerd zonder waarden te tonen, via een tijdelijk bestand dat daarna is verwijderd). 278 Vitest- en 33 Playwright-tests. Open: echte testbetaling van € 1,00 op productie en terugbetalen. Commit `643b42f`.
+- **Mollie productieomgeving** (17 oktober 2026, taak 12a) — `readMollieConfig` (`src/lib/payments.ts`): in productie alleen een live-key (`live_...`), altijd met de echte Mollie-API (`MOLLIE_API_URL` genegeerd), `live: true`; een test-key of een andere key (zoals een organization access token `access_...`) zet Mollie daar uit. Buiten productie alleen een test-key, een live-key geweigerd. `MollieConfig.live` en `MollieClient.live` (zoals PayPal); `isTestPayment` (`paymentService.ts`) kijkt per methode, zodat "Testomgeving" alleen bij een testbetaling verschijnt. In Vercel `MOLLIE_API_KEY` apart voor Production en Preview (test-key). Besluit gebruiker: geen ondersteuning voor access-tokens, de Live API key gebruiken. 281 Vitest- en 33 Playwright-tests. Open: Live API key in Vercel Production (nu een access-token), daarna een echte betaling van € 1,00 met Mollie op productie en terugbetalen. Commit `bd53feb`.
