@@ -1222,6 +1222,19 @@ Melding gebruiker: in de database alleen `LOST`, ook na winst. Oorzaak: de dev-s
 
 ---
 
+## Stap 91 — Feature afgerond: PayPal als tweede betaalmogelijkheid (17 oktober 2026)
+
+**Vraag:**
+> /feature complete
+
+**Uitgevoerde handelingen:**
+1. CI op `feature/paypal` groen (runs 39022294571 en 39022614926). Taak 13b afgevinkt in `to-do.md`.
+2. Feature in `main` gemerged; lokale en externe branch verwijderd; `current-feature.md` teruggezet met de samenvatting in History; `main` gepusht (CI past de migratie toe op Neon `main` en deployt productie; PayPal staat daar uit).
+3. Dev-server gestopt, `.next` verwijderd en `npm run dev` opnieuw gestart.
+4. Open voor de gebruiker: Betaalmethode in de `dev`-database terug op Standaard; `MOLLIE_API_KEY` in Vercel Production (README: leeg tot 12a).
+
+---
+
 ## Huidige bestandsstructuur
 
 ```

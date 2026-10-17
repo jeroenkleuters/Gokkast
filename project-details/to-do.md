@@ -100,7 +100,7 @@ De taken staan in volgorde: latere taken bouwen voort op eerdere.
   - Overzicht van speelrondes
   - Aantal wins/loses per naam
 
-- [ ] **13b. Paypall**
+- [x] **13b. Paypall**
   - richt een tweede betalingsmogelijkheid in met Paypall
   - ik wil een test, preview en productie omgeving
   - in de game mangers instellingen wil ik kunnen selecteren welke betaalmode gebruikt wordt.
