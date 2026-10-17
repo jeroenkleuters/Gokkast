@@ -1,7 +1,15 @@
 // Instellingen uit de database lezen (met .env als terugval) en opslaan vanuit de game-manager.
 // Alleen op de server.
 import { DB_TIMEOUT_MS, getDb, withTimeout } from "@/lib/db";
-import { mergeSettings, readSettings, type GameSettings, type SettingsRow } from "@/lib/settings";
+import type { PaymentProvider as DbPaymentProvider } from "@/generated/prisma/enums";
+import {
+  mergeSettings,
+  readDefaultPaymentProvider,
+  readSettings,
+  type GameSettings,
+  type PaymentProvider,
+  type SettingsRow,
+} from "@/lib/settings";
 
 export type FetchSettingsRow = () => Promise<SettingsRow | null>;
 
@@ -9,12 +17,17 @@ export type FetchSettingsRow = () => Promise<SettingsRow | null>;
 function fetchFromDb(): FetchSettingsRow | null {
   const db = getDb();
   if (!db) return null;
-  return () =>
-    db.gameSettings.findUnique({
+  return async () => {
+    const row = await db.gameSettings.findUnique({
       where: { id: 1 },
-      select: { odds: true, maxTries: true, roundsPerPayment: true },
+      select: { odds: true, maxTries: true, roundsPerPayment: true, paymentProvider: true },
     });
+    return row && { ...row, paymentProvider: row.paymentProvider && fromDbProvider(row.paymentProvider) };
+  };
 }
+
+const toDbProvider = (provider: PaymentProvider) => provider.toUpperCase() as DbPaymentProvider;
+const fromDbProvider = (provider: DbPaymentProvider) => provider.toLowerCase() as PaymentProvider;
 
 // Database → anders .env → anders de vaste standaard. Een databasefout stopt het spel niet.
 export async function loadSettings(
@@ -29,6 +42,23 @@ export async function loadSettings(
   } catch (error) {
     console.warn("Instellingen niet uit de database gelezen, .env wordt gebruikt:", error);
     return { ...defaults, source: "env" };
+  }
+}
+
+// Betaalmethode voor een nieuwe betaling: de keuze in de game-manager, anders GAME_PAYMENT_PROVIDER,
+// anders Mollie. Een databasefout stopt het betalen niet (dan de standaard).
+export async function loadPaymentProvider(
+  fetchRow: FetchSettingsRow | null = fetchFromDb(),
+  env: Record<string, string | undefined> = process.env,
+  timeoutMs = DB_TIMEOUT_MS,
+): Promise<PaymentProvider> {
+  const fallback = readDefaultPaymentProvider(env);
+  if (!fetchRow) return fallback;
+  try {
+    return (await withTimeout(fetchRow(), timeoutMs))?.paymentProvider ?? fallback;
+  } catch (error) {
+    console.warn("Betaalmethode niet uit de database gelezen, de standaard wordt gebruikt:", error);
+    return fallback;
   }
 }
 
@@ -52,14 +82,25 @@ export async function readStoredSettings(
   }
 }
 
+// Formulierwaarden → kolommen van game_settings. Betaalmethode undefined (niet meegestuurd): die
+// kolom niet aanraken; null: terug naar de standaard.
+export function settingsData({ paymentProvider, ...numbers }: SettingsRow) {
+  return {
+    ...numbers,
+    ...(paymentProvider !== undefined && { paymentProvider: paymentProvider && toDbProvider(paymentProvider) }),
+  };
+}
+
 export type SaveSettingsRow = (values: SettingsRow) => Promise<unknown>;
 
 // Rij id 1 aanmaken of bijwerken; null in een veld = terug naar de .env-waarde
 function saveToDb(): SaveSettingsRow | null {
   const db = getDb();
   if (!db) return null;
-  return (values) =>
-    db.gameSettings.upsert({ where: { id: 1 }, create: { id: 1, ...values }, update: values });
+  return (values) => {
+    const data = settingsData(values);
+    return db.gameSettings.upsert({ where: { id: 1 }, create: { id: 1, ...data }, update: data });
+  };
 }
 
 export type SaveSettingsResult = "saved" | "no-database" | "error";

@@ -4,7 +4,7 @@
 import { revalidatePath } from "next/cache";
 import { signIn, signOut } from "@/auth";
 import { checkAdmin } from "@/lib/dal";
-import { parseSettingsForm, type SettingKey } from "@/lib/settings";
+import { parseSettingsForm, type SettingsFormKey } from "@/lib/settings";
 import { saveStoredSettings } from "@/lib/settingsStore";
 
 export async function signInWithGoogle() {
@@ -18,7 +18,7 @@ export async function signOutAdmin() {
 export type SettingsFormState = {
   status: "idle" | "saved" | "invalid" | "error";
   message?: string;
-  errors?: Partial<Record<SettingKey, string>>;
+  errors?: Partial<Record<SettingsFormKey, string>>;
 };
 
 export async function updateSettings(_prev: SettingsFormState, formData: FormData): Promise<SettingsFormState> {

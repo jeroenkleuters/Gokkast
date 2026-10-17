@@ -1,7 +1,16 @@
 "use client";
 
 import { useActionState, useState } from "react";
-import { ODDS_LEVELS, SETTING_LIMITS, type GameSettings, type SettingKey, type SettingsRow } from "@/lib/settings";
+import {
+  ODDS_LEVELS,
+  PAYMENT_PROVIDER_LABELS,
+  PAYMENT_PROVIDERS,
+  SETTING_LIMITS,
+  type GameSettings,
+  type PaymentProvider,
+  type SettingKey,
+  type SettingsRow,
+} from "@/lib/settings";
 import { updateSettings, type SettingsFormState } from "./actions";
 import styles from "./game-manager.module.css";
 
@@ -16,10 +25,14 @@ const initialState: SettingsFormState = { status: "idle" };
 interface SettingsFormProps {
   row: SettingsRow | null; // wat er nu in de database staat (null-velden = standaard)
   defaults: GameSettings; // de .env-waarden
+  payment: {
+    available: Record<PaymentProvider, boolean>; // sleutels ingesteld op deze server
+    defaultProvider: PaymentProvider; // GAME_PAYMENT_PROVIDER, anders Mollie
+  };
 }
 
 // Leeg veld = standaard: het spel gebruikt dan de waarde uit .env
-export default function SettingsForm({ row, defaults }: SettingsFormProps) {
+export default function SettingsForm({ row, defaults, payment }: SettingsFormProps) {
   const [state, formAction, pending] = useActionState(updateSettings, initialState);
   const [values, setValues] = useState<Record<SettingKey, string>>({
     odds: row?.odds?.toString() ?? "",
@@ -27,6 +40,9 @@ export default function SettingsForm({ row, defaults }: SettingsFormProps) {
     roundsPerPayment: row?.roundsPerPayment?.toString() ?? "",
   });
   const set = (key: SettingKey, value: string) => setValues((v) => ({ ...v, [key]: value }));
+  const [provider, setProvider] = useState<string>(row?.paymentProvider ?? "");
+  const providerError = state.errors?.paymentProvider;
+  const optionLabel = (p: PaymentProvider) => `${PAYMENT_PROVIDER_LABELS[p]}${payment.available[p] ? "" : " — niet ingesteld"}`;
 
   return (
     <form action={formAction} className={styles.form}>
@@ -89,6 +105,37 @@ export default function SettingsForm({ row, defaults }: SettingsFormProps) {
           </fieldset>
         );
       })}
+
+      <fieldset className={styles.field}>
+        <label htmlFor="paymentProvider">Betaalmethode</label>
+        <div className={styles.inputRow}>
+          <select
+            id="paymentProvider"
+            name="paymentProvider"
+            value={provider}
+            onChange={(e) => setProvider(e.target.value)}
+            aria-invalid={providerError ? true : undefined}
+            aria-describedby={`paymentProvider-hint${providerError ? " paymentProvider-error" : ""}`}
+            className={styles.input}
+          >
+            <option value="">Standaard: {optionLabel(payment.defaultProvider)}</option>
+            {PAYMENT_PROVIDERS.map((p) => (
+              <option key={p} value={p}>
+                {optionLabel(p)}
+              </option>
+            ))}
+          </select>
+        </div>
+        <p id="paymentProvider-hint" className={styles.muted}>
+          Waarmee spelers betalen. Een methode die niet ingesteld is (geen sleutels op deze server) wordt
+          overgeslagen: dan gebruikt het spel de andere. Leeg = standaard uit <code>.env</code>.
+        </p>
+        {providerError && (
+          <p id="paymentProvider-error" className={styles.fieldError}>
+            {providerError}
+          </p>
+        )}
+      </fieldset>
 
       <div className={styles.inputRow}>
         <button type="submit" className={styles.button} disabled={pending}>

@@ -14,11 +14,12 @@ datasource db {
 // is een waarde leeg (null = "standaard") of ongeldig, dan gebruikt het spel de waarde
 // uit .env (zie src/lib/settings.ts).
 model GameSettings {
-  id               Int      @id @default(1)
+  id               Int              @id @default(1)
   odds             Int? // winkans 1 op odds per draai zonder vastgezette rollen
-  maxTries         Int?     @map("max_tries")
-  roundsPerPayment Int?     @map("rounds_per_payment")
-  updatedAt        DateTime @updatedAt @map("updated_at")
+  maxTries         Int?             @map("max_tries")
+  roundsPerPayment Int?             @map("rounds_per_payment")
+  paymentProvider  PaymentProvider? @map("payment_provider") // leeg = GAME_PAYMENT_PROVIDER, anders Mollie (taak 13b)
+  updatedAt        DateTime         @updatedAt @map("updated_at")
 
   @@map("game_settings")
 }
@@ -59,26 +60,35 @@ enum PaymentStatus {
   FAILED     @map("failed")
 }
 
-// Eén betaling via Mollie, per speler een eigen betaling (src/lib/payments.ts).
+// Betaalmethode (taak 13b); in de database letterlijk "mollie" en "paypal"
+enum PaymentProvider {
+  MOLLIE @map("mollie")
+  PAYPAL @map("paypal")
+}
+
+// Eén betaling via Mollie of PayPal, per speler een eigen betaling (src/lib/payments.ts).
 // token: willekeurige sleutel in een httpOnly-cookie van de speler; zo weet het spel welke
 // betaling bij deze browser hoort. Na betalen krijgt de speler `credits` spelletjes.
-// Naam en rekeningnummer komen van Mollie (details.consumerName/consumerAccount) na betalen.
+// Naam en rekeningnummer komen van Mollie (details.consumerName/consumerAccount) na betalen;
+// bij PayPal (een factuur, src/lib/paypal.ts) alleen de naam van de betaler, geen rekeningnummer.
 // Het rekeningnummer staat alleen versleuteld in de database (src/lib/encryption.ts, taak 11).
 model Payment {
-  id               Int           @id @default(autoincrement())
-  token            String        @unique
-  reference        String?       @unique // in de terugkeer-URL (/betaald?ref=...): alleen tonen, geeft geen credits
-  mollieId         String        @unique @map("mollie_id")
-  checkoutUrl      String        @map("checkout_url")
-  status           PaymentStatus @default(OPEN)
-  amountCents      Int           @map("amount_cents")
+  id               Int             @id @default(autoincrement())
+  token            String          @unique
+  reference        String?         @unique // in de terugkeer-URL (/betaald?ref=...): alleen tonen, geeft geen credits
+  provider         PaymentProvider @default(MOLLIE)
+  mollieId         String?         @unique @map("mollie_id") // tr_..., alleen bij Mollie
+  paypalId         String?         @unique @map("paypal_id") // INV2-..., alleen bij PayPal (factuur-ID)
+  checkoutUrl      String          @map("checkout_url")
+  status           PaymentStatus   @default(OPEN)
+  amountCents      Int             @map("amount_cents")
   credits          Int // spelletjes voor deze betaling
-  creditsLeft      Int           @default(0) @map("credits_left") // pas na betalen gelijk aan credits
+  creditsLeft      Int             @default(0) @map("credits_left") // pas na betalen gelijk aan credits
   name             String?
-  accountEncrypted String?       @map("account_encrypted") // v1:<iv>:<tag>:<data>, sleutel PAYMENT_ENCRYPTION_KEY
-  paidAt           DateTime?     @map("paid_at")
-  createdAt        DateTime      @default(now()) @map("created_at")
-  updatedAt        DateTime      @updatedAt @map("updated_at")
+  accountEncrypted String?         @map("account_encrypted") // v1:<iv>:<tag>:<data>, sleutel PAYMENT_ENCRYPTION_KEY
+  paidAt           DateTime?       @map("paid_at")
+  createdAt        DateTime        @default(now()) @map("created_at")
+  updatedAt        DateTime        @updatedAt @map("updated_at")
   games            Game[]
 
   @@map("payments")

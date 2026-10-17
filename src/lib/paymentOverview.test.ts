@@ -30,12 +30,13 @@ async function storeWith(seeds: Seed[]) {
     await store.create({
       token,
       reference: null,
-      mollieId: `tr_${i}`,
+      provider: "mollie",
+      providerId: `tr_${i}`,
       checkoutUrl: `https://mollie.test/${i}`,
       amountCents: seed.amountCents ?? 100,
       credits: 4,
     });
-    await store.updateStatus(`tr_${i}`, {
+    await store.updateStatus("mollie", `tr_${i}`, {
       status: seed.status ?? "paid",
       name: seed.name,
       accountEncrypted: seed.account ? encrypt(seed.account, seed.key ?? KEY) : null,
@@ -92,6 +93,7 @@ describe("readPaymentOverview", () => {
         id: 2,
         createdAt: new Date("2026-10-14T10:01:00Z"),
         name: null,
+        provider: "mollie",
         account: { kind: "none" },
         amountCents: 100,
         status: "expired",
@@ -102,6 +104,7 @@ describe("readPaymentOverview", () => {
         id: 1,
         createdAt: new Date("2026-10-14T10:00:00Z"),
         name: "T. TEST",
+        provider: "mollie",
         account: { kind: "ok", iban: "NL53INGB0654422370" },
         amountCents: 100,
         status: "paid",
@@ -182,10 +185,10 @@ describe("readPaymentOverview", () => {
 
 describe("prismaPaymentStore.listByName", () => {
   it("filtert in de database op een deel van de naam, zonder op hoofdletters te letten", async () => {
-    const findMany = vi.fn(async () => [{ id: 1, status: "PAID" }]);
+    const findMany = vi.fn(async () => [{ id: 1, status: "PAID", provider: "PAYPAL" }]);
     const store = prismaPaymentStore({ payment: { findMany } } as unknown as PrismaClient);
 
-    expect(await store.listByName("jan")).toEqual([{ id: 1, status: "paid" }]);
+    expect(await store.listByName("jan")).toEqual([{ id: 1, status: "paid", provider: "paypal" }]);
     expect(findMany).toHaveBeenLastCalledWith(
       expect.objectContaining({ where: { name: { contains: "jan", mode: "insensitive" } } }),
     );

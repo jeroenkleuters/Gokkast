@@ -75,6 +75,13 @@ test.describe("ingelogd", () => {
     const settings = page.getByRole("region", { name: "Instellingen" });
     await expect(settings.getByRole("alert").filter({ hasText: "geen database" })).toBeVisible();
     await expect(page.getByLabel("Winkans", { exact: true })).toHaveAttribute("placeholder", "standaard: 30");
+    // Betaalmethode (taak 13b): op deze server zijn Mollie en PayPal niet ingesteld
+    await expect(page.getByTestId("current-settings")).toContainText("Betalen staat uit: het spel is gratis.");
+    await expect(page.getByLabel("Betaalmethode").locator("option")).toHaveText([
+      "Standaard: Mollie (iDEAL) — niet ingesteld",
+      "Mollie (iDEAL) — niet ingesteld",
+      "PayPal — niet ingesteld",
+    ]);
   });
 
   test("niveaus vullen de winkans in en 'terug naar standaard' maakt het veld leeg", async ({ page, context }) => {

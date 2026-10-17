@@ -1,16 +1,33 @@
-# Current Feature
+# Current Feature: PayPal als tweede betaalmogelijkheid (taak 13b)
 
 ## Status
 
-Not Started
+In Progress
 
 ## Goals
 
-<!-- Doelen van de feature, in te vullen met /feature load -->
+- **PayPal-betaling per speler:** SPEEL zonder credits maakt (als PayPal gekozen is) een eigen PayPal-factuur van € 1,00 voor 4 spelletjes, stuurt die zonder e-mail (`send_to_recipient: false`) en toont in de bestaande betaalpopup de QR-code van PayPal (`POST /v2/invoicing/invoices/{id}/generate-qr-code`, base64-PNG) plus een link om op hetzelfde apparaat te betalen
+- **Status en credits:** de status komt altijd van PayPal zelf (`GET /v2/invoicing/invoices/{id}`); `PAID` (en `MARKED_AS_PAID`) geeft de credits, net als `paid` bij Mollie; de popup ziet de betaling via de bestaande polling, `/betaald` werkt ook voor PayPal
+- **Webhook:** `INVOICING.INVOICE.PAID` (en annuleren) ontvangen op een eigen route, handtekening laten controleren door PayPal (`verify-webhook-signature`, `PAYPAL_WEBHOOK_ID`), daarna de status opnieuw bij PayPal ophalen (zoals bij Mollie: alleen het ID vertrouwen)
+- **Omgevingen (besluit gebruiker):** in deze taak alleen de PayPal-sandbox (`https://api-m.sandbox.paypal.com`): lokaal, in tests (nep-PayPal zoals `e2e/mollie-mock.ts`) en in Preview. Live in Production volgt in taak 12b; tot dan staat PayPal in Production uit, net als Mollie zonder live-key (12a)
+- **Keuze in de game-manager:** in de tab Instellingen een keuze betaalmethode (Mollie of PayPal), opgeslagen in `game_settings`; niets gekozen = **Mollie** (besluit gebruiker). Een methode zonder geldige sleutels is niet te kiezen of geeft een duidelijke melding
+- **Naam en methode vastleggen (besluit gebruiker):** de naam van de PayPal-betaler wordt opgeslagen in `payments.name` als PayPal die meegeeft; in de sandbox gebeurt dat niet, en de gebruiker koos (17 oktober) voor facturen zonder naam ("Zonder naam") in plaats van Transaction Search of PayPal Checkout. Elke betaling legt vast welke methode gebruikt is (kolom `provider`: `MOLLIE`/`PAYPAL`, migratie; bestaande rijen `MOLLIE`); PayPal-factuur-ID naast het Mollie-ID; game-manager Betalingen toont de methode
+- **Minimaal:** alleen de code voor het betaalgedeelte aanpassen; Mollie blijft werken zoals nu
+- Tests: Vitest voor PayPal-client, statusvertaling, configuratie per omgeving en de keuze; Playwright voor betalen via PayPal (nep-PayPal), keuze in Instellingen; lint, typecheck, Vitest en Playwright zonder fouten
 
 ## Notes
 
-<!-- Extra context, beperkingen of details uit de spec -->
+- Bron: `project-details/to-do.md`, taak 13b; documentatie https://developer.paypal.com/api/invoicing/v2/invoices-generate-qr-code
+- **PayPal Invoicing v2:** OAuth2 client credentials (`POST /v1/oauth2/token`, scope invoicing), factuur maken (`POST /v2/invoicing/invoices`, status `DRAFT`), versturen (`POST .../{id}/send`) en dan pas de QR-code. QR-body: `width`/`height` 150–500, `action: "pay"`. Statussen o.a. `DRAFT`, `SENT`, `UNPAID`, `PAYMENT_PENDING`, `PARTIALLY_PAID`, `PAID`, `MARKED_AS_PAID`, `CANCELLED`, `REFUNDED`.
+- **Bestaande code (Mollie):** `src/lib/mollie.ts` (eigen `fetch`-client), `payments.ts` (`readPaymentConfig` accepteert alleen `test_`-keys), `paymentService.ts` (`PaymentDeps` met `mollie`, `syncPaymentById`, `refreshPayment`), `paymentStore.ts`, `PaymentDialog.tsx` (maakt nu zelf de QR van de checkout-URL via `qr.ts`), webhook `src/app/api/mollie/webhook/route.ts`, `/betaald`. Logische aanpak: een kleine provider-laag (`createPayment`/`getPayment`) waar Mollie en PayPal achter zitten, zodat de flow (credits, cookie, referentie) gelijk blijft.
+- **Schema:** `payments.mollie_id` is verplicht en uniek → nullable maken of een algemeen `provider_id` met kolom `provider` (`MOLLIE`/`PAYPAL`). `PaymentStatus`-enum is Mollie-taal; PayPal-statussen daarop afbeelden (bijv. `SENT`/`UNPAID` → open, `PAYMENT_PENDING` → pending, `PAID` → paid, `CANCELLED` → canceled).
+- **Naam van de betaler (getest in de sandbox, 17 oktober):** niet in de betaalde factuur (`payments.transactions[]` zonder `shipping_info`, geen ontvanger), niet in `/v2/payments/captures/{id}` (alleen de ontvanger) en niet in `/v1/payments/sale/{id}`. Alleen `/v1/reporting/transactions` (`payer_info.payer_name`) heeft hem, met de app-feature Transaction search (werd niet actief) en tot 3 uur vertraging. Besluit gebruiker: geen naam bij PayPal. PayPal geeft geen IBAN: `account_encrypted` blijft leeg.
+- **Sandbox-test (17 oktober):** factuur zonder ontvanger maken en versturen lukt, QR-code komt als PNG (base64), betalen → 4 credits → 4 rondes gekoppeld; webhook via Cloudflare-tunnel door PayPal bevestigd (200). Valkuilen: de app moet de feature Invoicing hebben (anders 403), keys en webhook-ID moeten van dezelfde Sandbox-app zijn (niet Live).
+- **Besluiten gebruiker (15 oktober 2026):** naam opslaan en de gebruikte methode vastleggen; taak 12 werd 12a (Mollie live) en 12b (PayPal live, met alle stappen) in `to-do.md`; Mollie blijft de standaard.
+- **Aanname (nog niet gevraagd):** is PayPal gekozen maar zijn er geen (geldige) PayPal-sleutels, dan valt het spel terug op Mollie met een waarschuwing in de serverlog en een melding in Instellingen.
+- README en code noemen nog "taak 12" (o.a. `README.md` r. 134 en 314, `payments.ts`): bijwerken naar 12a.
+- PayPal-sandbox-account en app (client-ID/secret, webhook-ID) moet de gebruiker aanmaken op developer.paypal.com; webhook werkt lokaal niet zonder publieke URL, dus lokaal leunen op polling.
+- Prijs blijft `GAME_PRICE_CENTS`; credits blijven `roundsPerPayment` uit de instellingen.
 
 ## History
 

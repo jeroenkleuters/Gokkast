@@ -10,12 +10,13 @@ import {
   getPlayerPayment,
   NO_PAYMENT,
   PAYMENT_ERROR,
+  paymentQr,
   spendCredit,
   startPayment as startPlayerPayment,
   type CreditResult,
   type PaymentView,
 } from "@/lib/paymentService";
-import { qrDataUrl } from "@/lib/qr";
+import type { PaymentProvider } from "@/lib/settings";
 
 // Token van de betaling van deze browser (httpOnly-cookie), alleen als het er geldig uitziet
 async function paymentToken(): Promise<string | undefined> {
@@ -61,10 +62,11 @@ export async function spendGameCredit(): Promise<CreditResult> {
 }
 
 export type StartPaymentResponse =
-  | { ok: true; payment: PaymentView; qr: string | null }
+  | { ok: true; payment: PaymentView; qr: string | null; provider: PaymentProvider }
   | { ok: false; error: string };
 
-// Popup: betaling van deze speler starten (of de lopende tonen) met een QR-code van de betaallink
+// Popup: betaling van deze speler starten (of de lopende tonen) met een QR-code: bij Mollie van de
+// betaallink, bij PayPal de QR-code die PayPal zelf maakt (taak 13b)
 export async function startPayment(): Promise<StartPaymentResponse> {
   const deps = defaultPaymentDeps();
   if (!deps) return { ok: false, error: PAYMENT_ERROR };
@@ -79,8 +81,8 @@ export async function startPayment(): Promise<StartPaymentResponse> {
     maxAge: PAYMENT_COOKIE_MAX_AGE,
     path: "/",
   });
-  const { checkoutUrl } = result.payment;
-  return { ok: true, payment: result.payment, qr: checkoutUrl && (await qrDataUrl(checkoutUrl)) };
+  const qr = await paymentQr(result.provider, result.providerId, result.payment.checkoutUrl, deps);
+  return { ok: true, payment: result.payment, qr, provider: result.provider };
 }
 
 // Popup vraagt regelmatig of er al betaald is (bijv. met een telefoon via de QR-code)

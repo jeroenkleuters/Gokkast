@@ -14,8 +14,18 @@ export type SettingsSource = "database" | "env";
 export type SettingKey = "odds" | "maxTries" | "roundsPerPayment";
 export const SETTING_KEYS: SettingKey[] = ["odds", "maxTries", "roundsPerPayment"];
 
-// De velden zoals ze in de tabel game_settings staan; null = "standaard" (de .env-waarde)
-export type SettingsRow = Record<SettingKey, number | null>;
+// Betaalmethode (taak 13b). Niets gekozen in de game-manager: GAME_PAYMENT_PROVIDER, anders Mollie.
+export const PAYMENT_PROVIDERS = ["mollie", "paypal"] as const;
+export type PaymentProvider = (typeof PAYMENT_PROVIDERS)[number];
+export const DEFAULT_PAYMENT_PROVIDER: PaymentProvider = "mollie";
+export const PAYMENT_PROVIDER_LABELS: Record<PaymentProvider, string> = { mollie: "Mollie (iDEAL)", paypal: "PayPal" };
+
+export const isPaymentProvider = (value: unknown): value is PaymentProvider =>
+  typeof value === "string" && (PAYMENT_PROVIDERS as readonly string[]).includes(value);
+
+// De velden zoals ze in de tabel game_settings staan; null = "standaard" (de .env-waarde).
+// paymentProvider ontbreekt (undefined) als die niet gelezen of niet meegestuurd is: dan blijft hij zoals hij is.
+export type SettingsRow = Record<SettingKey, number | null> & { paymentProvider?: PaymentProvider | null };
 
 export const DEFAULT_SETTINGS: GameSettings = {
   odds: 30,
@@ -54,6 +64,12 @@ export function parseFlag(value: string | undefined): boolean {
   return ["1", "true", "ja", "aan"].includes((value ?? "").trim().toLowerCase());
 }
 
+// Standaard betaalmethode uit .env; leeg of onbekend → Mollie
+export function readDefaultPaymentProvider(env: Env = process.env): PaymentProvider {
+  const value = (env.GAME_PAYMENT_PROVIDER ?? "").trim().toLowerCase();
+  return isPaymentProvider(value) ? value : DEFAULT_PAYMENT_PROVIDER;
+}
+
 export function readSettings(env: Env = process.env): GameSettings {
   return {
     odds: parsePositiveInt(env.GAME_ODDS, MAX_ODDS) ?? DEFAULT_SETTINGS.odds,
@@ -83,14 +99,17 @@ export function mergeSettings(row: Partial<SettingsRow> | null, defaults: GameSe
   return settings;
 }
 
+export type SettingsFormKey = SettingKey | "paymentProvider";
+
 export type SettingsFormResult =
   | { ok: true; values: SettingsRow }
-  | { ok: false; errors: Partial<Record<SettingKey, string>> };
+  | { ok: false; errors: Partial<Record<SettingsFormKey, string>> };
 
-// Formulier van de game-manager: per veld een geheel getal binnen de grenzen, of leeg = standaard
+// Formulier van de game-manager: per veld een geheel getal binnen de grenzen, of leeg = standaard.
+// Betaalmethode: mollie, paypal of leeg (standaard); zonder dat veld blijft de opgeslagen keuze staan.
 export function parseSettingsForm(form: { get(name: string): unknown }): SettingsFormResult {
   const values = {} as SettingsRow;
-  const errors: Partial<Record<SettingKey, string>> = {};
+  const errors: Partial<Record<SettingsFormKey, string>> = {};
   for (const key of SETTING_KEYS) {
     const raw = form.get(key);
     const text = typeof raw === "string" ? raw.trim() : "";
@@ -101,6 +120,12 @@ export function parseSettingsForm(form: { get(name: string): unknown }): Setting
     const n = parsePositiveInt(text, SETTING_LIMITS[key]);
     if (n === null) errors[key] = `Vul een geheel getal van 1 t/m ${SETTING_LIMITS[key]} in, of laat het leeg voor de standaard.`;
     else values[key] = n;
+  }
+  const provider = form.get("paymentProvider");
+  if (typeof provider === "string") {
+    if (provider === "") values.paymentProvider = null;
+    else if (isPaymentProvider(provider)) values.paymentProvider = provider;
+    else errors.paymentProvider = "Kies Mollie, PayPal of de standaard.";
   }
   return Object.keys(errors).length ? { ok: false, errors } : { ok: true, values };
 }

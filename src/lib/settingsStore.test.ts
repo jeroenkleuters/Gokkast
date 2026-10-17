@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { loadSettings, readStoredSettings, saveStoredSettings } from "@/lib/settingsStore";
+import { loadPaymentProvider, loadSettings, readStoredSettings, saveStoredSettings, settingsData } from "@/lib/settingsStore";
 
 const env = { GAME_ODDS: "40", GAME_MAX_TRIES: "4", GAME_ROUNDS_PER_PAYMENT: "2" };
 const envSettings = { odds: 40, maxTries: 4, roundsPerPayment: 2, source: "env" };
@@ -85,5 +85,32 @@ describe("saveStoredSettings", () => {
     expect(await saveStoredSettings(values, () => Promise.reject(new Error("weg")))).toBe("error");
     expect(await saveStoredSettings(values, () => new Promise<never>(() => {}), 20)).toBe("error");
     expect(error).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe("betaalmethode (taak 13b)", () => {
+  afterEach(() => vi.restoreAllMocks());
+  const row = (paymentProvider: "mollie" | "paypal" | null) => async () => ({ odds: null, maxTries: null, roundsPerPayment: null, paymentProvider });
+
+  it("de keuze in de game-manager gaat voor; leeg of zonder database de standaard", async () => {
+    expect(await loadPaymentProvider(row("paypal"), {})).toBe("paypal");
+    expect(await loadPaymentProvider(row(null), {})).toBe("mollie");
+    expect(await loadPaymentProvider(row(null), { GAME_PAYMENT_PROVIDER: "paypal" })).toBe("paypal");
+    expect(await loadPaymentProvider(async () => null, {})).toBe("mollie");
+    expect(await loadPaymentProvider(null, { GAME_PAYMENT_PROVIDER: "paypal" })).toBe("paypal");
+  });
+
+  it("een databasefout of time-out geeft de standaard", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    expect(await loadPaymentProvider(() => Promise.reject(new Error("weg")), {})).toBe("mollie");
+    expect(await loadPaymentProvider(() => new Promise(() => {}), {}, 20)).toBe("mollie");
+    expect(warn).toHaveBeenCalledTimes(2);
+  });
+
+  it("slaat de keuze op als databasewaarde; niet meegestuurd = kolom niet aanraken", () => {
+    const numbers = { odds: 30, maxTries: null, roundsPerPayment: 4 };
+    expect(settingsData({ ...numbers, paymentProvider: "paypal" })).toEqual({ ...numbers, paymentProvider: "PAYPAL" });
+    expect(settingsData({ ...numbers, paymentProvider: null })).toEqual({ ...numbers, paymentProvider: null });
+    expect(settingsData(numbers)).toEqual(numbers);
   });
 });

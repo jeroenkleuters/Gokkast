@@ -93,6 +93,9 @@ Voor betalen (`e2e/betalen.spec.ts`) start Playwright er nog twee servers bij: e
 poort 3101 (`e2e/mollie-mock.ts`, met een betaalpagina waarop je de uitkomst kiest, net als de
 testpagina van Mollie) en dezelfde build op poort 3102 met betalen aan, winkans 1 en de betalingen
 in het geheugen (`PAYMENTS_TEST_STORE=true`, er is geen database). Er gaat niets naar Mollie.
+Voor PayPal (`e2e/paypal.spec.ts`) komen er nog twee bij: een nep-PayPal op poort 3103
+(`e2e/paypal-mock.ts`, facturen, QR-code en een betaalpagina) en dezelfde build op poort 3104 met
+`GAME_PAYMENT_PROVIDER=paypal`. Er gaat niets naar PayPal.
 
 ## Spelen
 
@@ -129,9 +132,12 @@ ontwikkelen en testen; laat dit in productie uit.
 
 ## Betalen
 
-Betalen gaat via [Mollie](https://docs.mollie.com/docs/getting-started), voorlopig **alleen in de
-testmodus**: de app accepteert alleen een test-key (`test_...`), dus er wordt geen echt geld
-afgeschreven. Live betalen volgt in taak 12.
+Betalen gaat via [Mollie](https://docs.mollie.com/docs/getting-started) of
+[PayPal](https://developer.paypal.com/api/invoicing/v2/) (zie [Betalen met PayPal](#betalen-met-paypal)),
+voorlopig **alleen in de testmodus**: de app accepteert alleen een Mollie-test-key (`test_...`) en de
+PayPal-sandbox, dus er wordt geen echt geld afgeschreven. Live betalen volgt in taak 12a (Mollie) en
+12b (PayPal). Welke methode spelers gebruiken kies je in de game-manager (tab Instellingen);
+standaard is dat Mollie.
 
 - Een speler zonder credits klikt op **SPEEL** → een popup met een QR-code. Die hoort bij een eigen
   Mollie-betaling voor deze speler (per speler een unieke betaallink). Scannen met de telefoon, of
@@ -168,6 +174,46 @@ Deployment Protection aan, waardoor de webhook daar niet aankomt; de popup werkt
 
 Zelf proberen: zet de test-key in `.env.local`, herstart `npm run dev`, klik op SPEEL en kies op de
 testpagina van Mollie een betaalmethode en de status *Paid*.
+
+### Betalen met PayPal
+
+Met PayPal krijgt elke speler een eigen **factuur** (PayPal Invoicing v2, `src/lib/paypal.ts`): de
+app maakt de factuur, verstuurt die zonder e-mail (alleen te betalen via de link) en toont in de
+popup de QR-code die PayPal zelf maakt
+([generate-qr-code](https://developer.paypal.com/api/invoicing/v2/invoices-generate-qr-code)). Lukt
+die QR-code niet, dan maakt de app er zelf een van de betaallink.
+
+- **Alleen de sandbox** (`https://api-m.sandbox.paypal.com`): lokaal, in previews en in de tests. In
+  productie staat PayPal uit (ook met sleutels) en een live-URL wordt geweigerd; live volgt in taak 12b.
+- PayPal stuurt de betaler na betalen **niet terug** naar het spel. "Of betaal op dit apparaat" opent
+  daarom een nieuw tabblad; de popup in het spel ziet de betaling zelf (elke 3 seconden).
+- **Geen naam en geen rekeningnummer.** Een betaalde factuur bevat de naam van de betaler niet (getest in
+  de sandbox); alleen de Transaction Search-API heeft die, met tot 3 uur vertraging. Besluit: PayPal-
+  betalingen en hun rondes staan in de game-manager als "Zonder naam", en de score-popup toont geen
+  naam. Geeft PayPal toch een naam mee (in de betaling op de factuur), dan wordt die opgeslagen.
+- Elke betaling weet met welke methode hij gemaakt is (`payments.provider`, `mollie_id` of
+  `paypal_id`); de game-manager toont dat in de kolom Methode.
+- De webhook `POST /api/paypal/webhook` laat de handtekening eerst door PayPal controleren
+  (`PAYPAL_WEBHOOK_ID`) en haalt daarna de status zelf op. Zonder webhook-ID worden webhooks geweigerd;
+  de popup werkt dan nog steeds.
+- Is PayPal gekozen maar niet ingesteld (geen sleutels), dan gebruikt het spel Mollie, met een
+  waarschuwing in de serverlog en een melding in de game-manager (en andersom).
+
+| Variabele               | Betekenis                                                           | Standaard |
+| ----------------------- | ------------------------------------------------------------------- | --------- |
+| `PAYPAL_CLIENT_ID`      | Client-ID van de sandbox-app op developer.paypal.com. Leeg = PayPal uit | leeg  |
+| `PAYPAL_CLIENT_SECRET`  | Secret van dezelfde app                                             | leeg      |
+| `PAYPAL_WEBHOOK_ID`     | ID van de webhook in die app (events *Invoice paid* en *Invoice cancelled*) | leeg |
+| `GAME_PAYMENT_PROVIDER` | Standaard betaalmethode als er in de game-manager niets gekozen is: `mollie` of `paypal` | `mollie` |
+
+Sandbox-app maken (eenmalig): log in op [developer.paypal.com](https://developer.paypal.com/), kies
+*Apps & Credentials → Sandbox → Create App* en kopieer de client-ID en het secret. Zet in de app
+bij *Features* **Invoicing** aan en sla op: zonder dat recht geeft PayPal `403 Authorization failed
+due to insufficient permissions` en toont de popup "Betalen lukt nu niet". Bij *Sandbox
+accounts* staat een persoonlijk testaccount (e-mail en wachtwoord) waarmee je een factuur betaalt.
+Webhook (alleen voor previews): in de app *Add Webhook* met
+`https://<preview-url>/api/paypal/webhook`; in previews houdt Vercel Deployment Protection de webhook
+wel tegen, net als bij Mollie.
 
 ## Database
 
@@ -239,7 +285,8 @@ Dezelfde persoon kan onder verschillende schrijfwijzen staan (zoals Mollie de na
 Rekeningnummers staan hier niet. Zonder database of als die onbereikbaar is, toont de tab een melding
 ([`src/lib/gameStats.ts`](src/lib/gameStats.ts)).
 
-**Betalingen.** Per betaling de datum, de naam van de rekeninghouder, het rekeningnummer, het bedrag,
+**Betalingen.** Per betaling de datum, de naam van de rekeninghouder (of PayPal-betaler), de
+betaalmethode (Mollie of PayPal), het rekeningnummer (alleen Mollie), het bedrag,
 de status (open, betaald, verlopen, ...) en hoeveel van de spelletjes er gespeeld zijn, standaard
 nieuwste eerst ([`src/lib/paymentOverview.ts`](src/lib/paymentOverview.ts)). Het rekeningnummer
 wordt alleen op de server en alleen voor beheerders ontsleuteld met `PAYMENT_ENCRYPTION_KEY`. Zonder
@@ -248,7 +295,10 @@ ontsleutelen" (een waarschuwing in de serverlog, zonder nummers). Om op het reke
 sorteren, worden de betalingen in het geheugen gesorteerd en verdeeld over pagina's.
 
 **Instellingen.** Hier stel je de winkans (snelkeuze makkelijk 1 op 10, normaal 1 op 30,
-moeilijk 1 op 100, of een eigen getal), de pogingen per spel en de speelrondes per betaling in.
+moeilijk 1 op 100, of een eigen getal), de pogingen per spel, de speelrondes per betaling en de
+betaalmethode (Mollie, PayPal of de standaard uit `GAME_PAYMENT_PROVIDER`) in. Een methode zonder
+sleutels op deze server staat erbij als "niet ingesteld"; wordt die toch gekozen, dan meldt de
+pagina welke methode het spel echt gebruikt.
 Opslaan gaat via een server action die opnieuw controleert of je beheerder bent en de invoer op de
 server controleert (zelfde grenzen als `.env`). **Terug naar standaard** maakt een veld leeg: dan
 geldt weer de `.env`-waarde. Het spel gebruikt de nieuwe waarden bij het volgende laden. Let op: in
@@ -311,7 +361,10 @@ De spelinstellingen (zie [Instellingen](#instellingen)) staan in Vercel onder
 | `AUTH_SECRET`             | eigen sleutel | eigen sleutel | eigen sleutel |
 | `AUTH_GOOGLE_ID` / `AUTH_GOOGLE_SECRET` | Google OAuth-client | idem | idem |
 | `GAME_MANAGER_ADMINS`     | beheerders | beheerders | beheerders |
-| `MOLLIE_API_KEY`          | leeg (taak 12) | Mollie test-key | Mollie test-key |
+| `MOLLIE_API_KEY`          | leeg (taak 12a) | Mollie test-key | Mollie test-key |
+| `PAYPAL_CLIENT_ID` / `PAYPAL_CLIENT_SECRET` | leeg (taak 12b) | PayPal-sandbox-app | PayPal-sandbox-app |
+| `PAYPAL_WEBHOOK_ID`       | leeg (taak 12b) | webhook-ID sandbox-app | leeg |
+| `GAME_PAYMENT_PROVIDER`   | leeg (Mollie) | leeg (Mollie) | leeg (Mollie) |
 | `GAME_PRICE_CENTS`        | `100`      | `100`   | `100`       |
 | `PAYMENT_ENCRYPTION_KEY`  | eigen sleutel | sleutel `dev` | sleutel `dev` (zelfde als Preview) |
 
@@ -352,10 +405,11 @@ Gokkast/
 │   │   ├── game-manager/  beheerpagina met tabs (ManagerTabs): speelrondes en statistieken (StatsSection), betalingen (PaymentsSection), instellingen (SettingsForm), sorteren/bladeren/filteren (TableParts), server actions en inlogpagina (inloggen/)
 │   │   ├── betaald/       terugkeer na betalen bij Mollie
 │   │   ├── api/auth/      Auth.js-routes (inloggen, terugkeer van Google, uitloggen)
-│   │   └── api/mollie/webhook/  webhook van Mollie (betaalstatus)
+│   │   ├── api/mollie/webhook/  webhook van Mollie (betaalstatus)
+│   │   └── api/paypal/webhook/  webhook van PayPal (betaalde of geannuleerde factuur)
 │   ├── auth.ts         Auth.js-instellingen (Google, alleen beheerders)
 │   ├── components/     SlotMachine, Reel, Lever, InfoPanel, Stats, SettingsDialog, PaymentDialog, GameClient
-│   ├── lib/            spellogica (game.ts), instellingen (settings.ts, settingsStore.ts), database (db.ts), rondes opslaan en lezen (gameStore.ts, gameStats.ts), tabellen en URL van de game-manager (tables.ts, managerQuery.ts), betalen (payments.ts, mollie.ts, paymentStore.ts, paymentService.ts, paymentOverview.ts, qr.ts), beheerders (admins.ts, dal.ts), geluid, opslag, muntenregen, tests (*.test.ts)
+│   ├── lib/            spellogica (game.ts), instellingen (settings.ts, settingsStore.ts), database (db.ts), rondes opslaan en lezen (gameStore.ts, gameStats.ts), tabellen en URL van de game-manager (tables.ts, managerQuery.ts), betalen (payments.ts, mollie.ts, paypal.ts, paymentStore.ts, paymentService.ts, paymentOverview.ts, qr.ts), beheerders (admins.ts, dal.ts), geluid, opslag, muntenregen, tests (*.test.ts)
 │   └── generated/      Prisma Client (gegenereerd, niet in git)
 ├── prisma/             schema.prisma, migrations/, seed.ts
 ├── prisma.config.ts    instellingen voor de Prisma CLI
@@ -363,7 +417,7 @@ Gokkast/
 ├── .env.example        alle instellingen met uitleg (kopiëren naar .env.local)
 ├── .github/workflows/  CI/CD: controles en deploy naar Vercel (ci-cd.yml)
 ├── vercel.json         Vercel-instellingen (eigen Git-deploys uit)
-├── e2e/                visuele tests met Playwright (*.spec.ts) en de nep-Mollie (mollie-mock.ts)
+├── e2e/                visuele tests met Playwright (*.spec.ts), de nep-Mollie (mollie-mock.ts) en de nep-PayPal (paypal-mock.ts)
 ├── playwright.config.ts instellingen voor de visuele tests
 ├── vitest.config.mts   instellingen voor de unit-tests
 ├── v1/                 versie 1: losse HTML/CSS/JS, opent direct in de browser

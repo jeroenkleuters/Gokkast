@@ -246,10 +246,10 @@ test("de game-manager toont de betaling met het ontsleutelde rekeningnummer", as
   const section = page.getByRole("region", { name: "Betalingen" });
   const table = section.getByRole("table", { name: "Betalingen" });
 
-  await expect(table.getByRole("columnheader")).toHaveText(["Datum", "Naam", "Rekeningnummer", "Bedrag", "Status", "Gespeeld"]);
+  await expect(table.getByRole("columnheader")).toHaveText(["Datum", "Naam", "Methode", "Rekeningnummer", "Bedrag", "Status", "Gespeeld"]);
   // Andere tests op deze server betalen ook met deze naam: een betaalde betaling van T. TEST zoeken
   const paid = table.getByRole("row").filter({ hasText: MOCK_CONSUMER_NAME }).filter({ hasText: "Betaald" }).first();
-  await expect(paid.getByRole("cell")).toHaveText([/^\d\d-\d\d-\d{4}/, MOCK_CONSUMER_NAME, MOCK_ACCOUNT_SHOWN, "€ 1,00", "Betaald", /^\d van 4$/]);
+  await expect(paid.getByRole("cell")).toHaveText([/^\d\d-\d\d-\d{4}/, MOCK_CONSUMER_NAME, "Mollie (iDEAL)", MOCK_ACCOUNT_SHOWN, "€ 1,00", "Betaald", /^\d van 4$/]);
   // Ontsleuteld op de server: de versleutelde tekst en de betaallink staan niet op de pagina
   const html = await page.content();
   expect(html).not.toMatch(/v1:[A-Za-z0-9+/=]+:/);

@@ -19,7 +19,7 @@ export type Period = "vandaag" | "alles";
 
 export const NAME_COLUMNS = ["naam", "gespeeld", "shot", "kakkerlak", "vraagteken", "gewonnen", "verloren"] as const;
 export const ROUND_COLUMNS = ["datum", "naam", "uitkomst", "pogingen"] as const;
-export const PAYMENT_COLUMNS = ["datum", "naam", "rekeningnummer", "bedrag", "status", "spelletjes"] as const;
+export const PAYMENT_COLUMNS = ["datum", "naam", "methode", "rekeningnummer", "bedrag", "status", "spelletjes"] as const;
 
 export type NameColumn = (typeof NAME_COLUMNS)[number];
 export type RoundColumn = (typeof ROUND_COLUMNS)[number];
@@ -30,7 +30,7 @@ export const DEFAULT_ROUND_SORT: Sort<RoundColumn> = { column: "datum", dir: "de
 export const DEFAULT_PAYMENT_SORT: Sort<PaymentColumn> = { column: "datum", dir: "desc" };
 
 // Eerste klik op een kolom: tekst A-Z, getallen en datums het grootst of nieuwst bovenaan
-const TEXT_COLUMNS = new Set<string>(["naam", "uitkomst", "rekeningnummer", "status"]);
+const TEXT_COLUMNS = new Set<string>(["naam", "methode", "uitkomst", "rekeningnummer", "status"]);
 export const firstDir = (column: string): SortDir => (TEXT_COLUMNS.has(column) ? "asc" : "desc");
 
 export interface StatsQuery {

@@ -3,6 +3,7 @@
 import { useEffect, useEffectEvent, useState } from "react";
 import { checkPayment, startPayment } from "@/app/actions";
 import type { PaymentView } from "@/lib/paymentService";
+import type { PaymentProvider } from "@/lib/settings";
 
 interface PaymentDialogProps {
   price: string; // bijv. "€ 1,00"
@@ -13,13 +14,13 @@ interface PaymentDialogProps {
 
 type Phase =
   | { kind: "loading" }
-  | { kind: "ready"; qr: string | null; checkoutUrl: string }
+  | { kind: "ready"; qr: string | null; checkoutUrl: string; provider: PaymentProvider }
   | { kind: "failed"; message: string };
 
 const POLL_MS = 3000;
 const FAILED = ["canceled", "expired", "failed"];
 
-// Popup bij speel zonder credits: QR-code van een eigen Mollie-betaling voor deze speler.
+// Popup bij speel zonder credits: QR-code van een eigen betaling voor deze speler (Mollie of PayPal).
 // De popup vraagt elke paar seconden of er betaald is (bijv. met een telefoon) en geeft dan de credits door.
 export default function PaymentDialog({ price, credits, onPaid, onClose }: PaymentDialogProps) {
   const [phase, setPhase] = useState<Phase>({ kind: "loading" });
@@ -36,7 +37,7 @@ export default function PaymentDialog({ price, credits, onPaid, onClose }: Payme
         if (!result.ok) return setPhase({ kind: "failed", message: result.error });
         if (result.payment.creditsLeft > 0) return paid(result.payment);
         if (!result.payment.checkoutUrl) throw new Error("geen betaallink");
-        setPhase({ kind: "ready", qr: result.qr, checkoutUrl: result.payment.checkoutUrl });
+        setPhase({ kind: "ready", qr: result.qr, checkoutUrl: result.payment.checkoutUrl, provider: result.provider });
       })
       .catch(() => active && setPhase({ kind: "failed", message: "Betalen lukt nu niet. Probeer het later opnieuw." }));
     return () => {
@@ -77,10 +78,19 @@ export default function PaymentDialog({ price, credits, onPaid, onClose }: Payme
               // eslint-disable-next-line @next/next/no-img-element -- data-URL van de server, geen optimalisatie nodig
               <img className="qr" src={phase.qr} alt="QR-code om te betalen" width={220} height={220} />
             )}
-            <p className="hint">Scan de QR-code met je telefoon en betaal met iDEAL.</p>
-            <a className="paylink" href={phase.checkoutUrl}>
-              Of betaal op dit apparaat
-            </a>
+            <p className="hint">
+              Scan de QR-code met je telefoon en betaal met {phase.provider === "paypal" ? "PayPal" : "iDEAL"}.
+            </p>
+            {phase.provider === "paypal" ? (
+              // PayPal stuurt de betaler niet terug naar het spel: in een nieuw tabblad, dan blijft deze popup wachten
+              <a className="paylink" href={phase.checkoutUrl} target="_blank" rel="noopener noreferrer">
+                Of betaal op dit apparaat (nieuw tabblad)
+              </a>
+            ) : (
+              <a className="paylink" href={phase.checkoutUrl}>
+                Of betaal op dit apparaat
+              </a>
+            )}
             <p className="status" aria-live="polite">
               Wachten op je betaling...
             </p>

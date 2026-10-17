@@ -3,12 +3,14 @@
 import { managerHref, managerParams, withPayments, type ManagerQuery, type PaymentColumn } from "@/lib/managerQuery";
 import { formatIban, readPaymentOverview, STATUS_LABELS, type Account } from "@/lib/paymentOverview";
 import { formatEuro } from "@/lib/payments";
+import { PAYMENT_PROVIDER_LABELS } from "@/lib/settings";
 import { formatDateTime, NameFilter, NO_NAME, Pagination, SortHeader } from "./TableParts";
 import styles from "./game-manager.module.css";
 
 const HEADERS: { column: PaymentColumn; label: string }[] = [
   { column: "datum", label: "Datum" },
   { column: "naam", label: "Naam" },
+  { column: "methode", label: "Methode" },
   { column: "rekeningnummer", label: "Rekeningnummer" },
   { column: "bedrag", label: "Bedrag" },
   { column: "status", label: "Status" },
@@ -89,6 +91,7 @@ export default async function PaymentsSection({ query }: { query: ManagerQuery }
                     <tr key={row.id}>
                       <td>{formatDateTime(row.createdAt)}</td>
                       <td>{row.name ?? <span className={styles.muted}>{NO_NAME}</span>}</td>
+                      <td>{PAYMENT_PROVIDER_LABELS[row.provider]}</td>
                       <AccountCell account={row.account} />
                       <td>{formatEuro(row.amountCents)}</td>
                       <td>{STATUS_LABELS[row.status]}</td>

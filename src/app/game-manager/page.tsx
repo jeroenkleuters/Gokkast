@@ -1,7 +1,14 @@
 import Link from "next/link";
 import { checkAdmin } from "@/lib/dal";
 import { parseManagerQuery } from "@/lib/managerQuery";
-import { mergeSettings, readSettings } from "@/lib/settings";
+import { readMollieConfig, readPayPalConfig } from "@/lib/payments";
+import {
+  mergeSettings,
+  PAYMENT_PROVIDER_LABELS,
+  readDefaultPaymentProvider,
+  readSettings,
+  type PaymentProvider,
+} from "@/lib/settings";
 import { readStoredSettings } from "@/lib/settingsStore";
 import { signOutAdmin } from "./actions";
 import ManagerTabs from "./ManagerTabs";
@@ -15,14 +22,26 @@ async function SettingsSection() {
   const stored = await readStoredSettings();
   const row = stored.status === "ok" ? stored.row : null;
   const current = mergeSettings(row, defaults);
+  // Betaalmethode (taak 13b): welke zijn ingesteld, en welke het spel nu echt gebruikt
+  const available: Record<PaymentProvider, boolean> = { mollie: !!readMollieConfig(), paypal: !!readPayPalConfig() };
+  const defaultProvider = readDefaultPaymentProvider();
+  const chosen = row?.paymentProvider ?? defaultProvider;
+  const used: PaymentProvider | null = available[chosen] ? chosen : available.mollie ? "mollie" : available.paypal ? "paypal" : null;
 
   return (
     <section className={styles.card} aria-labelledby="instellingen">
       <h2 id="instellingen">Instellingen</h2>
       <p className={styles.muted} data-testid="current-settings">
         Nu in het spel: winkans 1 op {current.odds}, {current.maxTries} pogingen, {current.roundsPerPayment}{" "}
-        speelronde(s) per betaling (bron: {current.source === "database" ? "database" : ".env"}).
+        speelronde(s) per betaling (bron: {current.source === "database" ? "database" : ".env"}).{" "}
+        {used ? `Betalen met ${PAYMENT_PROVIDER_LABELS[used]}.` : "Betalen staat uit: het spel is gratis."}
       </p>
+      {used && used !== chosen && (
+        <p className={styles.error} role="alert">
+          {PAYMENT_PROVIDER_LABELS[chosen]} is gekozen maar niet ingesteld op deze server: het spel gebruikt{" "}
+          {PAYMENT_PROVIDER_LABELS[used]}.
+        </p>
+      )}
       {stored.status === "no-database" && (
         <p className={styles.error} role="alert">
           Er is geen database ingesteld (DATABASE_URL): het spel gebruikt de waarden uit .env en opslaan lukt
@@ -35,7 +54,7 @@ async function SettingsSection() {
           De database is nu niet bereikbaar: het spel gebruikt de waarden uit .env. Probeer het later opnieuw.
         </p>
       ) : (
-        <SettingsForm row={row} defaults={defaults} />
+        <SettingsForm row={row} defaults={defaults} payment={{ available, defaultProvider }} />
       )}
     </section>
   );

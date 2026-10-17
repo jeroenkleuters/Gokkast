@@ -7,6 +7,7 @@ import { decrypt, readEncryptionKey } from "@/lib/encryption";
 import type { PaymentColumn, PaymentsQuery } from "@/lib/managerQuery";
 import { PAYMENT_STATUSES, type PaymentStatus } from "@/lib/payments";
 import { getPaymentStore, type PaymentStore, type StoredPayment } from "@/lib/paymentStore";
+import { PAYMENT_PROVIDER_LABELS, type PaymentProvider } from "@/lib/settings";
 import { clampPage, pageCount, pageSlice, sortRows, type SortValue } from "@/lib/tables";
 
 export const STATUS_LABELS: Record<PaymentStatus, string> = {
@@ -31,6 +32,7 @@ export interface PaymentRow {
   id: number;
   createdAt: Date;
   name: string | null;
+  provider: PaymentProvider; // Mollie of PayPal (taak 13b)
   account: Account;
   amountCents: number;
   status: PaymentStatus;
@@ -56,6 +58,7 @@ export function toPaymentRow(payment: StoredPayment, key: Buffer | null): Paymen
     id: payment.id,
     createdAt: payment.createdAt,
     name: payment.name,
+    provider: payment.provider,
     account: decryptAccount(payment.accountEncrypted, key),
     amountCents: payment.amountCents,
     status: payment.status,
@@ -68,6 +71,7 @@ export function toPaymentRow(payment: StoredPayment, key: Buffer | null): Paymen
 function paymentValue(row: PaymentRow, column: PaymentColumn): SortValue {
   if (column === "datum") return row.createdAt;
   if (column === "naam") return row.name;
+  if (column === "methode") return PAYMENT_PROVIDER_LABELS[row.provider];
   if (column === "rekeningnummer") return row.account.kind === "ok" ? row.account.iban : null;
   if (column === "bedrag") return row.amountCents;
   if (column === "status") return PAYMENT_STATUSES.indexOf(row.status);

@@ -126,3 +126,11 @@ jobs:
           url=$(npx --yes $VERCEL_CLI deploy ${RUNNER_DEBUG:+--debug} --prebuilt $PROD_FLAG --token="$VERCEL_TOKEN")
           echo "url=$url" >> "$GITHUB_OUTPUT"
           echo "Gedeployd ($TARGET): $url" >> "$GITHUB_STEP_SUMMARY"
+
+      # Deploys met de CLI krijgen geen vast branch-adres. De laatste preview krijgt daarom een
+      # vast adres, waar de webhook van de PayPal-sandbox-app naartoe gaat (taak 13b).
+      - name: Vast preview-adres
+        if: env.TARGET == 'preview'
+        run: |
+          npx --yes $VERCEL_CLI alias set ${RUNNER_DEBUG:+--debug} "${{ steps.deploy.outputs.url }}" gokkast-preview.vercel.app --token="$VERCEL_TOKEN"
+          echo "Vast preview-adres: https://gokkast-preview.vercel.app" >> "$GITHUB_STEP_SUMMARY"

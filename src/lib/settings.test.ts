@@ -10,6 +10,7 @@ import {
   parseFlag,
   parsePositiveInt,
   parseSettingsForm,
+  readDefaultPaymentProvider,
   readSettings,
 } from "@/lib/settings";
 
@@ -167,5 +168,34 @@ describe("ODDS_LEVELS", () => {
     const odds = ODDS_LEVELS.map((level) => level.odds);
     expect(odds).toEqual([...odds].sort((a, b) => a - b));
     expect(odds.every((n) => n >= 1 && n <= MAX_ODDS)).toBe(true);
+  });
+});
+
+describe("betaalmethode (taak 13b)", () => {
+  const form = (fields: Record<string, string>) => new Map(Object.entries(fields));
+
+  it("standaard Mollie; GAME_PAYMENT_PROVIDER kan PayPal kiezen", () => {
+    expect(readDefaultPaymentProvider({})).toBe("mollie");
+    expect(readDefaultPaymentProvider({ GAME_PAYMENT_PROVIDER: " PayPal " })).toBe("paypal");
+    expect(readDefaultPaymentProvider({ GAME_PAYMENT_PROVIDER: "mollie" })).toBe("mollie");
+    expect(readDefaultPaymentProvider({ GAME_PAYMENT_PROVIDER: "contant" })).toBe("mollie");
+  });
+
+  it("leest de keuze uit het formulier: mollie, paypal of leeg (standaard)", () => {
+    expect(parseSettingsForm(form({ paymentProvider: "paypal" }))).toMatchObject({ ok: true, values: { paymentProvider: "paypal" } });
+    expect(parseSettingsForm(form({ paymentProvider: "mollie" }))).toMatchObject({ ok: true, values: { paymentProvider: "mollie" } });
+    expect(parseSettingsForm(form({ paymentProvider: "" }))).toMatchObject({ ok: true, values: { paymentProvider: null } });
+  });
+
+  it("zonder het veld blijft de opgeslagen keuze staan", () => {
+    const result = parseSettingsForm(form({ odds: "30" }));
+    expect(result.ok && "paymentProvider" in result.values).toBe(false);
+  });
+
+  it("weigert een onbekende methode", () => {
+    expect(parseSettingsForm(form({ paymentProvider: "contant" }))).toEqual({
+      ok: false,
+      errors: { paymentProvider: "Kies Mollie, PayPal of de standaard." },
+    });
   });
 });

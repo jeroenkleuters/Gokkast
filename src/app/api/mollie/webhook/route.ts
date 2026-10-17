@@ -6,7 +6,7 @@ import { defaultPaymentDeps, syncPaymentById } from "@/lib/paymentService";
 
 export async function POST(request: Request) {
   const deps = defaultPaymentDeps();
-  if (!deps) return new Response(null, { status: 404 }); // betalen staat uit
+  if (!deps?.mollie) return new Response(null, { status: 404 }); // Mollie staat uit
 
   const form = await request.formData().catch(() => null);
   const id = form?.get("id");
@@ -14,6 +14,6 @@ export async function POST(request: Request) {
 
   // Onbekend ID: toch 200, zodat Mollie niet blijft proberen en niemand kan aftasten welke ID's bestaan.
   // Bij een fout 500: Mollie probeert het later opnieuw.
-  const result = await syncPaymentById(id, deps);
+  const result = await syncPaymentById("mollie", id, deps);
   return new Response(null, { status: result === "error" ? 500 : 200 });
 }

@@ -18,7 +18,7 @@ const webhook = (body: string) =>
   );
 
 describe("POST /api/mollie/webhook", () => {
-  const deps = { config: {} };
+  const deps = { mollie: {} };
 
   beforeEach(() => {
     vi.resetAllMocks();
@@ -28,12 +28,12 @@ describe("POST /api/mollie/webhook", () => {
 
   it("verwerkt het ID van Mollie", async () => {
     expect((await webhook("id=tr_WDqYK6vllg")).status).toBe(200);
-    expect(syncPaymentById).toHaveBeenCalledExactlyOnceWith("tr_WDqYK6vllg", deps);
+    expect(syncPaymentById).toHaveBeenCalledExactlyOnceWith("mollie", "tr_WDqYK6vllg", deps);
   });
 
   it("negeert een meegestuurde status: alleen het ID telt", async () => {
     await webhook("id=tr_WDqYK6vllg&status=paid");
-    expect(syncPaymentById).toHaveBeenCalledExactlyOnceWith("tr_WDqYK6vllg", deps);
+    expect(syncPaymentById).toHaveBeenCalledExactlyOnceWith("mollie", "tr_WDqYK6vllg", deps);
   });
 
   it("weigert een verzoek zonder geldig ID", async () => {

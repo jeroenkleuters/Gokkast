@@ -82,15 +82,30 @@ De taken staan in volgorde: latere taken bouwen voort op eerdere.
   - Spelletjes met naam koppelen aan de betaling waarmee ze gespeeld zijn
   - Tests voor versleutelen en ontsleutelen
 
-- [ ] **12. Mollie productieomgeving**
+- [ ] **12a. Mollie productieomgeving**
   - Live-API-key alleen in de productie-omgeving van Vercel
   - Controleren dat preview/ontwikkeling altijd de testmodus gebruikt
+
+- [ ] **12b. PayPal productieomgeving** (na 13b)
+  - Live-app aanmaken op developer.paypal.com (zakelijk PayPal-account nodig), client-ID en secret van de live-app
+  - Live-client-ID/secret alleen in de productie-omgeving van Vercel; Preview en Development houden de sandbox-gegevens
+  - Code: live-URL `https://api-m.paypal.com` alleen toestaan in productie (zoals 12a voor Mollie); controleren dat preview/ontwikkeling altijd de sandbox gebruiken
+  - Webhook in de live-app aanmaken op `https://gokkast.vercel.app/api/paypal/webhook` met het event voor betaalde facturen (en annuleren); het webhook-ID als `PAYPAL_WEBHOOK_ID` in Production
+  - Factuurgegevens van de verkoper (naam, e-mail, logo) in het live-account controleren: die ziet de speler bij het betalen
+  - Eén echte betaling van € 1,00 doen in productie: QR scannen, betalen, credits ontvangen, naam in de game-manager; daarna terugbetalen via PayPal
 
 ### Game-manager uitbreiden
 
 - [x] **13. Speelrondes en statistieken in de game-manager**
   - Overzicht van speelrondes
   - Aantal wins/loses per naam
+
+- [ ] **13b. Paypall**
+  - richt een tweede betalingsmogelijkheid in met Paypall
+  - ik wil een test, preview en productie omgeving
+  - in de game mangers instellingen wil ik kunnen selecteren welke betaalmode gebruikt wordt.
+  - gebruik hiervoor de Generate QR code van de paypall api, documentatie https://developer.paypal.com/api/invoicing/v2/invoices-generate-qr-code
+  - pas alleen de code aan die noodszakelijk is voor het betaal gedeelte
 
 - [x] **14. Betalingen in de game-manager**
   - Overzicht van betalingen: naam en bedrag (ontsleuteld weergegeven)
@@ -102,6 +117,14 @@ De taken staan in volgorde: latere taken bouwen voort op eerdere.
   - [x] **15. Instellingen**
     - Hernoem tablad Moeilijkheidsgraad naar Instellingen
     - zet instellingen als derde tablad
+
+- [ ] ** Domein en naamspel **
+  - het domein wordt jackpot.broadsight.nl
+  - hernoem het spel naar Jackpot
+  - in vercel, neon, paypall, molie, google auth houden wij de oude naam
+
+## Versie 3 — Open
+- [ ] **Redesign**
 
 ## Open vragen
 

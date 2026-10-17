@@ -10,20 +10,23 @@ import {
   mollieAmount,
   newPaymentReference,
   newPaymentToken,
-  readPaymentConfig,
+  PAYPAL_SANDBOX_API_URL,
+  readMollieConfig,
+  readPayPalConfig,
+  readPriceCents,
   webhookUrl,
 } from "@/lib/payments";
 
-describe("readPaymentConfig", () => {
+describe("readMollieConfig", () => {
   afterEach(() => vi.restoreAllMocks());
 
   it("staat uit zonder MOLLIE_API_KEY (spel gratis)", () => {
-    expect(readPaymentConfig({})).toBeNull();
-    expect(readPaymentConfig({ MOLLIE_API_KEY: "  " })).toBeNull();
+    expect(readMollieConfig({})).toBeNull();
+    expect(readMollieConfig({ MOLLIE_API_KEY: "  " })).toBeNull();
   });
 
   it("gebruikt een test-key met de standaardprijs en de echte Mollie-API", () => {
-    expect(readPaymentConfig({ MOLLIE_API_KEY: "test_abc" })).toEqual({
+    expect(readMollieConfig({ MOLLIE_API_KEY: "test_abc" })).toEqual({
       apiKey: "test_abc",
       apiUrl: MOLLIE_API_URL,
       priceCents: DEFAULT_PRICE_CENTS,
@@ -33,13 +36,13 @@ describe("readPaymentConfig", () => {
 
   it("weigert een live-key: geen echte betalingen in deze versie", () => {
     const error = vi.spyOn(console, "error").mockImplementation(() => {});
-    expect(readPaymentConfig({ MOLLIE_API_KEY: "live_abc" })).toBeNull();
-    expect(readPaymentConfig({ MOLLIE_API_KEY: "iets_anders" })).toBeNull();
+    expect(readMollieConfig({ MOLLIE_API_KEY: "live_abc" })).toBeNull();
+    expect(readMollieConfig({ MOLLIE_API_KEY: "iets_anders" })).toBeNull();
     expect(error).toHaveBeenCalledTimes(2);
   });
 
   it("leest de prijs en een andere API-url (voor tests)", () => {
-    const config = readPaymentConfig({
+    const config = readMollieConfig({
       MOLLIE_API_KEY: "test_abc",
       GAME_PRICE_CENTS: "250",
       MOLLIE_API_URL: "http://localhost:3101/v2/",
@@ -49,7 +52,7 @@ describe("readPaymentConfig", () => {
 
   it("valt terug op de standaardprijs bij een ongeldige prijs", () => {
     for (const price of ["0", "-5", "1.50", "abc", "10001"]) {
-      expect(readPaymentConfig({ MOLLIE_API_KEY: "test_abc", GAME_PRICE_CENTS: price })?.priceCents, price).toBe(100);
+      expect(readMollieConfig({ MOLLIE_API_KEY: "test_abc", GAME_PRICE_CENTS: price })?.priceCents, price).toBe(100);
     }
   });
 });
@@ -107,6 +110,20 @@ describe("webhookUrl", () => {
     expect(webhookUrl("http://localhost:3000")).toBeUndefined();
     expect(webhookUrl("http://127.0.0.1:3100")).toBeUndefined();
   });
+
+  it("in een preview met het bypass-geheim van Vercel, zodat Deployment Protection de webhook doorlaat", () => {
+    const preview = { VERCEL_ENV: "preview", VERCEL_AUTOMATION_BYPASS_SECRET: "geheim+/=" };
+    expect(webhookUrl("https://gokkast-abc.vercel.app", preview)).toBe(
+      "https://gokkast-abc.vercel.app/api/mollie/webhook?x-vercel-protection-bypass=geheim%2B%2F%3D",
+    );
+    // Nooit in productie, en niet zonder geheim
+    expect(webhookUrl("https://gokkast.vercel.app", { ...preview, VERCEL_ENV: "production" })).toBe(
+      "https://gokkast.vercel.app/api/mollie/webhook",
+    );
+    expect(webhookUrl("https://gokkast-abc.vercel.app", { VERCEL_ENV: "preview" })).toBe(
+      "https://gokkast-abc.vercel.app/api/mollie/webhook",
+    );
+  });
 });
 
 describe("referentie voor /betaald", () => {
@@ -121,5 +138,41 @@ describe("referentie voor /betaald", () => {
       expect(isPaymentReference(value)).toBe(false);
     }
     expect(isPaymentToken(newPaymentReference())).toBe(false);
+  });
+});
+
+describe("readPayPalConfig (taak 13b)", () => {
+  afterEach(() => vi.restoreAllMocks());
+  const keys = { PAYPAL_CLIENT_ID: "client", PAYPAL_CLIENT_SECRET: "secret" };
+
+  it("staat uit zonder client-ID of secret", () => {
+    expect(readPayPalConfig({})).toBeNull();
+    expect(readPayPalConfig({ PAYPAL_CLIENT_ID: "client" })).toBeNull();
+    expect(readPayPalConfig({ PAYPAL_CLIENT_SECRET: "secret", PAYPAL_CLIENT_ID: " " })).toBeNull();
+  });
+
+  it("gebruikt de sandbox, met het webhook-ID als dat er is", () => {
+    expect(readPayPalConfig(keys)).toEqual({ clientId: "client", clientSecret: "secret", apiUrl: PAYPAL_SANDBOX_API_URL, webhookId: null });
+    expect(readPayPalConfig({ ...keys, PAYPAL_WEBHOOK_ID: "WH-1" })?.webhookId).toBe("WH-1");
+    expect(readPayPalConfig({ ...keys, VERCEL_ENV: "preview" })?.apiUrl).toBe(PAYPAL_SANDBOX_API_URL);
+  });
+
+  it("een andere API-url mag (nep-PayPal van de tests), live PayPal niet", () => {
+    const error = vi.spyOn(console, "error").mockImplementation(() => {});
+    expect(readPayPalConfig({ ...keys, PAYPAL_API_URL: "http://localhost:3103/" })?.apiUrl).toBe("http://localhost:3103");
+    expect(readPayPalConfig({ ...keys, PAYPAL_API_URL: "https://api-m.paypal.com" })).toBeNull();
+    expect(readPayPalConfig({ ...keys, PAYPAL_API_URL: "geen url" })).toBeNull();
+    expect(error).toHaveBeenCalledTimes(2);
+  });
+
+  it("staat uit in productie: live betalen volgt in taak 12b", () => {
+    const error = vi.spyOn(console, "error").mockImplementation(() => {});
+    expect(readPayPalConfig({ ...keys, VERCEL_ENV: "production" })).toBeNull();
+    expect(error).toHaveBeenCalledOnce();
+  });
+
+  it("de prijs geldt voor Mollie en PayPal", () => {
+    expect(readPriceCents({})).toBe(100);
+    expect(readPriceCents({ GAME_PRICE_CENTS: "250" })).toBe(250);
   });
 });

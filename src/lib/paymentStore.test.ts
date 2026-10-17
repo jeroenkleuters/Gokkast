@@ -8,7 +8,9 @@ const row = {
   id: 1,
   token: "t".repeat(32),
   reference: "r".repeat(16),
+  provider: "MOLLIE",
   mollieId: "tr_test1",
+  paypalId: null,
   checkoutUrl: "https://mollie.test/checkout/tr_test1",
   status: "OPEN",
   amountCents: 100,
@@ -21,6 +23,7 @@ const row = {
 function fakeDb(found: Record<string, unknown> | null = row, count = 1) {
   const payment = {
     findUnique: vi.fn(async () => found),
+    findFirst: vi.fn(async () => found),
     updateMany: vi.fn(async () => ({ count })),
     create: vi.fn(async () => row),
   };
@@ -31,7 +34,7 @@ describe("prismaPaymentStore", () => {
   it("zet een betaling op betaald met alle credits, alleen als die nog niet betaald was", async () => {
     const { db, payment } = fakeDb();
     const paidAt = new Date("2026-10-14T10:00:00Z");
-    await prismaPaymentStore(db).updateStatus("tr_test1", { status: "paid", name: "T. TEST", accountEncrypted: "v1:a:b:c", paidAt });
+    await prismaPaymentStore(db).updateStatus("mollie", "tr_test1", { status: "paid", name: "T. TEST", accountEncrypted: "v1:a:b:c", paidAt });
     expect(payment.updateMany).toHaveBeenCalledExactlyOnceWith({
       where: { mollieId: "tr_test1", status: { not: "PAID" } },
       data: { status: "PAID", creditsLeft: 4, name: "T. TEST", accountEncrypted: "v1:a:b:c", paidAt },
@@ -40,7 +43,7 @@ describe("prismaPaymentStore", () => {
 
   it("bewaart een andere status zonder credits", async () => {
     const { db, payment } = fakeDb();
-    await prismaPaymentStore(db).updateStatus("tr_test1", { status: "expired", name: null, accountEncrypted: null, paidAt: null });
+    await prismaPaymentStore(db).updateStatus("mollie", "tr_test1", { status: "expired", name: null, accountEncrypted: null, paidAt: null });
     expect(payment.updateMany).toHaveBeenCalledExactlyOnceWith({
       where: { mollieId: "tr_test1", status: { not: "PAID" } },
       data: { status: "EXPIRED" },
@@ -49,7 +52,7 @@ describe("prismaPaymentStore", () => {
 
   it("werkt een onbekende betaling niet bij", async () => {
     const { db, payment } = fakeDb(null);
-    expect(await prismaPaymentStore(db).updateStatus("tr_x", { status: "paid", name: null, accountEncrypted: null, paidAt: null })).toBeNull();
+    expect(await prismaPaymentStore(db).updateStatus("mollie", "tr_x", { status: "paid", name: null, accountEncrypted: null, paidAt: null })).toBeNull();
     expect(payment.updateMany).not.toHaveBeenCalled();
   });
 

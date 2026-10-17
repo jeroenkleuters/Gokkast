@@ -72,6 +72,7 @@ describe("createMollieClient", () => {
     const payment = await createMollieClient(config, fetchFn).createPayment({
       amountCents: 100,
       description: "Gokkast: 4 spelletjes",
+      reference: "r".repeat(16),
       redirectUrl: "https://gokkast.test/betaald",
       webhookUrl: "https://gokkast.test/api/mollie/webhook",
     });
@@ -94,6 +95,7 @@ describe("createMollieClient", () => {
     await createMollieClient(config, fetchFn).createPayment({
       amountCents: 100,
       description: "x",
+      reference: "r".repeat(16),
       redirectUrl: "http://localhost:3000/betaald",
     });
     expect(JSON.parse(calls[0][1].body as string)).not.toHaveProperty("webhookUrl");

@@ -1123,6 +1123,92 @@ Melding gebruiker: in de database alleen `LOST`, ook na winst. Oorzaak: de dev-s
 
 ---
 
+## Stap 84 — Feature geladen: PayPal als tweede betaalmogelijkheid (15 oktober 2026)
+
+**Vraag:**
+> /feature load 13b
+
+**Uitgevoerde handelingen:**
+1. Taak 13b uit `to-do.md` (door de gebruiker toegevoegd) geladen in `current-feature.md`: PayPal via Invoicing v2 met de QR-code van PayPal, sandbox/live per omgeving, keuze betaalmethode in de tab Instellingen.
+2. Bestaande Mollie-betaalcode en de PayPal-documentatie (generate-qr-code) bekeken; open vragen genoteerd: naam/rekeningnummer van de betaler bij PayPal, live in productie (taak 12 nog open), standaardmethode en terugval.
+3. Dev-server van stap 83 was gestopt (exit code 4, geen fout in de log; het achtergrondproces is met de sessie afgesloten).
+
+---
+
+## Stap 85 — Besluiten PayPal (15 oktober 2026)
+
+**Vraag:**
+> 1. use name and record in database witch payment has been used
+> 2. make the current todo 12 -> 12a and add 12b for paypall to production with any step that is required for this
+> 3. keep mollie as the default
+
+**Uitgevoerde handelingen:**
+1. `to-do.md`: taak 12 hernoemd naar 12a (Mollie productie); 12b toegevoegd (PayPal productie: live-app, sleutels alleen in Production, live-URL alleen in productie, webhook, verkopersgegevens, één echte testbetaling met terugbetaling).
+2. `current-feature.md`: 13b alleen met de sandbox; naam van de betaler en de gebruikte methode (`provider`) vastleggen; Mollie standaard. Aanname genoteerd: gekozen PayPal zonder sleutels → terugval op Mollie.
+
+---
+
+## Stap 86 — Feature gestart: PayPal als tweede betaalmogelijkheid (15 oktober 2026)
+
+**Vraag:**
+> /feature start
+
+**Uitgevoerde handelingen:**
+1. Branch `feature/paypal`; status In Progress. PayPal-API onderzocht met het OpenAPI-schema van Invoicing v2: factuur maken → versturen (`send_to_recipient: false`, geeft de payer-view-link) → `generate-qr-code` (PNG als base64); naam van de betaler in `payments.transactions[].shipping_info.name`; 16 factuurstatussen.
+2. Database: enum `PaymentProvider` (`mollie`/`paypal`), `payments.provider` (standaard `mollie`), `payments.paypal_id` (uniek), `payments.mollie_id` optioneel, `game_settings.payment_provider` (migratie `20261015000000_payments_paypal`, SQL gecontroleerd met `prisma migrate diff`). Toegepast op Neon `dev`; `migrate diff` database → schema is leeg.
+3. `src/lib/paypal.ts` (nieuw): token (client credentials, gedeeld en vernieuwd na 401), factuur maken en versturen, ophalen, statussen afbeelden op die van het spel, naam van de betaler, QR-code van PayPal, webhook-handtekening laten controleren door PayPal (bericht ongewijzigd mee).
+4. `payments.ts`: `readMollieConfig` (was `readPaymentConfig`), `readPayPalConfig` (alleen sandbox; uit in productie en bij een live-URL), `readPriceCents`, gedeelde typen `ProviderPayment`/`PaymentClient`. `paymentStore.ts`: methode en ID per betaling (`findByProviderId`, `updateStatus(provider, id, ...)`). `paymentService.ts`: `PaymentDeps` met `mollie`, `paypal` en `provider()`; `choosePaymentProvider` (gekozen methode niet ingesteld → de andere, met waarschuwing); open betaling alleen hergebruikt bij dezelfde methode; `paymentQr` (PayPal-QR, anders eigen QR van de link).
+5. Webhook `POST /api/paypal/webhook`; popup toont "betaal met PayPal" en opent PayPal in een nieuw tabblad (PayPal stuurt niet terug).
+6. Game-manager: keuze Betaalmethode in Instellingen (standaard, Mollie, PayPal; "niet ingesteld" erbij), regel "Betalen met ..." en een melding als de keuze niet ingesteld is; kolom Methode in Betalingen (sorteerbaar). `GAME_PAYMENT_PROVIDER` als standaard uit `.env`.
+7. Tests: 272 Vitest (43 nieuw: `paypal.test.ts`, PayPal-webhookroute, config, instellingen, betaalflow met PayPal) en 33 Playwright (3 nieuw in `e2e/paypal.spec.ts` met nep-PayPal op 3103 en een derde app-server op 3104); bestaande servers zetten PayPal expliciet uit.
+8. README (Betalen met PayPal, variabelen, Vercel-tabel 12a/12b, structuur) en `.env.example`. Dev-server: een echte Mollie-testbetaling gestart tegen `dev` (QR-code, geen fouten).
+9. Niet gecontroleerd: echte PayPal-sandbox (geen `PAYPAL_CLIENT_ID`/`SECRET` in `.env.local`): of versturen zonder ontvanger lukt, het antwoordformaat van de QR-code en waar de naam van de betaler staat.
+
+---
+
+## Stap 87 — PayPal-webhook lokaal via een tunnel (15–17 oktober 2026)
+
+**Vraag:**
+> can you help me with the paypall webhook
+
+**Uitgevoerde handelingen:**
+1. Keuze gebruiker: lokaal testen via een tunnel. `cloudflared` 2026.10.0 geïnstalleerd met winget; quick tunnel naar `localhost:3000`. De gebruiker heeft in de sandbox-app een webhook aangemaakt en `PAYPAL_WEBHOOK_ID` in `.env.local` gezet.
+2. De eerste tunnel was na twee dagen verlopen ("Tunnel not found"); nieuwe tunnel gestart, de gebruiker moet de URL in PayPal bijwerken.
+3. Gecontroleerd via de tunnel: webhook zonder handtekening → 401 (zonder PayPal), met nagemaakte handtekening → PayPal-sandbox zegt ongeldig → 401. Sleutels en webhook-ID werken dus met de verify-API.
+4. Sandbox-betaling van de gebruiker mislukte ("Betalen lukt nu niet"): PayPal gaf `403 Authorization failed due to insufficient permissions` bij het maken van de factuur. Het token van de app heeft 28 scopes maar geen voor Invoicing: in de app moet de feature Invoicing aan.
+5. Code: na een 403 ook het bewaarde PayPal-token vergeten (net als na 401), zodat een later aangezet recht direct werkt; test met `it.each` voor 401/403 en een test dat andere fouten het token houden (19 tests in `paypal.test.ts`). README: Invoicing aanzetten bij het maken van de sandbox-app.
+
+---
+
+## Stap 88 — PayPal-sandbox getest; besluit: geen naam bij PayPal (17 oktober 2026)
+
+**Vraag:**
+> try again / restart dev server and try again / done
+
+**Uitgevoerde handelingen:**
+1. Sleutels gecontroleerd (alleen scopes, nooit waarden): de eerste app kreeg Invoicing niet actief; de tweede app bleek een **Live**-app (sandbox 401, live 200), de derde een Sandbox-app met Invoicing (29 scopes, facturen lezen 200). Dev-server herstart.
+2. Zelf een PayPal-betaling gestart in de echte sandbox: factuur zonder ontvanger maken en versturen lukt, QR-code komt als PNG (base64), betaallink naar `sandbox.paypal.com/invoice/p/#...`, geen fouten.
+3. Betaling van de gebruiker: in `dev` betaald, 4 credits, 4 rondes gekoppeld, maar zonder naam. De eerste webhook werd geweigerd (401): `PAYPAL_WEBHOOK_ID` hoorde bij de oude app. Het juiste ID (`4CX50811G74192255`, niet geheim) in `.env.local` gezet; na Resend door de gebruiker: 200.
+4. Naam van de betaler gezocht: niet in de factuur, niet in `/v2/payments/captures`, niet in `/v1/payments/sale`; alleen Transaction Search heeft hem, maar die feature werd niet actief (403) en heeft tot 3 uur vertraging. **Besluit gebruiker:** facturen houden, geen naam bij PayPal ("Zonder naam"). README, `paypal.ts` en `current-feature.md` bijgewerkt; code ongewijzigd (een naam wordt nog wel opgeslagen als PayPal hem meegeeft).
+5. Cloudflare-tunnel gestopt; tijdelijke scripts verwijderd. Open: een onbetaalde testfactuur (betaling #13) in de sandbox, en de betaalmethode PayPal staat nog opgeslagen in de `dev`-database.
+
+---
+
+## Stap 89 — Sandbox-webhook naar een vast preview-adres (17 oktober 2026)
+
+**Vraag:**
+> lets fix the Old webhook URL
+
+**Uitgevoerde handelingen:**
+1. Keuze gebruiker: de webhook naar de preview van deze branch. CLI-deploys krijgen geen vast branch-adres; `gokkast-preview.vercel.app` was vrij en is aan het project gekoppeld (`vercel alias set`).
+2. Workflow: stap "Vast preview-adres" geeft elke preview dat adres (alleen bij previews).
+3. `webhookUrl` (Mollie): in previews met `VERCEL_AUTOMATION_BYPASS_SECRET` het bypass-geheim in de URL (`?x-vercel-protection-bypass=`), zodat Deployment Protection de webhook doorlaat; nooit in productie. Test erbij (275 Vitest-tests).
+4. Vercel Preview: `PAYPAL_CLIENT_ID`, `PAYPAL_CLIENT_SECRET`, `PAYPAL_WEBHOOK_ID` toegevoegd vanuit `.env.local` (waarden niet getoond, als secret). Gebruiker maakte het bypass-geheim aan in Vercel (Protection Bypass for Automation).
+5. Gezien: `MOLLIE_API_KEY` staat in Vercel ook voor Production (README zegt leeg tot 12a); gemeld, niet aangepast.
+6. Feature-branch gecommit en gepusht voor de preview.
+
+---
+
 ## Huidige bestandsstructuur
 
 ```
