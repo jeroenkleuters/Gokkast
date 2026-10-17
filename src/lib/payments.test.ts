@@ -10,6 +10,7 @@ import {
   mollieAmount,
   newPaymentReference,
   newPaymentToken,
+  PAYPAL_LIVE_API_URL,
   PAYPAL_SANDBOX_API_URL,
   readMollieConfig,
   readPayPalConfig,
@@ -152,7 +153,14 @@ describe("readPayPalConfig (taak 13b)", () => {
   });
 
   it("gebruikt de sandbox, met het webhook-ID als dat er is", () => {
-    expect(readPayPalConfig(keys)).toEqual({ clientId: "client", clientSecret: "secret", apiUrl: PAYPAL_SANDBOX_API_URL, webhookId: null });
+    expect(readPayPalConfig(keys)).toEqual({
+      clientId: "client",
+      clientSecret: "secret",
+      apiUrl: PAYPAL_SANDBOX_API_URL,
+      webhookId: null,
+      live: false,
+    });
+    expect(readPayPalConfig({ ...keys, PAYPAL_ENV: " Sandbox " })?.live).toBe(false);
     expect(readPayPalConfig({ ...keys, PAYPAL_WEBHOOK_ID: "WH-1" })?.webhookId).toBe("WH-1");
     expect(readPayPalConfig({ ...keys, VERCEL_ENV: "preview" })?.apiUrl).toBe(PAYPAL_SANDBOX_API_URL);
   });
@@ -165,10 +173,31 @@ describe("readPayPalConfig (taak 13b)", () => {
     expect(error).toHaveBeenCalledTimes(2);
   });
 
-  it("staat uit in productie: live betalen volgt in taak 12b", () => {
+  it("productie zonder PAYPAL_ENV=live: PayPal uit (nooit de sandbox in productie)", () => {
     const error = vi.spyOn(console, "error").mockImplementation(() => {});
     expect(readPayPalConfig({ ...keys, VERCEL_ENV: "production" })).toBeNull();
-    expect(error).toHaveBeenCalledOnce();
+    expect(readPayPalConfig({ ...keys, VERCEL_ENV: "production", PAYPAL_ENV: "sandbox" })).toBeNull();
+    expect(error).toHaveBeenCalledTimes(2);
+  });
+
+  it("productie met PAYPAL_ENV=live: de live-API, ook als PAYPAL_API_URL iets anders zegt (taak 12b)", () => {
+    const live = { ...keys, VERCEL_ENV: "production", PAYPAL_ENV: "live", PAYPAL_WEBHOOK_ID: "WH-LIVE" };
+    expect(readPayPalConfig(live)).toEqual({
+      clientId: "client",
+      clientSecret: "secret",
+      apiUrl: PAYPAL_LIVE_API_URL,
+      webhookId: "WH-LIVE",
+      live: true,
+    });
+    expect(readPayPalConfig({ ...live, PAYPAL_API_URL: "http://localhost:3103" })?.apiUrl).toBe(PAYPAL_LIVE_API_URL);
+  });
+
+  it("PAYPAL_ENV=live buiten productie wordt geweigerd: nooit echt geld in preview of lokaal", () => {
+    const error = vi.spyOn(console, "error").mockImplementation(() => {});
+    expect(readPayPalConfig({ ...keys, PAYPAL_ENV: "live" })).toBeNull();
+    expect(readPayPalConfig({ ...keys, PAYPAL_ENV: "live", VERCEL_ENV: "preview" })).toBeNull();
+    expect(readPayPalConfig({ ...keys, PAYPAL_ENV: "echt" })).toBeNull();
+    expect(error).toHaveBeenCalledTimes(3);
   });
 
   it("de prijs geldt voor Mollie en PayPal", () => {

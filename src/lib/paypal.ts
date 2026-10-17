@@ -10,6 +10,7 @@ import {
 } from "@/lib/payments";
 
 export interface PayPalClient extends PaymentClient {
+  live: boolean; // echte betalingen (live-API); false = sandbox
   qrCode(id: string): Promise<string>; // data-URL met de PNG van PayPal
   verifyWebhook(headers: Headers, rawBody: string): Promise<boolean>;
 }
@@ -171,6 +172,8 @@ export function createPayPalClient(config: PayPalConfig, fetchFn: typeof fetch =
   }
 
   return {
+    live: config.live,
+
     // Factuur maken (concept) en versturen zonder e-mail: dan is hij te betalen via de link en de QR-code
     async createPayment({ amountCents, description, reference }) {
       const amount = { currency_code: "EUR", value: mollieAmount(amountCents) };

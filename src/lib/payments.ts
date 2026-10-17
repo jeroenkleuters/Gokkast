@@ -17,9 +17,10 @@ export const isFinalStatus = (status: PaymentStatus) => ["paid", "canceled", "ex
 export const DEFAULT_PRICE_CENTS = 100; // 4 spelletjes voor € 1,00
 export const MAX_PRICE_CENTS = 10000;
 export const MOLLIE_API_URL = "https://api.mollie.com/v2";
-// Alleen de sandbox van PayPal; live betalen volgt in taak 12b
+// PayPal: de sandbox overal, live alleen in productie met PAYPAL_ENV=live (taak 12b)
 export const PAYPAL_SANDBOX_API_URL = "https://api-m.sandbox.paypal.com";
-const PAYPAL_LIVE_HOST = "api-m.paypal.com";
+export const PAYPAL_LIVE_API_URL = "https://api-m.paypal.com";
+const PAYPAL_LIVE_HOST = new URL(PAYPAL_LIVE_API_URL).hostname;
 
 // httpOnly-cookie met de sleutel (token) van de betaling van deze browser
 export const PAYMENT_COOKIE = "gokkast-betaling";
@@ -34,8 +35,9 @@ export interface MollieConfig {
 export interface PayPalConfig {
   clientId: string;
   clientSecret: string;
-  apiUrl: string; // de sandbox; anders alleen voor tests (nep-PayPal van Playwright)
+  apiUrl: string; // sandbox of live; anders alleen voor tests (nep-PayPal van Playwright)
   webhookId: string | null; // PAYPAL_WEBHOOK_ID: zonder ID worden webhooks geweigerd (polling werkt wel)
+  live: boolean; // echte betalingen (alleen in productie met PAYPAL_ENV=live)
 }
 
 type Env = Record<string, string | undefined>;
@@ -59,14 +61,30 @@ export function readMollieConfig(env: Env = process.env): MollieConfig | null {
   return { apiKey, apiUrl: trimUrl(env.MOLLIE_API_URL) || MOLLIE_API_URL, priceCents: readPriceCents(env) };
 }
 
-// null = PayPal staat uit: geen PAYPAL_CLIENT_ID/PAYPAL_CLIENT_SECRET, of in productie (live volgt in
-// taak 12b). Alleen de sandbox: een live-URL wordt geweigerd, ook buiten productie.
+// null = PayPal staat uit: geen PAYPAL_CLIENT_ID/PAYPAL_CLIENT_SECRET, of een omgeving die niet mag.
+// - Productie (VERCEL_ENV=production): alleen live, en alleen met PAYPAL_ENV=live. Zonder die vlag
+//   staat PayPal uit, zodat er nooit met sandbox-accounts "betaald" kan worden.
+// - Elders (preview, lokaal, tests): altijd de sandbox; PAYPAL_ENV=live of een live-URL wordt
+//   geweigerd, zodat er buiten productie nooit echt geld wordt geïnd.
 export function readPayPalConfig(env: Env = process.env): PayPalConfig | null {
   const clientId = (env.PAYPAL_CLIENT_ID ?? "").trim();
   const clientSecret = (env.PAYPAL_CLIENT_SECRET ?? "").trim();
   if (!clientId || !clientSecret) return null;
+  const mode = (env.PAYPAL_ENV ?? "").trim().toLowerCase() || "sandbox";
+  if (mode !== "sandbox" && mode !== "live") {
+    console.error("PAYPAL_ENV moet sandbox of live zijn; PayPal staat uit.");
+    return null;
+  }
+  const webhookId = (env.PAYPAL_WEBHOOK_ID ?? "").trim() || null;
   if (env.VERCEL_ENV === "production") {
-    console.error("PayPal staat uit in productie: live betalen met PayPal volgt in taak 12b.");
+    if (mode !== "live") {
+      console.error("PayPal staat uit in productie: zet PAYPAL_ENV=live met de sleutels van de live-app.");
+      return null;
+    }
+    return { clientId, clientSecret, apiUrl: PAYPAL_LIVE_API_URL, webhookId, live: true };
+  }
+  if (mode === "live") {
+    console.error("PAYPAL_ENV=live mag alleen in productie; PayPal staat uit.");
     return null;
   }
   const apiUrl = trimUrl(env.PAYPAL_API_URL) || PAYPAL_SANDBOX_API_URL;
@@ -78,10 +96,10 @@ export function readPayPalConfig(env: Env = process.env): PayPalConfig | null {
     return null;
   }
   if (host === PAYPAL_LIVE_HOST) {
-    console.error("PAYPAL_API_URL wijst naar live PayPal; PayPal staat uit. Live betalen volgt in taak 12b.");
+    console.error("PAYPAL_API_URL wijst naar live PayPal; dat mag alleen in productie. PayPal staat uit.");
     return null;
   }
-  return { clientId, clientSecret, apiUrl, webhookId: (env.PAYPAL_WEBHOOK_ID ?? "").trim() || null };
+  return { clientId, clientSecret, apiUrl, webhookId, live: false };
 }
 
 // Wat Mollie en PayPal na het aanmaken of ophalen van een betaling teruggeven

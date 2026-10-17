@@ -12,7 +12,7 @@ import {
 
 const ID = "INV2-Z56S-5LLA-Q52L-CPZ5";
 const PAYER_VIEW = `https://www.sandbox.paypal.com/invoice/p/#${ID}`;
-const config = { clientId: "client", clientSecret: "secret", apiUrl: "https://paypal.test", webhookId: "WH-1" };
+const config = { clientId: "client", clientSecret: "secret", apiUrl: "https://paypal.test", webhookId: "WH-1", live: false };
 
 const invoice = (status: string, extra: Record<string, unknown> = {}) => ({
   id: ID,

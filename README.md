@@ -134,10 +134,10 @@ ontwikkelen en testen; laat dit in productie uit.
 
 Betalen gaat via [Mollie](https://docs.mollie.com/docs/getting-started) of
 [PayPal](https://developer.paypal.com/api/invoicing/v2/) (zie [Betalen met PayPal](#betalen-met-paypal)),
-voorlopig **alleen in de testmodus**: de app accepteert alleen een Mollie-test-key (`test_...`) en de
-PayPal-sandbox, dus er wordt geen echt geld afgeschreven. Live betalen volgt in taak 12a (Mollie) en
-12b (PayPal). Welke methode spelers gebruiken kies je in de game-manager (tab Instellingen);
-standaard is dat Mollie.
+Mollie draait **alleen in de testmodus** (alleen een test-key `test_...`; live volgt in taak 12a).
+PayPal is **live in productie** met `PAYPAL_ENV=live` (taak 12b) en gebruikt overal anders de sandbox.
+De betaalpopup zegt "Testomgeving: er wordt geen echt geld afgeschreven" alleen bij een testbetaling.
+Welke methode spelers gebruiken kies je in de game-manager (tab Instellingen); standaard is dat Mollie.
 
 - Een speler zonder credits klikt op **SPEEL** → een popup met een QR-code. Die hoort bij een eigen
   Mollie-betaling voor deze speler (per speler een unieke betaallink). Scannen met de telefoon, of
@@ -184,8 +184,10 @@ popup de QR-code die PayPal zelf maakt
 ([generate-qr-code](https://developer.paypal.com/api/invoicing/v2/invoices-generate-qr-code)). Lukt
 die QR-code niet, dan maakt de app er zelf een van de betaallink.
 
-- **Alleen de sandbox** (`https://api-m.sandbox.paypal.com`): lokaal, in previews en in de tests. In
-  productie staat PayPal uit (ook met sleutels) en een live-URL wordt geweigerd; live volgt in taak 12b.
+- **Live alleen in productie** (taak 12b): met `PAYPAL_ENV=live` en `VERCEL_ENV=production` gebruikt
+  de app `https://api-m.paypal.com` en wordt er echt betaald. Zonder die vlag staat PayPal in productie
+  **uit** (nooit de sandbox in productie). Lokaal, in previews en in de tests altijd de sandbox
+  (`https://api-m.sandbox.paypal.com`); `PAYPAL_ENV=live` of een live-URL wordt daar geweigerd.
 - PayPal stuurt de betaler na betalen **niet terug** naar het spel. "Of betaal op dit apparaat" opent
   daarom een nieuw tabblad; de popup in het spel ziet de betaling zelf (elke 3 seconden).
 - **Geen naam en geen rekeningnummer.** Een betaalde factuur bevat de naam van de betaler niet (getest in
@@ -202,7 +204,8 @@ die QR-code niet, dan maakt de app er zelf een van de betaallink.
 
 | Variabele               | Betekenis                                                           | Standaard |
 | ----------------------- | ------------------------------------------------------------------- | --------- |
-| `PAYPAL_CLIENT_ID`      | Client-ID van de sandbox-app op developer.paypal.com. Leeg = PayPal uit | leeg  |
+| `PAYPAL_ENV`            | `live` = echte betalingen, alleen in productie; anders de sandbox | leeg (sandbox) |
+| `PAYPAL_CLIENT_ID`      | Client-ID van de app op developer.paypal.com (sandbox, of live in productie). Leeg = PayPal uit | leeg |
 | `PAYPAL_CLIENT_SECRET`  | Secret van dezelfde app                                             | leeg      |
 | `PAYPAL_WEBHOOK_ID`     | ID van de webhook in die app (events *Invoice paid* en *Invoice cancelled*) | leeg |
 | `GAME_PAYMENT_PROVIDER` | Standaard betaalmethode als er in de game-manager niets gekozen is: `mollie` of `paypal` | `mollie` |
@@ -219,6 +222,13 @@ ervan staat als `PAYPAL_WEBHOOK_ID` in `.env.local` en in Vercel (Preview). Loka
 dus niet aan; wil je dat wel, dan kan het met een tijdelijke tunnel (`cloudflared tunnel --url
 http://localhost:3000`) en de webhook-URL tijdelijk op dat adres. Let op: client-ID, secret en
 webhook-ID moeten van dezelfde **Sandbox**-app zijn (niet Live), anders weigert PayPal de handtekening.
+
+**Live (productie, taak 12b).** In de *Live*-app op developer.paypal.com (zakelijk account, feature
+**Invoicing** aan) staat een eigen webhook op `https://gokkast.vercel.app/api/paypal/webhook` (events
+*Invoice paid* en *Invoice cancelled*). In Vercel staan alleen voor **Production** `PAYPAL_ENV=live`
+en de client-ID, het secret en het webhook-ID van die live-app. Live-sleutels nooit in `.env.local`:
+lokaal weigert de app ze toch (`PAYPAL_ENV=live` mag alleen in productie). Verandert het domein, pas
+dan de webhook-URL in de live-app aan.
 
 ## Database
 
@@ -371,8 +381,9 @@ De spelinstellingen (zie [Instellingen](#instellingen)) staan in Vercel onder
 | `AUTH_GOOGLE_ID` / `AUTH_GOOGLE_SECRET` | Google OAuth-client | idem | idem |
 | `GAME_MANAGER_ADMINS`     | beheerders | beheerders | beheerders |
 | `MOLLIE_API_KEY`          | leeg (taak 12a) | Mollie test-key | Mollie test-key |
-| `PAYPAL_CLIENT_ID` / `PAYPAL_CLIENT_SECRET` | leeg (taak 12b) | PayPal-sandbox-app | PayPal-sandbox-app |
-| `PAYPAL_WEBHOOK_ID`       | leeg (taak 12b) | webhook-ID sandbox-app | leeg |
+| `PAYPAL_ENV`              | `live`     | leeg (sandbox) | leeg (sandbox) |
+| `PAYPAL_CLIENT_ID` / `PAYPAL_CLIENT_SECRET` | PayPal-live-app | PayPal-sandbox-app | PayPal-sandbox-app |
+| `PAYPAL_WEBHOOK_ID`       | webhook-ID live-app | webhook-ID sandbox-app | leeg |
 | `GAME_PAYMENT_PROVIDER`   | leeg (Mollie) | leeg (Mollie) | leeg (Mollie) |
 | `GAME_PRICE_CENTS`        | `100`      | `100`   | `100`       |
 | `PAYMENT_ENCRYPTION_KEY`  | eigen sleutel | sleutel `dev` | sleutel `dev` (zelfde als Preview) |

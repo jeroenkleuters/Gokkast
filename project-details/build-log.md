@@ -1235,6 +1235,56 @@ Melding gebruiker: in de database alleen `LOST`, ook na winst. Oorzaak: de dev-s
 
 ---
 
+## Stap 92 — Feature geladen: PayPal productieomgeving (17 oktober 2026)
+
+**Vraag:**
+> op productie krijg ik "PayPal is gekozen maar niet ingesteld op deze server:" / ik wil wel paypall instellen op productie, mijn molly account moet nog geverifeerd worden door mollie zelf / okay
+
+**Uitgevoerde handelingen:**
+1. Oorzaak van de melding: in Vercel Production staat geen `GAME_PAYMENT_PROVIDER`, dus in de productiedatabase is PayPal gekozen; PayPal staat daar bewust uit (sandbox-only tot 12b). Gemeld dat productie nu met de Mollie-test-key betaalt.
+2. Taak 12b geladen in `current-feature.md`: live alleen in productie met `PAYPAL_ENV=live`, sandbox elders, testmelding per methode, live-webhook en -sleutels in Vercel Production, echte testbetaling met terugbetaling.
+
+---
+
+## Stap 93 — Feature gestart: PayPal productieomgeving (17 oktober 2026)
+
+**Vraag:**
+> /feature start
+
+**Uitgevoerde handelingen:**
+1. Branch `feature/paypal-productie`; status In Progress.
+2. `readPayPalConfig` (`payments.ts`): productie alleen met `PAYPAL_ENV=live` en dan altijd `https://api-m.paypal.com` (`live: true`); productie zonder die vlag → PayPal uit; buiten productie altijd de sandbox, `PAYPAL_ENV=live` of een live-URL geweigerd; ongeldige `PAYPAL_ENV` → uit.
+3. `PayPalClient.live`; `isTestPayment` (`paymentService.ts`): Mollie altijd test, PayPal alleen echt met de live-API. `startPayment` geeft `testMode` mee; de popup toont de testmelding alleen bij een testbetaling.
+4. Tests: 278 Vitest (o.a. productie zonder/met vlag, live buiten productie geweigerd, `isTestPayment`), 33 Playwright (PayPal-sandbox toont de testmelding). Playwright-servers zetten `PAYPAL_ENV` leeg.
+5. README (live in productie, live-app en -webhook, tabel per omgeving) en `.env.example` (`PAYPAL_ENV`).
+
+---
+
+## Stap 94 — Live-sleutels van PayPal in Vercel Production (17 oktober 2026)
+
+**Vraag:**
+> klaar
+
+**Uitgevoerde handelingen:**
+1. Gebruiker maakte in de live-app een webhook op `https://gokkast.vercel.app/api/paypal/webhook` (Invoice paid/cancelled) en zette de live-sleutels in een tijdelijk bestand `.env.paypal-live` (door git genegeerd).
+2. Gecontroleerd zonder waarden te tonen: sandbox weigert de sleutels (401), live accepteert ze (200), Invoicing-recht aanwezig, het webhook-ID hoort bij deze live-app.
+3. In Vercel alleen voor Production: `PAYPAL_CLIENT_ID`, `PAYPAL_CLIENT_SECRET`, `PAYPAL_WEBHOOK_ID` (sensitive) en `PAYPAL_ENV=live`. Tijdelijk bestand en script verwijderd. De huidige productiecode weigert PayPal nog; actief na het afronden van de feature.
+
+---
+
+## Stap 95 — Feature afgerond: PayPal productieomgeving (17 oktober 2026)
+
+**Vraag:**
+> /feature complete
+
+**Uitgevoerde handelingen:**
+1. Taak 12b afgevinkt in `to-do.md`; feature gecommit, in `main` gemerged en de lokale branch verwijderd (stond niet op origin).
+2. `current-feature.md` teruggezet met de samenvatting in History; `main` gepusht: CI test en deployt productie, met `PAYPAL_ENV=live` en de live-sleutels in Vercel Production.
+3. Dev-server gestopt, `.next` verwijderd en `npm run dev` opnieuw gestart.
+4. Open: de echte testbetaling van € 1,00 op productie (en terugbetalen).
+
+---
+
 ## Huidige bestandsstructuur
 
 ```

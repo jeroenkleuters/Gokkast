@@ -66,6 +66,11 @@ export function defaultPaymentDeps(): PaymentDeps | null {
 const clientFor = (provider: PaymentProvider, deps: PaymentDeps): PaymentClient | null =>
   provider === "paypal" ? deps.paypal : deps.mollie;
 
+// Testbetaling (geen echt geld)? Mollie draait alleen met een test-key (live volgt in taak 12a);
+// PayPal is alleen echt met de live-API in productie (taak 12b).
+export const isTestPayment = (provider: PaymentProvider, deps: PaymentDeps): boolean =>
+  provider === "mollie" || !deps.paypal?.live;
+
 // Wat de browser van de betaling mag weten
 export interface PaymentView {
   status: PaymentStatus | "none"; // none: deze browser heeft (nog) geen betaling

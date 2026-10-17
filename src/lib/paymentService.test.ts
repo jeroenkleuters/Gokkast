@@ -5,6 +5,7 @@ import type { CreatePaymentInput, MollieClient, MolliePayment } from "@/lib/moll
 import {
   choosePaymentProvider,
   getPlayerPayment,
+  isTestPayment,
   getReturnPayment,
   loadPaymentInfo,
   NO_PAYMENT,
@@ -332,6 +333,7 @@ function fakePayPal() {
       return `data:image/png;base64,QR-${id}`;
     },
     verifyWebhook: async () => true,
+    live: false,
   };
   function pay(id: string, name: string | null) {
     Object.assign(invoices.get(id)!, { status: "paid", consumerName: name, checkoutUrl: null, paidAt: "2026-10-15" });
@@ -449,5 +451,16 @@ describe("choosePaymentProvider", () => {
     expect(choosePaymentProvider("paypal", { mollie: true, paypal: false })).toBe("mollie");
     expect(choosePaymentProvider("mollie", { mollie: false, paypal: true })).toBe("paypal");
     expect(warn).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe("isTestPayment (taak 12b)", () => {
+  const deps = (paypal: { live: boolean } | null) => ({ paypal }) as unknown as PaymentDeps;
+
+  it("Mollie is altijd een test (alleen een test-key); PayPal alleen echt met de live-API", () => {
+    expect(isTestPayment("mollie", deps({ live: true }))).toBe(true);
+    expect(isTestPayment("paypal", deps({ live: false }))).toBe(true);
+    expect(isTestPayment("paypal", deps(null))).toBe(true);
+    expect(isTestPayment("paypal", deps({ live: true }))).toBe(false);
   });
 });

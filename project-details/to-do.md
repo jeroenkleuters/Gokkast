@@ -86,7 +86,7 @@ De taken staan in volgorde: latere taken bouwen voort op eerdere.
   - Live-API-key alleen in de productie-omgeving van Vercel
   - Controleren dat preview/ontwikkeling altijd de testmodus gebruikt
 
-- [ ] **12b. PayPal productieomgeving** (na 13b)
+- [x] **12b. PayPal productieomgeving** (na 13b)
   - Live-app aanmaken op developer.paypal.com (zakelijk PayPal-account nodig), client-ID en secret van de live-app
   - Live-client-ID/secret alleen in de productie-omgeving van Vercel; Preview en Development houden de sandbox-gegevens
   - Code: live-URL `https://api-m.paypal.com` alleen toestaan in productie (zoals 12a voor Mollie); controleren dat preview/ontwikkeling altijd de sandbox gebruiken

@@ -14,7 +14,7 @@ interface PaymentDialogProps {
 
 type Phase =
   | { kind: "loading" }
-  | { kind: "ready"; qr: string | null; checkoutUrl: string; provider: PaymentProvider }
+  | { kind: "ready"; qr: string | null; checkoutUrl: string; provider: PaymentProvider; testMode: boolean }
   | { kind: "failed"; message: string };
 
 const POLL_MS = 3000;
@@ -37,7 +37,13 @@ export default function PaymentDialog({ price, credits, onPaid, onClose }: Payme
         if (!result.ok) return setPhase({ kind: "failed", message: result.error });
         if (result.payment.creditsLeft > 0) return paid(result.payment);
         if (!result.payment.checkoutUrl) throw new Error("geen betaallink");
-        setPhase({ kind: "ready", qr: result.qr, checkoutUrl: result.payment.checkoutUrl, provider: result.provider });
+        setPhase({
+          kind: "ready",
+          qr: result.qr,
+          checkoutUrl: result.payment.checkoutUrl,
+          provider: result.provider,
+          testMode: result.testMode,
+        });
       })
       .catch(() => active && setPhase({ kind: "failed", message: "Betalen lukt nu niet. Probeer het later opnieuw." }));
     return () => {
@@ -108,7 +114,10 @@ export default function PaymentDialog({ price, credits, onPaid, onClose }: Payme
           </>
         )}
 
-        <p className="testmode">Testomgeving: er wordt geen echt geld afgeschreven.</p>
+        {/* Alleen bij een testbetaling; bij live PayPal wordt er echt betaald (taak 12b) */}
+        {phase.kind === "ready" && phase.testMode && (
+          <p className="testmode">Testomgeving: er wordt geen echt geld afgeschreven.</p>
+        )}
         <div className="row">
           <button className="cancel" autoFocus onClick={onClose}>
             Sluiten

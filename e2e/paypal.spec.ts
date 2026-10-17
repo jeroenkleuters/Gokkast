@@ -52,6 +52,8 @@ test("met PayPal: QR-code van PayPal, betalen in een nieuw tabblad, de popup zie
 
   await expect(popup(page)).toContainText("4 spelletjes voor € 1,00");
   await expect(popup(page)).toContainText("betaal met PayPal");
+  // Sandbox: de testmelding staat erbij (bij live PayPal in productie niet, taak 12b)
+  await expect(popup(page)).toContainText("Testomgeving: er wordt geen echt geld afgeschreven.");
   // De QR-code komt van PayPal (generate-qr-code), niet van onze eigen QR-maker
   expect(await qr(page).getAttribute("src")).toBe(`data:image/png;base64,${MOCK_PAYPAL_QR}`);
   await expect(payLink(page)).toHaveAttribute("href", /\/invoice\/p\/INV2-E2E0-0000-0000-\d{4}$/);

@@ -39,6 +39,7 @@ const testEnv = {
   PAYPAL_CLIENT_ID: "",
   PAYPAL_CLIENT_SECRET: "",
   PAYPAL_WEBHOOK_ID: "",
+  PAYPAL_ENV: "",
   GAME_PAYMENT_PROVIDER: "",
 };
 

@@ -1,16 +1,29 @@
-# Current Feature
+# Current Feature: PayPal productieomgeving (taak 12b)
 
 ## Status
 
-Not Started
+Complete
 
 ## Goals
 
-<!-- Doelen van de feature, in te vullen met /feature load -->
+- **Live alleen in productie:** met `PAYPAL_ENV=live` gebruikt de app de live-API van PayPal (`https://api-m.paypal.com`), maar alleen als `VERCEL_ENV=production`. Preview, lokaal en de tests gebruiken altijd de sandbox; `PAYPAL_ENV=live` buiten productie wordt geweigerd (PayPal uit, foutmelding in de serverlog)
+- **Geen sandbox in productie:** zonder `PAYPAL_ENV=live` blijft PayPal in productie uit (zoals nu), zodat spelers daar nooit met een sandbox-account kunnen "betalen"
+- **Testmelding per methode:** de betaalpopup toont "Testomgeving: er wordt geen echt geld afgeschreven" alleen bij een testbetaling (Mollie-test-key of PayPal-sandbox), niet bij live PayPal; de hint zegt bij live PayPal gewoon "betaal met PayPal"
+- **Live-instellingen (gebruiker, met hulp):** in de bestaande live-app (Invoicing staat aan) een webhook op `https://gokkast.vercel.app/api/paypal/webhook` (Invoice paid, Invoice cancelled); in Vercel Production `PAYPAL_ENV=live`, `PAYPAL_CLIENT_ID`, `PAYPAL_CLIENT_SECRET`, `PAYPAL_WEBHOOK_ID` van de live-app (waarden nooit tonen of in git)
+- **Betaalmethode op productie:** PayPal gekozen in Instellingen (staat al opgeslagen in Neon `main`); de melding "PayPal is gekozen maar niet ingesteld" verdwijnt
+- **Echte testbetaling:** één betaling van € 1,00 in productie: QR scannen, betalen, 4 credits, webhook 200, betaling met methode PayPal in de game-manager (zonder naam, besluit 13b); daarna terugbetalen via PayPal
+- Tests: Vitest voor de configuratie per omgeving (live alleen in productie met de vlag, sandbox elders, weigeren buiten productie) en de testmelding; Playwright blijft groen; lint, typecheck, Vitest en Playwright zonder fouten; README en `.env.example` bijgewerkt
 
 ## Notes
 
-<!-- Extra context, beperkingen of details uit de spec -->
+- Bron: `project-details/to-do.md`, taak 12b (het punt "naam in de game-manager" vervalt: besluit 13b, PayPal-facturen hebben geen naam).
+- Huidige code: `readPayPalConfig` (`src/lib/payments.ts`) zet PayPal uit bij `VERCEL_ENV=production` en weigert de host `api-m.paypal.com`; `PaymentDialog.tsx` r. 111 toont de testmelding altijd; `e2e/betalen.spec.ts` r. 69 verwacht "Testomgeving" bij Mollie (blijft zo). `StartPaymentResponse` (`src/app/actions.ts`) geeft al `provider` mee; daar komt `testMode` bij.
+- Waarom een vlag (`PAYPAL_ENV=live`) en niet automatisch live in productie: live sleutels zonder bewuste keuze mogen nooit per ongeluk geld innen, en sandbox-sleutels in Production mogen PayPal niet "aan" zetten.
+- Live-app: de gebruiker heeft er al één met Invoicing (client-ID begint met `BAANFLmf`, 29 scopes). Zakelijk account en verkopersgegevens (naam, e-mail, logo op de factuur) controleren de gebruiker.
+- Sleutels in Vercel zetten: de gebruiker zet ze tijdelijk in een apart bestand buiten git (bijv. `.env.paypal-live`; `.gitignore` sluit `.env*` uit) en ik zet ze met `vercel env add ... production --sensitive` zonder ze te tonen; daarna het bestand verwijderen. Live-sleutels nooit in `.env.local`.
+- Productie draait Mollie nu met een test-key (`MOLLIE_API_KEY` staat ook in Production); Mollie live blijft taak 12a (account wordt nog geverifieerd door Mollie). Is PayPal live gekozen maar valt het weg, dan vangt die Mollie-test-key het op (testbetalingen).
+- Domein: to-do noemt `jackpot.broadsight.nl`; de live-webhook gaat nu naar `gokkast.vercel.app` en moet bij een nieuw domein in PayPal worden aangepast.
+- Een migratie is niet nodig.
 
 ## History
 
