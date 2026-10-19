@@ -1,0 +1,155 @@
+/* Jungle-design (versie 3, taak 1). Het speelveld is 1024x768, net als het originele design; de
+   schildering erachter is 1376x768 en begint 64 px links van het speelveld (designs.ts). Alle posities
+   hieronder zijn speelveld-px: positie in de schildering min 64 (zie scripts/jungle-achtergrond.mjs).
+   #game.jungle staat voor elke regel, zodat die boven de regels van het originele design gaat. */
+
+#game.jungle {
+  background: none;
+  overflow: visible; /* de schildering steekt buiten het speelveld uit */
+  font-family: var(--font-board), "Segoe UI", Arial, sans-serif;
+}
+#game.jungle::before {
+  content: ""; position: absolute; left: -64px; top: 0;
+  width: 1376px; height: 768px;
+  background: url(/images/jungle/achtergrond.jpg) 0 0 / 100% 100% no-repeat;
+  pointer-events: none;
+}
+
+/* Rest van het venster (smaller of breder dan de schildering): dezelfde schildering, vervaagd */
+#backdrop {
+  position: fixed; inset: 0;
+  background: #0d1608 url(/images/jungle/achtergrond.jpg) center / cover no-repeat;
+  filter: blur(24px) brightness(.5);
+  transform: scale(1.15);
+}
+
+/* ---------- Rollen in de vensters van de kast ---------- */
+#game.jungle #reels {
+  left: 419px; top: 340px;
+  width: 412px; height: 272px;
+  display: block; padding: 0;
+  background: none; border: none; border-radius: 0; box-shadow: none;
+}
+#game.jungle .reel {
+  position: absolute; top: 0;
+  width: 128px; height: 272px; /* binnenhoogte 268, zie LAYOUTS.jungle */
+  border-color: #3a2a1a;
+}
+#game.jungle .reel[data-reel="0"] { left: 0; }
+#game.jungle .reel[data-reel="1"] { left: 144px; }
+#game.jungle .reel[data-reel="2"] { left: 284px; }
+#game.jungle .reel.held { border-color: #ff3b3b; }
+#game.jungle .cell { width: 100%; height: 90px; } /* LAYOUTS.jungle.cell */
+#game.jungle .cell img { width: 82px; height: 82px; border-radius: 7px; }
+#game.jungle #payline { left: -3px; right: -3px; top: 135px; }
+#game.jungle .payarrow { top: 123px; border-top-width: 13px; border-bottom-width: 13px; }
+#game.jungle .payarrow.l { left: -7px; border-left-width: 15px; }
+#game.jungle .payarrow.r { right: -7px; border-right-width: 15px; }
+
+/* ---------- Knoppen op het houten dek: VAST VAST VAST DRAAI ---------- */
+#game.jungle #panel {
+  left: 0; top: 0; right: auto; width: 0; height: 0;
+  background: none; border: none;
+}
+#game.jungle .holdbtn,
+#game.jungle #playbtn {
+  top: 628px; margin-top: 0; height: 48px;
+  border-radius: 7px;
+  font-family: var(--font-board), Arial, sans-serif; font-weight: 800; font-size: 19px; letter-spacing: .5px;
+}
+#game.jungle .holdbtn {
+  width: 92px;
+  border: 2px solid #4a3220;
+  background: linear-gradient(#dcb88a, #b48a5c 55%, #8f6a42);
+  color: #3a2410;
+  text-shadow: 0 1px 0 rgba(255,235,200,.6);
+  box-shadow: 0 5px 0 #4a3220, 0 7px 6px rgba(0,0,0,.55), inset 0 2px 3px rgba(255,255,255,.45);
+}
+#game.jungle .holdbtn[data-reel="0"] { left: 437px; }
+#game.jungle .holdbtn[data-reel="1"] { left: 581px; }
+#game.jungle .holdbtn[data-reel="2"] { left: 721px; }
+#game.jungle .holdbtn:disabled { filter: saturate(.5) brightness(.7); }
+#game.jungle .holdbtn:active:not(:disabled) { transform: translateY(4px); box-shadow: 0 1px 0 #4a3220; }
+#game.jungle .holdbtn.on {
+  background: linear-gradient(#ff8a6a, #e0301a 60%, #a01808);
+  color: #fff; text-shadow: 0 1px 0 #600;
+  box-shadow: 0 2px 0 #4a1a10, 0 0 16px #ff4020, inset 0 2px 3px rgba(255,255,255,.5);
+  transform: translateY(3px);
+}
+#game.jungle #playbtn {
+  left: 824px; width: 84px;
+  border: 2px solid #3a120a;
+  background: linear-gradient(#c0583a, #8e2e18 55%, #6a1e0e);
+  color: #fff; text-shadow: 0 2px 0 #3a0a00;
+  box-shadow: 0 5px 0 #3a120a, 0 7px 6px rgba(0,0,0,.55), inset 0 2px 3px rgba(255,255,255,.35);
+}
+#game.jungle #playbtn:active:not(:disabled) { transform: translateY(4px); box-shadow: 0 1px 0 #3a120a; }
+#game.jungle #playbtn.new {
+  background: linear-gradient(#ffd75d, #d98a00); border-color: #7a4a00;
+  box-shadow: 0 5px 0 #5a3500, 0 7px 6px rgba(0,0,0,.55);
+  text-shadow: 0 1px 0 #6a3a00;
+  font-size: 14px; line-height: 1.1;
+}
+
+/* ---------- Berichtenbord (LED) ---------- */
+#game.jungle #display {
+  left: 354px; right: auto; top: 708px;
+  width: 544px; height: 46px;
+  background: none; border: none; border-radius: 0; box-shadow: none;
+  font-family: var(--font-led), "Consolas", monospace; font-size: 38px; letter-spacing: 1px;
+  color: #bff4ff; text-shadow: 0 0 6px #2ad4ff, 0 0 14px rgba(42,212,255,.6);
+  white-space: nowrap;
+}
+#game.jungle #display.win { color: #fff2a8; text-shadow: 0 0 8px #ffc400, 0 0 16px rgba(255,196,0,.7); font-size: 36px; }
+#game.jungle #display.lose { color: #ffb0a0; text-shadow: 0 0 8px #ff3a1a; font-size: 36px; }
+#game.jungle #display.info { font-size: 33px; letter-spacing: 0; }
+
+/* ---------- Hendel: stang en bal uit de schildering, de voet staat in de achtergrond ---------- */
+#game.jungle #lever { left: 950px; top: 372px; width: 80px; height: 230px; }
+#game.jungle #lever .rod,
+#game.jungle #lever .ball {
+  position: absolute;
+  background: none; border-radius: 0; box-shadow: none;
+  transition: transform .3s ease-out;
+}
+#game.jungle #lever .rod { left: 6px; top: 58px; width: 42px; height: 166px; transform-origin: 11px 164px; }
+#game.jungle #lever .ball { left: 7px; top: 5px; width: 64px; height: 64px; }
+#game.jungle #lever.pulled .rod { top: 58px; height: 166px; transform: scaleY(.45); transition-duration: .15s; }
+#game.jungle #lever.pulled .ball { top: 5px; transform: translate(-3px, 88px); transition-duration: .15s; }
+#game.jungle #lever.disabled { opacity: 1; }
+
+/* ---------- Borden links ---------- */
+#game.jungle #info {
+  left: 66px; top: 386px; width: 212px;
+  color: #f3ead8; font-family: var(--font-board), "Segoe UI", Arial, sans-serif; font-size: 16px; line-height: 1.4;
+}
+#game.jungle #info h2 {
+  font-family: inherit; font-size: 21px; font-weight: 800;
+  color: #f6c453; text-shadow: 0 2px 3px rgba(0,0,0,.6);
+}
+#game.jungle #info p { margin: 0; }
+#game.jungle #info b { color: #fff; font-weight: 800; }
+#game.jungle #stats {
+  left: 30px; top: 586px; width: 214px;
+  padding: 0; background: none; border: none; border-radius: 0;
+  color: #f3ead8; font-family: var(--font-board), "Segoe UI", Arial, sans-serif;
+  font-size: 18px; line-height: 26.5px;
+  text-shadow: 0 1px 2px rgba(0,0,0,.7);
+}
+#game.jungle #stats b { color: #f6c453; font-weight: 800; }
+
+/* ---------- Geluid en instellingen ---------- */
+#game.jungle #gear,
+#game.jungle #sound {
+  border-color: #c89b4a;
+  background: rgba(44,26,12,.8);
+  color: #ffd98a;
+}
+#game.jungle #gear:hover,
+#game.jungle #sound:hover { background: rgba(70,44,20,.9); }
+
+/* Popups (instellingen, betalen, prijzen): de donkere laag bedekt ook de schildering buiten het
+   speelveld; even ver aan alle kanten, zodat de popup in het midden van het speelveld blijft */
+#game.jungle #settings,
+#game.jungle #payment,
+#game.jungle #prizes { inset: -5000px; }

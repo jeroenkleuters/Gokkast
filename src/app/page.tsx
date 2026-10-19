@@ -3,7 +3,7 @@ import { connection } from "next/server";
 import GameClient from "@/components/GameClient";
 import { PAYMENT_COOKIE } from "@/lib/payments";
 import { defaultPaymentDeps, loadPaymentInfo } from "@/lib/paymentService";
-import { MAX_ODDS, oddsFromUrlAllowed, parsePositiveInt } from "@/lib/settings";
+import { isDesign, MAX_ODDS, oddsFromUrlAllowed, parsePositiveInt } from "@/lib/settings";
 import { loadSettings } from "@/lib/settingsStore";
 
 export default async function Home({
@@ -16,8 +16,9 @@ export default async function Home({
   const settings = await loadSettings();
 
   if (oddsFromUrlAllowed()) {
-    const kans = (await searchParams).kans;
+    const { kans, design } = await searchParams;
     settings.odds = parsePositiveInt(Array.isArray(kans) ? kans[0] : kans, MAX_ODDS) ?? settings.odds;
+    if (isDesign(design)) settings.design = design;
   }
 
   // Betalen (taak 10): alleen met een Mollie-key; anders is het spel gratis

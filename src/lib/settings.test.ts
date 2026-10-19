@@ -10,6 +10,7 @@ import {
   parseFlag,
   parsePositiveInt,
   parseSettingsForm,
+  readDefaultDesign,
   readDefaultPaymentProvider,
   readSettings,
 } from "@/lib/settings";
@@ -42,7 +43,7 @@ describe("parseFlag", () => {
 describe("readSettings", () => {
   it("gebruikt de standaardwaarden zonder .env", () => {
     expect(readSettings({})).toEqual(DEFAULT_SETTINGS);
-    expect(DEFAULT_SETTINGS).toEqual({ odds: 30, maxTries: 3, roundsPerPayment: 4 });
+    expect(DEFAULT_SETTINGS).toEqual({ odds: 30, maxTries: 3, roundsPerPayment: 4, design: "jungle" });
   });
 
   it("leest geldige waarden uit .env", () => {
@@ -50,6 +51,7 @@ describe("readSettings", () => {
       odds: 50,
       maxTries: 5,
       roundsPerPayment: 10,
+      design: "jungle",
     });
   });
 
@@ -58,6 +60,7 @@ describe("readSettings", () => {
       odds: DEFAULT_SETTINGS.odds,
       maxTries: 4,
       roundsPerPayment: DEFAULT_SETTINGS.roundsPerPayment,
+      design: "jungle",
     });
   });
 
@@ -67,7 +70,7 @@ describe("readSettings", () => {
       GAME_MAX_TRIES: String(MAX_TRIES_LIMIT),
       GAME_ROUNDS_PER_PAYMENT: String(MAX_ROUNDS_PER_PAYMENT),
     });
-    expect(atMax).toEqual({ odds: MAX_ODDS, maxTries: MAX_TRIES_LIMIT, roundsPerPayment: MAX_ROUNDS_PER_PAYMENT });
+    expect(atMax).toEqual({ odds: MAX_ODDS, maxTries: MAX_TRIES_LIMIT, roundsPerPayment: MAX_ROUNDS_PER_PAYMENT, design: "jungle" });
 
     const overMax = readSettings({
       GAME_ODDS: String(MAX_ODDS + 1),
@@ -87,13 +90,14 @@ describe("oddsFromUrlAllowed", () => {
 });
 
 describe("mergeSettings", () => {
-  const defaults = { odds: 30, maxTries: 3, roundsPerPayment: 1 };
+  const defaults = { odds: 30, maxTries: 3, roundsPerPayment: 1, design: "jungle" as const };
 
   it("neemt de waarden uit de databaserij", () => {
     expect(mergeSettings({ odds: 7, maxTries: 5, roundsPerPayment: 10 }, defaults)).toEqual({
       odds: 7,
       maxTries: 5,
       roundsPerPayment: 10,
+      design: "jungle",
       source: "database",
     });
   });
@@ -111,6 +115,7 @@ describe("mergeSettings", () => {
       odds: 30,
       maxTries: 2,
       roundsPerPayment: 1,
+      design: "jungle",
       source: "database",
     });
   });
@@ -120,12 +125,24 @@ describe("mergeSettings", () => {
       odds: 30,
       maxTries: 4,
       roundsPerPayment: 1,
+      design: "jungle",
       source: "database",
     });
     expect(mergeSettings({ odds: null, maxTries: null, roundsPerPayment: null }, defaults)).toEqual({
       ...defaults,
       source: "env",
     });
+  });
+
+  it("neemt het design uit de rij; leeg of onbekend → de standaard", () => {
+    const numbers = { odds: null, maxTries: null, roundsPerPayment: null };
+    expect(mergeSettings({ ...numbers, design: "origineel" }, defaults)).toEqual({
+      ...defaults,
+      design: "origineel",
+      source: "database",
+    });
+    expect(mergeSettings({ ...numbers, design: null }, defaults)).toEqual({ ...defaults, source: "env" });
+    expect(mergeSettings({ ...numbers, design: "neon" as never }, defaults)).toEqual({ ...defaults, source: "env" });
   });
 });
 
@@ -196,6 +213,36 @@ describe("betaalmethode (taak 13b)", () => {
     expect(parseSettingsForm(form({ paymentProvider: "contant" }))).toEqual({
       ok: false,
       errors: { paymentProvider: "Kies Mollie, PayPal of de standaard." },
+    });
+  });
+});
+
+describe("design (versie 3, taak 1)", () => {
+  const form = (fields: Record<string, string>) => new Map(Object.entries(fields));
+
+  it("standaard jungle; GAME_DESIGN kan het originele design kiezen", () => {
+    expect(readDefaultDesign({})).toBe("jungle");
+    expect(readDefaultDesign({ GAME_DESIGN: " Origineel " })).toBe("origineel");
+    expect(readDefaultDesign({ GAME_DESIGN: "jungle" })).toBe("jungle");
+    expect(readDefaultDesign({ GAME_DESIGN: "neon" })).toBe("jungle");
+    expect(readSettings({ GAME_DESIGN: "origineel" }).design).toBe("origineel");
+  });
+
+  it("leest de keuze uit het formulier: jungle, origineel of leeg (standaard)", () => {
+    expect(parseSettingsForm(form({ design: "origineel" }))).toMatchObject({ ok: true, values: { design: "origineel" } });
+    expect(parseSettingsForm(form({ design: "jungle" }))).toMatchObject({ ok: true, values: { design: "jungle" } });
+    expect(parseSettingsForm(form({ design: "" }))).toMatchObject({ ok: true, values: { design: null } });
+  });
+
+  it("zonder het veld blijft het opgeslagen design staan", () => {
+    const result = parseSettingsForm(form({ odds: "30" }));
+    expect(result.ok && "design" in result.values).toBe(false);
+  });
+
+  it("weigert een onbekend design", () => {
+    expect(parseSettingsForm(form({ design: "neon" }))).toEqual({
+      ok: false,
+      errors: { design: "Kies Jungle, Origineel of de standaard." },
     });
   });
 });

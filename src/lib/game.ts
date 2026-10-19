@@ -11,6 +11,9 @@ export const MAX_HELD = 2; // anders draait er niets meer
 
 export type RandomFn = () => number;
 
+// Berichtenbord bij het begin van een spel (het jungle-design toont een eigen tekst, zie designs.ts)
+export const READY_MESSAGE = "DRUK OP SPEEL!";
+
 export interface GameState {
   current: number[]; // symbool op de winlijn per rol
   held: boolean[];
@@ -90,7 +93,7 @@ export function initialState(maxTries: number, random: RandomFn = Math.random): 
     gameOver: false,
     played: 0,
     won: 0,
-    message: "DRUK OP SPEEL!",
+    message: READY_MESSAGE,
     messageKind: "",
   };
 }
@@ -104,7 +107,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         triesLeft: state.maxTries,
         spinsThisGame: 0,
         gameOver: false,
-        message: "DRUK OP SPEEL!",
+        message: READY_MESSAGE,
         messageKind: "",
       };
 

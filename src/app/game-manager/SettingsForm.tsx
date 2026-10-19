@@ -2,6 +2,8 @@
 
 import { useActionState, useState } from "react";
 import {
+  DESIGN_LABELS,
+  DESIGNS,
   ODDS_LEVELS,
   PAYMENT_PROVIDER_LABELS,
   PAYMENT_PROVIDERS,
@@ -43,6 +45,8 @@ export default function SettingsForm({ row, defaults, payment }: SettingsFormPro
   const [provider, setProvider] = useState<string>(row?.paymentProvider ?? "");
   const providerError = state.errors?.paymentProvider;
   const optionLabel = (p: PaymentProvider) => `${PAYMENT_PROVIDER_LABELS[p]}${payment.available[p] ? "" : " — niet ingesteld"}`;
+  const [design, setDesign] = useState<string>(row?.design ?? "");
+  const designError = state.errors?.design;
 
   return (
     <form action={formAction} className={styles.form}>
@@ -133,6 +137,37 @@ export default function SettingsForm({ row, defaults, payment }: SettingsFormPro
         {providerError && (
           <p id="paymentProvider-error" className={styles.fieldError}>
             {providerError}
+          </p>
+        )}
+      </fieldset>
+
+      <fieldset className={styles.field}>
+        <label htmlFor="design">Design</label>
+        <div className={styles.inputRow}>
+          <select
+            id="design"
+            name="design"
+            value={design}
+            onChange={(e) => setDesign(e.target.value)}
+            aria-invalid={designError ? true : undefined}
+            aria-describedby={`design-hint${designError ? " design-error" : ""}`}
+            className={styles.input}
+          >
+            <option value="">Standaard: {DESIGN_LABELS[defaults.design]}</option>
+            {DESIGNS.map((d) => (
+              <option key={d} value={d}>
+                {DESIGN_LABELS[d]}
+              </option>
+            ))}
+          </select>
+        </div>
+        <p id="design-hint" className={styles.muted}>
+          Het uiterlijk van het spel: het nieuwe jungle-design of het originele. Leeg = standaard uit{" "}
+          <code>.env</code>.
+        </p>
+        {designError && (
+          <p id="design-error" className={styles.fieldError}>
+            {designError}
           </p>
         )}
       </fieldset>

@@ -4,6 +4,11 @@ Een webbased eenarmige bandiet (1024x768) gebouwd met Next.js, React en TypeScri
 Drie rollen, standaard drie pogingen per spel, rollen los vast te zetten en een instelbare winkans
 (standaard 1 op 30). De instellingen staan in een `.env`-bestand.
 
+Er zijn twee designs, te kiezen in de game-manager: het **jungle-design** (standaard, een
+geschilderde houten kast "CASINO — Kakkelakken Kasino" in een jungle met insecten) en het
+**originele design** (de neon-kast "JACKPOT"). Het speelveld is in beide 1024x768 en schaalt mee
+met het venster; de jungle-schildering is breder en vult op een breder of hoger venster de rest.
+
 Productie: **https://jackpot.broadsight.nl** (ook nog bereikbaar op `https://gokkast.vercel.app`).
 Bij Vercel, Neon, PayPal, Mollie en Google heet het project nog **Gokkast** (de werktitel), net als
 de map, de package en interne namen zoals de cookie `gokkast-betaling`.
@@ -108,7 +113,9 @@ Voor PayPal (`e2e/paypal.spec.ts`) komen er nog twee bij: een nep-PayPal op poor
 - Je hebt standaard **3 pogingen** per spel (instelbaar); drie dezelfde plaatjes is winst.
 - Vastzetten van rollen met hetzelfde plaatje vergroot de winkans.
 - Het **tandwiel** toont de huidige instellingen (alleen-lezen).
-- Staat [betalen](#betalen) aan, dan kost elk spel één credit; zonder credits opent **SPEEL** de betaalpopup.
+- Staat [betalen](#betalen) aan, dan kost elk spel één credit; zonder credits opent de speelknop de betaalpopup.
+- De speelknop heet **DRAAI** in het jungle-design en **SPEEL** in het originele; na een spel **NIEUW SPEL**.
+  Het jungle-design heeft geen lampjes voor de pogingen: het berichtenbord meldt hoeveel er nog over zijn.
 
 ## Instellingen
 
@@ -128,11 +135,19 @@ ongeldig, dan geldt de standaardwaarde. Na een wijziging de server herstarten.
 | `GAME_ODDS`               | Winkans per draai zonder vastgezette rollen: 1 op deze waarde | 1 t/m 100000        | `30`      |
 | `GAME_MAX_TRIES`          | Aantal pogingen per spel                                     | 1 t/m 5             | `3`       |
 | `GAME_ROUNDS_PER_PAYMENT` | Spelletjes (credits) per betaling, zie [Betalen](#betalen)  | 1 t/m 100           | `4`       |
-| `GAME_ALLOW_ODDS_URL`     | Winkans via de adresbalk overschrijven, bijv. `/?kans=1`      | `true`/`1`/`ja`/`aan` | uit     |
+| `GAME_DESIGN`             | Design als er in de game-manager niets gekozen is            | `jungle`/`origineel` | `jungle` |
+| `GAME_ALLOW_ODDS_URL`     | Winkans en design via de adresbalk overschrijven, bijv. `/?kans=1` | `true`/`1`/`ja`/`aan` | uit     |
 
 Met `GAME_ALLOW_ODDS_URL=true` geeft
-[http://localhost:3000/?kans=10](http://localhost:3000/?kans=10) een winkans van 1 op 10. Handig bij
-ontwikkelen en testen; laat dit in productie uit.
+[http://localhost:3000/?kans=10](http://localhost:3000/?kans=10) een winkans van 1 op 10 en
+[http://localhost:3000/?design=origineel](http://localhost:3000/?design=origineel) het originele
+design. Handig bij ontwikkelen en testen; laat dit in productie uit.
+
+**Jungle-design maken.** De plaatjes in `public/images/jungle/` (achtergrond en de hendel als losse
+bal en stang) komen uit de schildering `voorbeeld/voorbeeld-nieuw-design.jpeg`. Het script
+`node scripts/jungle-achtergrond.mjs` haalt de voorbeeldteksten en -knoppen weg, zet "GRAND JACKPOT"
+in het midden, schuift het statistiekenbord binnen het speelveld en knipt de hendel uit. De posities
+van rollen, knoppen en borden staan in `src/app/jungle.css` (speelveld-px = schildering-px − 64).
 
 ## Betalen
 
@@ -320,8 +335,9 @@ ontsleutelen" (een waarschuwing in de serverlog, zonder nummers). Om op het reke
 sorteren, worden de betalingen in het geheugen gesorteerd en verdeeld over pagina's.
 
 **Instellingen.** Hier stel je de winkans (snelkeuze makkelijk 1 op 10, normaal 1 op 30,
-moeilijk 1 op 100, of een eigen getal), de pogingen per spel, de speelrondes per betaling en de
-betaalmethode (Mollie, PayPal of de standaard uit `GAME_PAYMENT_PROVIDER`) in. Een methode zonder
+moeilijk 1 op 100, of een eigen getal), de pogingen per spel, de speelrondes per betaling, de
+betaalmethode (Mollie, PayPal of de standaard uit `GAME_PAYMENT_PROVIDER`) en het design (Jungle,
+Origineel of de standaard uit `GAME_DESIGN`) in. Een methode zonder
 sleutels op deze server staat erbij als "niet ingesteld"; wordt die toch gekozen, dan meldt de
 pagina welke methode het spel echt gebruikt.
 Opslaan gaat via een server action die opnieuw controleert of je beheerder bent en de invoer op de
@@ -419,6 +435,7 @@ De spelinstellingen (zie [Instellingen](#instellingen)) staan in Vercel onder
 | `PAYPAL_CLIENT_ID` / `PAYPAL_CLIENT_SECRET` | PayPal-live-app | PayPal-sandbox-app | PayPal-sandbox-app |
 | `PAYPAL_WEBHOOK_ID`       | webhook-ID live-app | webhook-ID sandbox-app | leeg |
 | `GAME_PAYMENT_PROVIDER`   | leeg (Mollie) | leeg (Mollie) | leeg (Mollie) |
+| `GAME_DESIGN`             | leeg (jungle) | leeg (jungle) | leeg (jungle) |
 | `GAME_PRICE_CENTS`        | `100`      | `100`   | `100`       |
 | `PAYMENT_ENCRYPTION_KEY`  | eigen sleutel | sleutel `dev` | sleutel `dev` (zelfde als Preview) |
 
@@ -453,9 +470,9 @@ In previews werkt `?kans=` dus wel, in productie niet. Een wijziging geldt vanaf
 
 ```
 Gokkast/
-├── public/images/      plaatjes voor de rollen (shot, kakkerlak, vraagteken)
+├── public/images/      plaatjes voor de rollen (shot, kakkerlak, vraagteken); jungle/: achtergrond en hendel van het jungle-design
 ├── src/
-│   ├── app/            layout, pagina, server actions (actions.ts) en globale CSS (Next.js App Router)
+│   ├── app/            layout, pagina, server actions (actions.ts) en CSS: globals.css (origineel design) en jungle.css (Next.js App Router)
 │   │   ├── game-manager/  beheerpagina met tabs (ManagerTabs): speelrondes en statistieken (StatsSection), betalingen (PaymentsSection), instellingen (SettingsForm), sorteren/bladeren/filteren (TableParts), server actions en inlogpagina (inloggen/)
 │   │   ├── betaald/       terugkeer na betalen bij Mollie
 │   │   ├── api/auth/      Auth.js-routes (inloggen, terugkeer van Google, uitloggen)
@@ -463,7 +480,7 @@ Gokkast/
 │   │   └── api/paypal/webhook/  webhook van PayPal (betaalde of geannuleerde factuur)
 │   ├── auth.ts         Auth.js-instellingen (Google, alleen beheerders)
 │   ├── components/     SlotMachine, Reel, Lever, InfoPanel, Stats, SettingsDialog, PaymentDialog, GameClient
-│   ├── lib/            spellogica (game.ts), instellingen (settings.ts, settingsStore.ts), database (db.ts), rondes opslaan en lezen (gameStore.ts, gameStats.ts), tabellen en URL van de game-manager (tables.ts, managerQuery.ts), betalen (payments.ts, mollie.ts, paypal.ts, paymentStore.ts, paymentService.ts, paymentOverview.ts, qr.ts), beheerders (admins.ts, dal.ts), geluid, opslag, muntenregen, tests (*.test.ts)
+│   ├── lib/            spellogica (game.ts), maten per design en schalen (designs.ts), instellingen (settings.ts, settingsStore.ts), database (db.ts), rondes opslaan en lezen (gameStore.ts, gameStats.ts), tabellen en URL van de game-manager (tables.ts, managerQuery.ts), betalen (payments.ts, mollie.ts, paypal.ts, paymentStore.ts, paymentService.ts, paymentOverview.ts, qr.ts), beheerders (admins.ts, dal.ts), geluid, opslag, muntenregen, tests (*.test.ts)
 │   └── generated/      Prisma Client (gegenereerd, niet in git)
 ├── prisma/             schema.prisma, migrations/, seed.ts
 ├── prisma.config.ts    instellingen voor de Prisma CLI
@@ -474,7 +491,8 @@ Gokkast/
 ├── e2e/                visuele tests met Playwright (*.spec.ts), de nep-Mollie (mollie-mock.ts) en de nep-PayPal (paypal-mock.ts)
 ├── playwright.config.ts instellingen voor de visuele tests
 ├── vitest.config.mts   instellingen voor de unit-tests
-├── voorbeeld/          ontwerpvoorbeeld (fruitmachine.jpg)
+├── scripts/            jungle-achtergrond.mjs: plaatjes van het jungle-design maken
+├── voorbeeld/          ontwerpvoorbeelden (fruitmachine.jpg, design1.png, design2.png, voorbeeld-nieuw-design.jpeg, redesign-voorbeeld-*.png)
 └── project-details/    doelen, to-do, huidige feature en build-log
 ```
 

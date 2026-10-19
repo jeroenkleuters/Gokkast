@@ -1,12 +1,16 @@
+import type { Design } from "@/lib/settings";
+
 interface StatsProps {
+  design: Design;
   played: number;
   won: number;
   odds: number;
   chanceNow: string;
   credits: number | null; // null: betalen staat uit
+  offer: { credits: number; price: string } | null; // wat een betaling oplevert (jungle-design)
 }
 
-export default function Stats({ played, won, odds, chanceNow, credits }: StatsProps) {
+export default function Stats({ design, played, won, odds, chanceNow, credits, offer }: StatsProps) {
   return (
     <div id="stats">
       Gespeeld: <b>{played}</b>
@@ -20,6 +24,12 @@ export default function Stats({ played, won, odds, chanceNow, credits }: StatsPr
         <>
           <br />
           Credits: <b data-testid="credits">{credits}</b>
+        </>
+      )}
+      {design === "jungle" && offer && (
+        <>
+          <br />
+          {offer.credits} Credits: <b data-testid="offer">{offer.price}</b>
         </>
       )}
     </div>

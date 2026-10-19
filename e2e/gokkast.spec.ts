@@ -1,38 +1,103 @@
-import { expect, test } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
 import {
   display,
   holdButtons,
   lever,
   litLamps,
   openGame,
+  PLAY,
   playButton,
+  READY,
   reels,
   spin,
   symbols,
+  TEXTS,
 } from "./helpers";
 
-test("het spel laadt op 1024x768", async ({ page }) => {
+// Het speelveld (1024x768) staat helemaal in het venster
+async function expectFieldInView(page: Page, width: number, height: number) {
+  const box = await page.locator("#game").boundingBox();
+  expect(box).not.toBeNull();
+  expect(box!.x).toBeGreaterThanOrEqual(-0.5);
+  expect(box!.y).toBeGreaterThanOrEqual(-0.5);
+  expect(box!.x + box!.width).toBeLessThanOrEqual(width + 0.5);
+  expect(box!.y + box!.height).toBeLessThanOrEqual(height + 0.5);
+  return box!;
+}
+
+// Standaard het jungle-design (versie 3, taak 1); het originele design staat onderaan
+test("het spel laadt op 1024x768 in het jungle-design", async ({ page }) => {
+  const images: string[] = [];
+  page.on("response", (res) => {
+    if (res.url().includes("/images/jungle/") && res.ok()) images.push(new URL(res.url()).pathname);
+  });
   await openGame(page, "lose");
 
   await expect(page).toHaveTitle("Jackpot");
-  await expect(page.locator("#cabinet")).toBeVisible();
+  await expect(page.locator("#game")).toHaveClass("jungle");
+  await expect(page.locator("#cabinet")).toHaveCount(0); // de kast staat in de achtergrond
   await expect(reels(page)).toHaveCount(3);
   for (const reel of await reels(page).all()) await expect(reel).toBeVisible();
   await expect(lever(page)).toBeVisible();
   await expect(display(page)).toBeVisible();
-  await expect(playButton(page)).toHaveText("SPEEL");
-  await expect(litLamps(page)).toHaveCount(3);
+  await expect(playButton(page)).toHaveText("DRAAI");
+  await expect(litLamps(page)).toHaveCount(0); // geen lampjes: het berichtenbord meldt de pogingen
+  await expect(page.locator("#info")).toHaveText("Hoe Speel Je?Druk op DRAAI. Je hebt 3 pogingen per hand.");
+  await expect(page.locator("#stats")).not.toContainText("Credits"); // betalen staat uit op deze server
+  await expect.poll(() => images).toContain("/images/jungle/achtergrond.jpg");
 
-  // Het speelveld past precies in het venster
-  const box = await page.locator("#game").boundingBox();
-  expect(box).not.toBeNull();
-  expect(box!.x).toBeGreaterThanOrEqual(0);
-  expect(box!.y).toBeGreaterThanOrEqual(0);
-  expect(box!.x + box!.width).toBeLessThanOrEqual(1024.5);
-  expect(box!.y + box!.height).toBeLessThanOrEqual(768.5);
+  // Precies het speelveld op 1024x768: geen balken
+  const box = await expectFieldInView(page, 1024, 768);
+  expect(box.x).toBeCloseTo(0, 0);
+  expect(box.width).toBeCloseTo(1024, 0);
 
   // Begin met drie verschillende plaatjes
   expect(new Set(await symbols(page)).size).toBe(3);
+});
+
+test("jungle: knoppen VAST VAST VAST DRAAI, elke VAST onder zijn rol", async ({ page }) => {
+  await openGame(page, "lose");
+
+  const buttons = page.locator("#panel button");
+  await expect(buttons).toHaveText(["VAST", "VAST", "VAST", "DRAAI"]);
+  const boxes = await Promise.all((await buttons.all()).map((b) => b.boundingBox()));
+  for (let k = 1; k < boxes.length; k++) expect(boxes[k]!.x).toBeGreaterThan(boxes[k - 1]!.x + boxes[k - 1]!.width);
+
+  for (let i = 0; i < 3; i++) {
+    const reel = (await reels(page).nth(i).boundingBox())!;
+    const btn = boxes[i]!;
+    const center = btn.x + btn.width / 2;
+    expect(center).toBeGreaterThan(reel.x);
+    expect(center).toBeLessThan(reel.x + reel.width);
+    expect(btn.y).toBeGreaterThan(reel.y + reel.height); // onder de rol
+  }
+  // Het berichtenbord onder de knoppen, de hendel rechts van de knoppen
+  const board = (await display(page).boundingBox())!;
+  expect(board.y).toBeGreaterThan(boxes[3]!.y + boxes[3]!.height);
+  expect((await lever(page).boundingBox())!.x).toBeGreaterThan(boxes[3]!.x + boxes[3]!.width);
+});
+
+test("jungle: op een breed scherm en een telefoon past het hele speelveld, de achtergrond schaalt mee", async ({
+  page,
+}) => {
+  for (const [width, height] of [
+    [1920, 1080],
+    [390, 844],
+  ]) {
+    await page.setViewportSize({ width, height });
+    await openGame(page, "lose");
+    await expectFieldInView(page, width, height);
+    // De rest van het venster is de vervaagde schildering
+    const backdrop = (await page.locator("#backdrop").boundingBox())!;
+    expect(backdrop.width).toBeGreaterThanOrEqual(width);
+    expect(backdrop.height).toBeGreaterThanOrEqual(height);
+  }
+});
+
+test("jungle: het tandwiel toont het design", async ({ page }) => {
+  await openGame(page, "lose");
+  await page.locator("#gear").click();
+  await expect(page.locator("#settings")).toContainText("DesignJungle (nieuw)");
 });
 
 test("draaien met de hendel verbruikt een poging en draait de rollen", async ({ page }) => {
@@ -40,7 +105,6 @@ test("draaien met de hendel verbruikt een poging en draait de rollen", async ({ 
 
   await lever(page).click();
   await expect(display(page)).toHaveText("ROLLEN DRAAIEN...");
-  await expect(litLamps(page)).toHaveCount(2);
   // Tijdens het draaien ligt er een lange strook plaatjes in elke rol
   for (const reel of await reels(page).all()) {
     expect(await reel.locator(".cell").count()).toBeGreaterThan(3);
@@ -107,7 +171,6 @@ test("verliesmelding als alle pogingen op zijn", async ({ page }) => {
 
   await expect(display(page)).toHaveText("HELAAS... PROBEER HET NOG EENS");
   await expect(display(page)).toHaveClass(/\blose\b/);
-  await expect(litLamps(page)).toHaveCount(0);
   await expect(playButton(page)).toHaveText("NIEUW SPEL");
   for (const btn of await holdButtons(page).all()) await expect(btn).toBeDisabled();
   await expect(page.locator("#stats")).toContainText("Gespeeld: 1");
@@ -121,9 +184,8 @@ test("NIEUW SPEL zet het spel terug naar de beginstand", async ({ page }) => {
 
   await playButton(page).click();
 
-  await expect(display(page)).toHaveText("DRUK OP SPEEL!");
-  await expect(playButton(page)).toHaveText("SPEEL");
-  await expect(litLamps(page)).toHaveCount(3);
+  await expect(display(page)).toHaveText(READY);
+  await expect(playButton(page)).toHaveText(PLAY);
   for (const btn of await holdButtons(page).all()) {
     await expect(btn).toBeDisabled();
     await expect(btn).not.toHaveClass(/\bon\b/);
@@ -152,7 +214,7 @@ test("stuurt de ronde na afloop één keer naar de server", async ({ page }) => 
   await expect.poll(() => sent).toEqual([[{ outcome: `WON ${won}`, tries: 1 }]]);
 
   await playButton(page).click(); // NIEUW SPEL: geen nieuwe ronde
-  await expect(display(page)).toHaveText("DRUK OP SPEEL!");
+  await expect(display(page)).toHaveText(READY);
   await page.waitForTimeout(300);
   expect(sent).toHaveLength(1);
 });
@@ -170,4 +232,38 @@ test("stuurt een verloren ronde met alle pogingen naar de server", async ({ page
   await spin(page);
   await expect(display(page)).toHaveText("HELAAS... PROBEER HET NOG EENS");
   await expect.poll(() => sent).toEqual([[{ outcome: "LOST", tries: 3 }]]);
+});
+
+// Het originele design (te kiezen in de game-manager; hier met ?design=origineel)
+test.describe("origineel design", () => {
+  test("laadt met de kast, de lampjes en SPEEL", async ({ page }) => {
+    await openGame(page, "lose", "origineel");
+
+    await expect(page.locator("#game")).toHaveClass("origineel");
+    await expect(page.locator("#cabinet")).toBeVisible();
+    await expect(page.locator("#backdrop")).toHaveCount(0);
+    await expect(reels(page)).toHaveCount(3);
+    await expect(page.locator("#panel button")).toHaveText(["VAST", "VAST", "VAST", "SPEEL"]);
+    await expect(litLamps(page)).toHaveCount(3);
+    await expect(page.locator("#info")).toContainText("Druk op SPEEL of trek aan de hendel. Je hebt 3 pogingen.");
+    await expectFieldInView(page, 1024, 768);
+    expect(new Set(await symbols(page)).size).toBe(3);
+  });
+
+  test("lampjes gaan uit per poging en weer aan bij NIEUW SPEL", async ({ page }) => {
+    await openGame(page, "lose", "origineel");
+
+    await spin(page, "lever");
+    await expect(litLamps(page)).toHaveCount(2);
+    await expect(display(page)).toHaveText("NOG 2 POGINGEN — ZET ROLLEN VAST!");
+    await spin(page);
+    await spin(page);
+    await expect(display(page)).toHaveText("HELAAS... PROBEER HET NOG EENS");
+    await expect(litLamps(page)).toHaveCount(0);
+
+    await playButton(page).click();
+    await expect(display(page)).toHaveText(TEXTS.origineel.ready);
+    await expect(playButton(page)).toHaveText("SPEEL");
+    await expect(litLamps(page)).toHaveCount(3);
+  });
 });

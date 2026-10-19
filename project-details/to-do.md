@@ -126,7 +126,7 @@ De taken staan in volgorde: latere taken bouwen voort op eerdere.
     - geef instructies als ik nog dns aanpassingen moet maken
 
 ## Versie 3 — Open
-  [ ] **1 Redesign**
+  [x] **1 Redesign**
     - Ik het tabblad instellinngen in de game manager kun je kiezen tussen het nieuwe design en het originele design 
     - gebruik de voorbeeld afbeelding design2 om een nieuwe frontend look te maken. Naast de tekst grand jackpot staat een vierkantje. dat mag weg
     - grand jackpot in het midden uitlijnen.

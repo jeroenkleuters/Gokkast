@@ -6,7 +6,17 @@ import { expect, type Page } from "@playwright/test";
 //   vastgezette rollen is de winkans dan (1/100000)^(1/3) ≈ 0,02, dus nooit winst.
 export type Outcome = "win" | "lose";
 
-export async function openGame(page: Page, outcome: Outcome) {
+// Design (versie 3, taak 1): standaard het jungle-design; ?design=origineel kiest het originele
+// (alleen met GAME_ALLOW_ODDS_URL, net als ?kans=)
+export type Design = "jungle" | "origineel";
+export const TEXTS: Record<Design, { ready: string; play: string }> = {
+  jungle: { ready: "DRUK OP DRAAI OF TREK DE HENDEL!", play: "DRAAI" },
+  origineel: { ready: "DRUK OP SPEEL!", play: "SPEEL" },
+};
+export const READY = TEXTS.jungle.ready;
+export const PLAY = TEXTS.jungle.play;
+
+export async function openGame(page: Page, outcome: Outcome, design: Design = "jungle") {
   await page.addInitScript((lose) => {
     try {
       localStorage.setItem("gokkast-geluid", "uit"); // stil testen
@@ -16,8 +26,9 @@ export async function openGame(page: Page, outcome: Outcome) {
       Math.random = () => 0.05 + random() * 0.9;
     }
   }, outcome === "lose");
-  await page.goto(outcome === "win" ? "/?kans=1" : "/?kans=100000");
-  await expect(page.locator("#display")).toHaveText("DRUK OP SPEEL!");
+  const query = (outcome === "win" ? "?kans=1" : "?kans=100000") + (design === "origineel" ? "&design=origineel" : "");
+  await page.goto(`/${query}`);
+  await expect(page.locator("#display")).toHaveText(TEXTS[design].ready);
 }
 
 export const reels = (page: Page) => page.locator("#reels .reel");
@@ -35,7 +46,7 @@ export async function symbols(page: Page): Promise<string[]> {
   return srcs.map((src) => src.match(/images\/(\w+)\.png/)?.[1] ?? src);
 }
 
-// Draaien en wachten tot alle rollen stilstaan (de SPEEL-knop is dan weer actief)
+// Draaien en wachten tot alle rollen stilstaan (de speelknop is dan weer actief)
 export async function spin(page: Page, via: "lever" | "button" = "button") {
   await (via === "lever" ? lever(page) : playButton(page)).click();
   await expect(playButton(page)).toBeDisabled();

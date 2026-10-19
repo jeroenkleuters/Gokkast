@@ -1,6 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 import { loginAs, TEST_ADMIN } from "./auth";
-import { display, playButton } from "./helpers";
+import { display, PLAY, playButton, READY } from "./helpers";
 import { MOCK_PAYPAL_PAYER, MOCK_PAYPAL_QR, PAYPAL_APP_URL } from "./payments";
 
 // Betalen met PayPal (taak 13b) op de derde server: PayPal is de standaard, nep-PayPal, winkans 1
@@ -20,7 +20,7 @@ async function openGame(page: Page) {
     } catch {}
   });
   await page.goto("/");
-  await expect(display(page)).toHaveText("DRUK OP SPEEL!");
+  await expect(display(page)).toHaveText(READY);
 }
 
 async function openPopup(page: Page) {
@@ -69,7 +69,7 @@ test("met PayPal: QR-code van PayPal, betalen in een nieuw tabblad, de popup zie
     await finishOneGame(page);
     if (game < 3) {
       await playButton(page).click(); // NIEUW SPEL
-      await expect(playButton(page)).toHaveText("SPEEL");
+      await expect(playButton(page)).toHaveText(PLAY);
     }
   }
   // Score-popup met de naam van de PayPal-betaler

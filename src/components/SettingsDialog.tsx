@@ -1,6 +1,6 @@
 "use client";
 
-import type { GameSettings } from "@/lib/settings";
+import { DESIGN_LABELS, type GameSettings } from "@/lib/settings";
 
 interface SettingsDialogProps {
   settings: GameSettings;
@@ -20,6 +20,8 @@ export default function SettingsDialog({ settings, onClose }: SettingsDialogProp
           <dd>{settings.maxTries}</dd>
           <dt>Speelrondes per betaling</dt>
           <dd>{settings.roundsPerPayment}</dd>
+          <dt>Design</dt>
+          <dd>{DESIGN_LABELS[settings.design]}</dd>
           <dt>Bron</dt>
           <dd data-testid="settings-source">{settings.source === "database" ? "database" : ".env"}</dd>
         </dl>

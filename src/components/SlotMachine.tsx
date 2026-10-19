@@ -9,10 +9,12 @@ import {
   gameReducer,
   initialState,
   isWin,
+  READY_MESSAGE,
   SYMBOL_NAMES,
   winChance,
 } from "@/lib/game";
 import { coinShower } from "@/lib/coinShower";
+import { fitField, LAYOUTS } from "@/lib/designs";
 import { sfx } from "@/lib/sound";
 import type { GameOutcome } from "@/lib/gameStore";
 import type { PaymentInfo, PaymentView } from "@/lib/paymentService";
@@ -27,8 +29,6 @@ import Reel, { type ReelHandle } from "./Reel";
 import SettingsDialog from "./SettingsDialog";
 import Stats from "./Stats";
 
-const GAME_W = 1024;
-const GAME_H = 768;
 const PRIZES_DELAY_MS = 1500; // eerst de winst zien (munten), dan de score-popup
 
 interface SlotMachineProps {
@@ -37,7 +37,8 @@ interface SlotMachineProps {
 }
 
 export default function SlotMachine({ settings, payment }: SlotMachineProps) {
-  const { odds } = settings;
+  const { odds, design } = settings;
+  const layout = LAYOUTS[design];
   const [state, dispatch] = useReducer(gameReducer, settings.maxTries, initialState);
   const [soundOn, setSoundOn] = useState(() => readStorage(KEYS.sound) !== "uit");
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -51,16 +52,16 @@ export default function SlotMachine({ settings, payment }: SlotMachineProps) {
   const reelRefs = useRef<(ReelHandle | null)[]>([]);
   const busyRef = useRef(false); // voorkomt dubbel starten voor de volgende render
 
-  // Vast 1024x768 speelveld, geschaald naar het venster
+  // Vast 1024x768 speelveld, geschaald naar het venster (de jungle-achtergrond schaalt mee)
   useLayoutEffect(() => {
     const fit = () => {
-      const s = Math.min(window.innerWidth / GAME_W, window.innerHeight / GAME_H);
-      gameRef.current!.style.transform = `translate(-50%, -50%) scale(${s})`;
+      const { scale, left, top } = fitField(window.innerWidth, window.innerHeight, layout);
+      gameRef.current!.style.transform = `translate(${left}px, ${top}px) scale(${scale})`;
     };
     fit();
     window.addEventListener("resize", fit);
     return () => window.removeEventListener("resize", fit);
-  }, []);
+  }, [layout]);
 
   useEffect(() => sfx.setEnabled(soundOn), [soundOn]);
 
@@ -167,128 +168,157 @@ export default function SlotMachine({ settings, payment }: SlotMachineProps) {
   const won = state.gameOver && isWin(state.current);
   const chanceNow = state.gameOver ? "–" : formatChance(winChance(state.current, state.held, odds));
 
-  return (
-    <div id="game" ref={gameRef}>
-      <button id="sound" title="Geluid aan/uit" onClick={toggleSound}>
-        {soundOn ? "🔊" : "🔇"}
-      </button>
-      <button id="gear" title="Instellingen" onClick={() => setSettingsOpen(true)}>
-        ⚙
-      </button>
-
-      <InfoPanel maxTries={state.maxTries} />
-      <Stats
-        played={state.played}
-        won={state.won}
-        odds={odds}
-        chanceNow={chanceNow}
-        credits={payment ? credits : null}
-      />
-
-      <div id="cabinet">
-        <div id="topper">
-          <div className="knob" />
-          <div id="title">
-            {"JACKPOT".split("").map((ch, k) => (
-              <span key={k}>{ch}</span>
-            ))}
-          </div>
-        </div>
-        <div id="body">
-          <div className="side left">
-            <div className="neon-red">★ ★ ★</div>
-            <div className="neon-blue">POGING</div>
-            <div id="tries-lamps">
-              {Array.from({ length: state.maxTries }, (_, k) => (
-                <div key={k} className={`lamp${k < state.triesLeft ? " on" : ""}`} />
-              ))}
-            </div>
-            <div className="neon-red arrow">➜</div>
-          </div>
-
-          <div id="reels">
-            <div className="payarrow l" />
-            <div className="payarrow r" />
-            <div id="payline" />
-            {initialSymbols.map((s, i) => (
-              <Reel
-                key={i}
-                ref={(h) => {
-                  reelRefs.current[i] = h;
-                }}
-                index={i}
-                initialSymbol={s}
-                held={state.held[i]}
-                win={won}
-                onTick={sfx.tick}
-                onStop={sfx.stop}
-              />
-            ))}
-          </div>
-
-          <div className="side right">
-            <div className="neon-gold">
-              BIG
-              <br />
-              WIN
-            </div>
-            <div className="neon-red arrow">⬅</div>
-            <div className="neon-blue">
-              WIN
-              <br />
-              SLOTS
-            </div>
-            <div className="neon-green">€€€</div>
-          </div>
-
-          <div id="panel">
-            {state.held.map((h, i) => (
-              <button
-                key={i}
-                className={`holdbtn${h ? " on" : ""}`}
-                data-reel={i}
-                disabled={!canToggleHold(state, i)}
-                onClick={() => toggleHold(i)}
-              >
-                VAST
-              </button>
-            ))}
-            <button
-              id="playbtn"
-              className={state.gameOver ? "new" : ""}
-              disabled={state.spinning}
-              onClick={() => void play()}
-            >
-              {state.gameOver ? "NIEUW SPEL" : "SPEEL"}
-            </button>
-          </div>
-
-          <div id="grille" />
-          <div id="display" className={state.messageKind}>
-            {state.message}
-          </div>
-        </div>
-      </div>
-
-      <Lever pulled={leverPulled} disabled={state.spinning} onPull={() => void play()} />
-
-      {paymentOpen && payment && (
-        <PaymentDialog
-          price={payment.price}
-          credits={payment.credits}
-          onPaid={(paid: PaymentView) => {
-            setCredits(paid.creditsLeft);
-            setPaymentOpen(false);
+  const reels = (
+    <div id="reels">
+      <div className="payarrow l" />
+      <div className="payarrow r" />
+      <div id="payline" />
+      {initialSymbols.map((s, i) => (
+        <Reel
+          key={i}
+          ref={(h) => {
+            reelRefs.current[i] = h;
           }}
-          onClose={() => setPaymentOpen(false)}
+          index={i}
+          initialSymbol={s}
+          held={state.held[i]}
+          win={won}
+          cell={layout.cell}
+          height={layout.reelHeight}
+          onTick={sfx.tick}
+          onStop={sfx.stop}
         />
-      )}
-
-      {prizes && <PrizeDialog summary={prizes} onClose={() => setPrizes(null)} />}
-
-      {settingsOpen && (
-        <SettingsDialog settings={settings} onClose={() => setSettingsOpen(false)} />
-      )}
+      ))}
     </div>
+  );
+
+  const panel = (
+    <div id="panel">
+      {state.held.map((h, i) => (
+        <button
+          key={i}
+          className={`holdbtn${h ? " on" : ""}`}
+          data-reel={i}
+          disabled={!canToggleHold(state, i)}
+          onClick={() => toggleHold(i)}
+        >
+          VAST
+        </button>
+      ))}
+      <button
+        id="playbtn"
+        className={state.gameOver ? "new" : ""}
+        disabled={state.spinning}
+        onClick={() => void play()}
+      >
+        {state.gameOver ? "NIEUW SPEL" : layout.playLabel}
+      </button>
+    </div>
+  );
+
+  const display = (
+    <div id="display" className={state.messageKind}>
+      {state.message === READY_MESSAGE ? layout.readyMessage : state.message}
+    </div>
+  );
+
+  return (
+    <>
+      {/* Jungle: de schildering vult ook de ruimte buiten het speelveld (vervaagd) */}
+      {design === "jungle" && <div id="backdrop" />}
+      <div id="game" ref={gameRef} className={design}>
+        <button id="sound" title="Geluid aan/uit" onClick={toggleSound}>
+          {soundOn ? "🔊" : "🔇"}
+        </button>
+        <button id="gear" title="Instellingen" onClick={() => setSettingsOpen(true)}>
+          ⚙
+        </button>
+
+        <InfoPanel design={design} maxTries={state.maxTries} />
+        <Stats
+          design={design}
+          played={state.played}
+          won={state.won}
+          odds={odds}
+          chanceNow={chanceNow}
+          credits={payment ? credits : null}
+          offer={payment && { credits: payment.credits, price: payment.price }}
+        />
+
+        {design === "jungle" ? (
+          // De kast staat in de achtergrond; rollen, knoppen en bord liggen erop
+          <>
+            {reels}
+            {panel}
+            {display}
+          </>
+        ) : (
+          <div id="cabinet">
+            <div id="topper">
+              <div className="knob" />
+              <div id="title">
+                {"JACKPOT".split("").map((ch, k) => (
+                  <span key={k}>{ch}</span>
+                ))}
+              </div>
+            </div>
+            <div id="body">
+              <div className="side left">
+                <div className="neon-red">★ ★ ★</div>
+                <div className="neon-blue">POGING</div>
+                <div id="tries-lamps">
+                  {Array.from({ length: state.maxTries }, (_, k) => (
+                    <div key={k} className={`lamp${k < state.triesLeft ? " on" : ""}`} />
+                  ))}
+                </div>
+                <div className="neon-red arrow">➜</div>
+              </div>
+
+              {reels}
+
+              <div className="side right">
+                <div className="neon-gold">
+                  BIG
+                  <br />
+                  WIN
+                </div>
+                <div className="neon-red arrow">⬅</div>
+                <div className="neon-blue">
+                  WIN
+                  <br />
+                  SLOTS
+                </div>
+                <div className="neon-green">€€€</div>
+              </div>
+
+              {panel}
+
+              <div id="grille" />
+              {display}
+            </div>
+          </div>
+        )}
+
+        <Lever design={design} pulled={leverPulled} disabled={state.spinning} onPull={() => void play()} />
+
+        {paymentOpen && payment && (
+          <PaymentDialog
+            price={payment.price}
+            credits={payment.credits}
+            onPaid={(paid: PaymentView) => {
+              setCredits(paid.creditsLeft);
+              setPaymentOpen(false);
+            }}
+            onClose={() => setPaymentOpen(false)}
+          />
+        )}
+
+        {prizes && <PrizeDialog summary={prizes} onClose={() => setPrizes(null)} />}
+
+        {settingsOpen && (
+          <SettingsDialog settings={settings} onClose={() => setSettingsOpen(false)} />
+        )}
+      </div>
+    </>
   );
 }

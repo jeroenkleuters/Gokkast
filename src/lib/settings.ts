@@ -6,6 +6,7 @@ export interface GameSettings {
   odds: number; // winkans 1 op odds per draai zonder vastgezette rollen
   maxTries: number; // pogingen per spel
   roundsPerPayment: number; // speelrondes (credits) per betaling, zie payments.ts
+  design: Design; // uiterlijk van het spel (versie 3, taak 1)
   source?: SettingsSource; // waar de waarden vandaan komen (getoond bij het tandwiel)
 }
 
@@ -23,14 +24,29 @@ export const PAYMENT_PROVIDER_LABELS: Record<PaymentProvider, string> = { mollie
 export const isPaymentProvider = (value: unknown): value is PaymentProvider =>
   typeof value === "string" && (PAYMENT_PROVIDERS as readonly string[]).includes(value);
 
+// Design (versie 3, taak 1): het nieuwe jungle-design of het originele. Niets gekozen in de
+// game-manager: GAME_DESIGN, anders jungle.
+export const DESIGNS = ["jungle", "origineel"] as const;
+export type Design = (typeof DESIGNS)[number];
+export const DEFAULT_DESIGN: Design = "jungle";
+export const DESIGN_LABELS: Record<Design, string> = { jungle: "Jungle (nieuw)", origineel: "Origineel" };
+
+export const isDesign = (value: unknown): value is Design =>
+  typeof value === "string" && (DESIGNS as readonly string[]).includes(value);
+
 // De velden zoals ze in de tabel game_settings staan; null = "standaard" (de .env-waarde).
-// paymentProvider ontbreekt (undefined) als die niet gelezen of niet meegestuurd is: dan blijft hij zoals hij is.
-export type SettingsRow = Record<SettingKey, number | null> & { paymentProvider?: PaymentProvider | null };
+// paymentProvider en design ontbreken (undefined) als ze niet gelezen of niet meegestuurd zijn: dan
+// blijven ze zoals ze zijn.
+export type SettingsRow = Record<SettingKey, number | null> & {
+  paymentProvider?: PaymentProvider | null;
+  design?: Design | null;
+};
 
 export const DEFAULT_SETTINGS: GameSettings = {
   odds: 30,
   maxTries: 3,
   roundsPerPayment: 4, // 4 spelletjes voor € 1,00 (taak 10)
+  design: DEFAULT_DESIGN,
 };
 
 // Bovengrenzen: de invoer kende al max 100000, en meer dan 5 lampjes passen niet in de kast
@@ -70,12 +86,19 @@ export function readDefaultPaymentProvider(env: Env = process.env): PaymentProvi
   return isPaymentProvider(value) ? value : DEFAULT_PAYMENT_PROVIDER;
 }
 
+// Standaard design uit .env; leeg of onbekend → jungle
+export function readDefaultDesign(env: Env = process.env): Design {
+  const value = (env.GAME_DESIGN ?? "").trim().toLowerCase();
+  return isDesign(value) ? value : DEFAULT_DESIGN;
+}
+
 export function readSettings(env: Env = process.env): GameSettings {
   return {
     odds: parsePositiveInt(env.GAME_ODDS, MAX_ODDS) ?? DEFAULT_SETTINGS.odds,
     maxTries: parsePositiveInt(env.GAME_MAX_TRIES, MAX_TRIES_LIMIT) ?? DEFAULT_SETTINGS.maxTries,
     roundsPerPayment:
       parsePositiveInt(env.GAME_ROUNDS_PER_PAYMENT, MAX_ROUNDS_PER_PAYMENT) ?? DEFAULT_SETTINGS.roundsPerPayment,
+    design: readDefaultDesign(env),
   };
 }
 
@@ -96,17 +119,22 @@ export function mergeSettings(row: Partial<SettingsRow> | null, defaults: GameSe
       settings.source = "database";
     }
   }
+  if (isDesign(row.design)) {
+    settings.design = row.design;
+    settings.source = "database";
+  }
   return settings;
 }
 
-export type SettingsFormKey = SettingKey | "paymentProvider";
+export type SettingsFormKey = SettingKey | "paymentProvider" | "design";
 
 export type SettingsFormResult =
   | { ok: true; values: SettingsRow }
   | { ok: false; errors: Partial<Record<SettingsFormKey, string>> };
 
 // Formulier van de game-manager: per veld een geheel getal binnen de grenzen, of leeg = standaard.
-// Betaalmethode: mollie, paypal of leeg (standaard); zonder dat veld blijft de opgeslagen keuze staan.
+// Betaalmethode: mollie, paypal of leeg (standaard); design: jungle, origineel of leeg (standaard).
+// Zonder zo'n veld blijft de opgeslagen keuze staan.
 export function parseSettingsForm(form: { get(name: string): unknown }): SettingsFormResult {
   const values = {} as SettingsRow;
   const errors: Partial<Record<SettingsFormKey, string>> = {};
@@ -127,11 +155,17 @@ export function parseSettingsForm(form: { get(name: string): unknown }): Setting
     else if (isPaymentProvider(provider)) values.paymentProvider = provider;
     else errors.paymentProvider = "Kies Mollie, PayPal of de standaard.";
   }
+  const design = form.get("design");
+  if (typeof design === "string") {
+    if (design === "") values.design = null;
+    else if (isDesign(design)) values.design = design;
+    else errors.design = "Kies Jungle, Origineel of de standaard.";
+  }
   return Object.keys(errors).length ? { ok: false, errors } : { ok: true, values };
 }
 
-// ?kans= in de adresbalk mag de winkans alleen overschrijven als dit aan staat
-// (handig bij ontwikkelen en voor de Playwright-tests van taak 4, niet in productie).
+// ?kans= (winkans) en ?design= in de adresbalk mogen de instellingen alleen overschrijven als dit aan
+// staat (handig bij ontwikkelen en voor de Playwright-tests van taak 4, niet in productie).
 export function oddsFromUrlAllowed(env: Env = process.env): boolean {
   return parseFlag(env.GAME_ALLOW_ODDS_URL);
 }

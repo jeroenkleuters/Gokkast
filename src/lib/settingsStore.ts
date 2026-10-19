@@ -1,11 +1,12 @@
 // Instellingen uit de database lezen (met .env als terugval) en opslaan vanuit de game-manager.
 // Alleen op de server.
 import { DB_TIMEOUT_MS, getDb, withTimeout } from "@/lib/db";
-import type { PaymentProvider as DbPaymentProvider } from "@/generated/prisma/enums";
+import type { GameDesign as DbDesign, PaymentProvider as DbPaymentProvider } from "@/generated/prisma/enums";
 import {
   mergeSettings,
   readDefaultPaymentProvider,
   readSettings,
+  type Design,
   type GameSettings,
   type PaymentProvider,
   type SettingsRow,
@@ -20,14 +21,22 @@ function fetchFromDb(): FetchSettingsRow | null {
   return async () => {
     const row = await db.gameSettings.findUnique({
       where: { id: 1 },
-      select: { odds: true, maxTries: true, roundsPerPayment: true, paymentProvider: true },
+      select: { odds: true, maxTries: true, roundsPerPayment: true, paymentProvider: true, design: true },
     });
-    return row && { ...row, paymentProvider: row.paymentProvider && fromDbProvider(row.paymentProvider) };
+    return (
+      row && {
+        ...row,
+        paymentProvider: row.paymentProvider && fromDbProvider(row.paymentProvider),
+        design: row.design && fromDbDesign(row.design),
+      }
+    );
   };
 }
 
 const toDbProvider = (provider: PaymentProvider) => provider.toUpperCase() as DbPaymentProvider;
 const fromDbProvider = (provider: DbPaymentProvider) => provider.toLowerCase() as PaymentProvider;
+const toDbDesign = (design: Design) => design.toUpperCase() as DbDesign;
+const fromDbDesign = (design: DbDesign) => design.toLowerCase() as Design;
 
 // Database → anders .env → anders de vaste standaard. Een databasefout stopt het spel niet.
 export async function loadSettings(
@@ -82,12 +91,13 @@ export async function readStoredSettings(
   }
 }
 
-// Formulierwaarden → kolommen van game_settings. Betaalmethode undefined (niet meegestuurd): die
-// kolom niet aanraken; null: terug naar de standaard.
-export function settingsData({ paymentProvider, ...numbers }: SettingsRow) {
+// Formulierwaarden → kolommen van game_settings. Betaalmethode of design undefined (niet meegestuurd):
+// die kolom niet aanraken; null: terug naar de standaard.
+export function settingsData({ paymentProvider, design, ...numbers }: SettingsRow) {
   return {
     ...numbers,
     ...(paymentProvider !== undefined && { paymentProvider: paymentProvider && toDbProvider(paymentProvider) }),
+    ...(design !== undefined && { design: design && toDbDesign(design) }),
   };
 }
 

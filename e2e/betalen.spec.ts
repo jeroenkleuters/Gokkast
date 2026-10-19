@@ -1,6 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 import { loginAs, TEST_ADMIN } from "./auth";
-import { display, playButton } from "./helpers";
+import { display, PLAY, playButton, READY } from "./helpers";
 import { MOCK_CONSUMER_ACCOUNT, MOCK_CONSUMER_NAME, PAID_APP_URL } from "./payments";
 
 // Betalen met Mollie (taak 10) op de tweede server: betalen aan, nep-Mollie, winkans 1
@@ -24,10 +24,10 @@ async function openGame(page: Page, lose = false) {
     }
   }, lose);
   await page.goto(lose ? "/?kans=100000" : "/");
-  await expect(display(page)).toHaveText("DRUK OP SPEEL!");
+  await expect(display(page)).toHaveText(READY);
 }
 
-// Popup openen met SPEEL en wachten tot de QR-code er staat
+// Popup openen met DRAAI en wachten tot de QR-code er staat
 async function openPopup(page: Page) {
   await playButton(page).click();
   await expect(popup(page)).toBeVisible();
@@ -47,7 +47,7 @@ async function finishOneGame(page: Page) {
 async function playOneGame(page: Page) {
   await finishOneGame(page);
   await playButton(page).click();
-  await expect(playButton(page)).toHaveText("SPEEL");
+  await expect(playButton(page)).toHaveText(PLAY);
 }
 
 // Betalen op dit apparaat bij de nep-Mollie; daarna terug in het spel met 4 credits
@@ -60,9 +60,10 @@ async function pay(page: Page, url = "/") {
   await expect(credits(page)).toHaveText("4");
 }
 
-test("zonder credits opent SPEEL de betaalpopup met QR-code", async ({ page }) => {
+test("zonder credits opent DRAAI de betaalpopup met QR-code", async ({ page }) => {
   await openGame(page);
   await expect(credits(page)).toHaveText("0");
+  await expect(page.locator("#stats")).toContainText("4 Credits: € 1,00"); // wat een betaling oplevert
 
   await openPopup(page);
   await expect(popup(page)).toContainText("4 spelletjes voor € 1,00");
@@ -72,7 +73,7 @@ test("zonder credits opent SPEEL de betaalpopup met QR-code", async ({ page }) =
   await expect(payLink(page)).toHaveAttribute("href", /\/checkout\/tr_e2e\d+$/);
 
   // De rollen draaien niet zonder betaling
-  await expect(display(page)).toHaveText("DRUK OP SPEEL!");
+  await expect(display(page)).toHaveText(READY);
 
   // Sluiten en opnieuw openen: dezelfde betaling (geen nieuwe bij Mollie)
   const href = await payLink(page).getAttribute("href");
@@ -127,11 +128,11 @@ test("betalen op dit apparaat: terug naar het spel met 4 credits, elk spel kost 
   await expect(prizes(page)).toBeHidden();
 
   await playButton(page).click(); // NIEUW SPEL
-  await expect(playButton(page)).toHaveText("SPEEL");
+  await expect(playButton(page)).toHaveText(PLAY);
 
-  // Op: SPEEL opent weer de popup, met een nieuwe betaling
+  // Op: DRAAI opent weer de popup, met een nieuwe betaling
   await openPopup(page);
-  await expect(display(page)).toHaveText("DRUK OP SPEEL!");
+  await expect(display(page)).toHaveText(READY);
 });
 
 test("betalen met een telefoon via de QR-code: de popup ziet de betaling zelf", async ({ page, browser }) => {
@@ -186,7 +187,7 @@ test("geen score-popup als er met een betaling niets gewonnen is", async ({ page
     await playOneGame(page);
     await expect(credits(page)).toHaveText(left);
   }
-  await expect(display(page)).toHaveText("DRUK OP SPEEL!");
+  await expect(display(page)).toHaveText(READY);
   await page.waitForTimeout(2000); // de popup zou na 1,5 s verschijnen
   await expect(prizes(page)).toBeHidden();
 });

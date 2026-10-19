@@ -1,16 +1,32 @@
-# Current Feature
+# Current Feature: Redesign
 
 ## Status
 
-Not Started
+In Progress
 
 ## Goals
 
-<!-- Doelen van de feature, in te vullen met /feature load -->
+- Eerst een voorbeeldplaatje van het nieuwe design tonen en laten goedkeuren door de gebruiker, pas daarna de code aanpassen
+- Nieuwe look voor het spel op basis van `voorbeeld/design2.png`: jungle-achtergrond met insecten, houten kast met dak, lichtbord "CASINO", ondertitel "KAKKELAKKEN KASINO", rode balk "GRAND JACKPOT", paneel "Hoe Speel Je?" (linksboven), statistiekenpaneel (linksonder), knoppen VAST / DRAAI / VAST, hendel rechts, berichtenbord onderaan
+- Knoppen zoals de vorige versie: VAST – VAST – VAST – DRAAI (na afloop NIEUW SPEL)
+- Het vakje naast "GRAND JACKPOT" vervalt; "GRAND JACKPOT" staat in het midden van de balk
+- De rollen met de 3 plaatjes (shot, kakkerlak, vraagteken) blijven hetzelfde als in de eerdere versies (niet de insecten uit het voorbeeld)
+- In de game-manager, tab Instellingen: keuze tussen het nieuwe design en het originele design; het spel toont het gekozen design
+- Het originele design blijft werken zoals nu
+- Playwright-tests aangepast aan de nieuwe layout (en het originele design blijft getest)
 
 ## Notes
 
-<!-- Extra context, beperkingen of details uit de spec -->
+- Bron: `project-details/to-do.md`, Versie 3 — taak 1 Redesign.
+- Voorbeeld: `voorbeeld/design2.png` (liggend, ca. 16:9; op 19 oktober door de gebruiker aangepast: nu vol groen/bruin in plaats van blauwig). In de map staan ook `design1.png`, `voorbeeld-nieuw-design.jpeg` en `fruitmachine.jpg`; de spec noemt alleen design2.
+- In het voorbeeld zitten insecten (sprinkhaan, kever, libel, bidsprinkhaan, jackpot-kroon) in de rollen; die vervallen, de rollen blijven zoals nu.
+- Huidig spel is gebouwd voor 1024x768 (Playwright draait op 1024x768); het voorbeeld is breder (16:9). Te bepalen bij start: verhouding/schaal van het nieuwe design en hoe het op 1024x768 en mobiel past.
+- Bestaande teksten en waarden in het voorbeeld (Winkans, Kredieten, Muntwaarde €1.00, "Druk op DRAAI…", 3 pogingen) moeten de echte instellingen tonen (winkans, pogingen, credits, prijs uit `GAME_PRICE_CENTS`).
+- Te bepalen bij start: achtergrond en decoratie als afbeelding(en) (zelf maken of uit het voorbeeld) of in CSS; design-keuze opslaan in `game_settings` (nieuwe kolom + migratie, standaard via `.env`?) zoals de betaalmethode in taak 13b; standaard nieuw of origineel design.
+- Knoppen (besluit gebruiker): zoals de vorige versie VAST – VAST – VAST – speelknop, niet de VAST / DRAAI / VAST uit het voorbeeld. De speelknop heet in het nieuwe design **DRAAI** en na afloop **NIEUW SPEL**. Het originele design houdt SPEEL / NIEUW SPEL. Tests zoeken nu op SPEEL; aanpassen.
+- Bestaande gedrag (betaalpopup, score-popup, tandwiel, geluid, munten) moet in beide designs blijven werken.
+- Besluiten gebruiker (19 oktober, na het voorbeeldplaatje): voorbeeld goedgekeurd; regel "Muntwaarde" wordt "4 Credits: € 1,00" (uit de betaalinstellingen); geen lampjes voor de pogingen in het jungle-design; speelveld blijft 1024x768, de achtergrond schaalt mee (geen zwarte balken op 1024x768).
+- Uitwerking: achtergrond `public/images/jungle/achtergrond.jpg` (1376x768) met de hendel als losse plaatjes, gemaakt door `scripts/jungle-achtergrond.mjs`; speelveld 1024x768 ligt 64 px vanaf de linkerrand van de schildering (statistiekenbord daarvoor 50 px naar rechts geschoven); `fitField` (`src/lib/designs.ts`) houdt het speelveld altijd in beeld en de schildering zo veel mogelijk in het midden; rest van het venster een vervaagde kopie (`#backdrop`). Keuze in `game_settings.design` (migratie `20261019000000_game_settings_design`, toegepast op Neon `dev`), standaard `GAME_DESIGN`, anders jungle; `?design=origineel` alleen met `GAME_ALLOW_ODDS_URL`.
 
 ## History
 

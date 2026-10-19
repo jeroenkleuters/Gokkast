@@ -1413,6 +1413,108 @@ Melding gebruiker: in de database alleen `LOST`, ook na winst. Oorzaak: de dev-s
 
 ---
 
+## Stap 106 — Melding "Mollie (iDEAL) is gekozen maar niet ingesteld" onderzocht (19 oktober 2026)
+
+**Vraag:**
+> ik krijg de melding Mollie (iDEAL) is gekozen maar niet ingesteld op deze server: het spel gebruikt PayPal.
+
+**Uitgevoerde handelingen:**
+1. Melding komt uit `game-manager/page.tsx` als de gekozen methode geen geldige configuratie heeft; `readMollieConfig` accepteert in productie alleen een key die met `live_` begint.
+2. Key-voorvoegsel uit Vercel halen via `vercel env pull` werd geweigerd (geen geheimen naar een bestand). In plaats daarvan de productielogs doorzocht (`vercel logs --environment production --query "Mollie"`): 11× "Mollie staat uit in productie: MOLLIE_API_KEY moet een live-key (live_...) zijn." en 1× "Betaalmethode mollie is niet ingesteld; paypal wordt gebruikt."
+3. Oorzaak: in Vercel Production staat nog geen Live API key (het open punt uit taak 12a: daar stond een access-token). Code ongewijzigd; oplossing bij de gebruiker: Live API key in Vercel Production zetten en opnieuw deployen.
+4. Vraag van de gebruiker over rechten: een Live API key (`live_...`) heeft geen instelbare rechten; rechten (scopes) horen bij een organization access token, dat de app weigert. De app gebruikt alleen `POST /v2/payments` en `GET /v2/payments/{id}`.
+
+---
+
+## Stap 107 — Nieuwe productie-build (19 oktober 2026)
+
+**Vraag:**
+> make a new build
+
+**Uitgevoerde handelingen:**
+1. CI-run `39209926641` op `main` opnieuw gestart (`gh run rerun`): controles en deploy geslaagd; nieuwe productie-deploy `dpl_PuE8fuZgVZopi63LJfyDWy22RqXD` (06:57 UTC).
+2. Productielogs: de vijf meldingen "Mollie staat uit in productie" kwamen allemaal van de vorige deploy (laatste 06:55 UTC). De nieuwe deploy gaf na meerdere verzoeken op `/` (die de Mollie-instellingen lezen) geen melding meer: de live-key wordt geaccepteerd.
+
+---
+
+## Stap 108 — Feature geladen: Redesign (19 oktober 2026)
+
+**Vraag:**
+> /feature load 1 Redesign
+
+**Uitgevoerde handelingen:**
+1. Taak "1 Redesign" (Versie 3) gevonden in `to-do.md`; voorbeeld `voorbeeld/design2.png` bekeken (jungle met insecten, houten kast, lichtbord CASINO, balk GRAND JACKPOT, panelen links, hendel rechts).
+2. `current-feature.md` ingevuld: doelen (eerst een voorbeeldplaatje laten goedkeuren, nieuwe look naar design2 zonder het vakje naast GRAND JACKPOT en met de tekst in het midden, rollen ongewijzigd, keuze nieuw/origineel design in de tab Instellingen, Playwright aanpassen) en notities (verhouding 16:9 tegenover 1024x768, insecten in de rollen vervallen, opslag van de keuze en standaardwaarde nog te bepalen). Status Not Started.
+
+---
+
+## Stap 109 — Aangepast voorbeeld design2 bekeken (19 oktober 2026)
+
+**Vraag:**
+> ik heb design2 aangepast.
+
+**Uitgevoerde handelingen:**
+1. `voorbeeld/design2.png` opnieuw bekeken: de kleuren zijn nu vol groen en bruin (eerst blauwig en vaag); layout gelijk.
+2. Notities in `current-feature.md` bijgewerkt: kleuren van het voorbeeld, en dat het voorbeeld twee VAST-knoppen heeft (VAST / DRAAI / VAST) terwijl het spel er drie heeft (één per rol) plus SPEEL; drie houden, tekst DRAAI of SPEEL bij start afstemmen.
+
+---
+
+## Stap 110 — Knoppen nieuw design vastgelegd (19 oktober 2026)
+
+**Vraag:**
+> de knoppen moeten vast - vast - vast  - nieuw spel / draai zijn.  zoals de vorige versie
+
+**Uitgevoerde handelingen:**
+1. `current-feature.md` bijgewerkt: knoppen in het nieuwe design zoals de vorige versie, VAST – VAST – VAST – speelknop; de speelknop heet DRAAI en na afloop NIEUW SPEL. Het originele design houdt SPEEL / NIEUW SPEL. Doel toegevoegd.
+
+---
+
+## Stap 111 — Feature gestart: Redesign, voorbeeldplaatje gemaakt (19 oktober 2026)
+
+**Vraag:**
+> /feature start
+
+**Uitgevoerde handelingen:**
+1. Status in `current-feature.md` op In Progress; branch `feature/redesign` aangemaakt.
+2. Voorbeelden bekeken: `voorbeeld-nieuw-design.jpeg` is de schone versie van design2 (1376x768, zonder editorkader); `design1.png` is een schermafdruk van het huidige design.
+3. Posities in de afbeelding opgemeten met een raster (rolvensters x 483–610, 627–754, 768–894 en y 340–612; knoppendek y 627–678; berichtenbord 405–975 x 702–757; borden links; hendel met bal rond (1053, 409)).
+4. Achtergrond bewerkt met `sharp` (script in de scratchpad): voorbeeldteksten op de borden, de knoppen VAST/DRAAI/VAST en de tekst op het berichtenbord weggehaald (per rij invullen tussen de randkleuren); "GRAND JACKPOT" 63 px naar rechts geschoven zodat het in het midden van de banner staat, dubbele punt en vakje weg; bal en stang van de hendel uitgeknipt als losse plaatjes (zodat ze kunnen bewegen) en uit de achtergrond gehaald.
+5. HTML-voorbeeld in de scratchpad gemaakt met de echte plaatjes op de rollen (zelfde rollen met cilinder-effect en winlijn), knoppen VAST – VAST – VAST – DRAAI in houtstijl, borden met echte teksten, LED-tekst op het berichtenbord (VT323) en ronde knoppen voor geluid en instellingen; met Playwright vastgelegd op 1376x768 en 1024x768: `voorbeeld/redesign-voorbeeld-1376.png` en `voorbeeld/redesign-voorbeeld-1024.png`. Code van het spel nog niet aangepast (wacht op goedkeuring).
+
+---
+
+## Stap 112 — Redesign gebouwd: jungle-design naast het originele (19 oktober 2026)
+
+**Vraag:**
+> 1.ja
+> 2. 4 Credits € 1,00
+> 3 ja dat is goed
+> 4 nee houdt 1024x768 aan en bij groter of kleiner schaal je de achtergrond
+
+**Uitgevoerde handelingen:**
+1. Achtergrond aangepast aan het speelveld van 1024x768: het statistiekenbord 50 px naar rechts geschoven (alleen het bord, de vrijgekomen strook gespiegeld opgevuld met de jungle erboven), zodat borden, kast en hendel binnen 1024 px vallen (schildering-x 64 t/m 1088). Script `scripts/jungle-achtergrond.mjs` maakt `public/images/jungle/achtergrond.jpg`, `hendel-bal.png` en `hendel-stang.png` uit `voorbeeld/voorbeeld-nieuw-design.jpeg`.
+2. Instelling design: `Design` (`jungle`/`origineel`), `DESIGN_LABELS`, `readDefaultDesign` (`GAME_DESIGN`, anders jungle) in `src/lib/settings.ts`; `GameSettings.design`, `mergeSettings` en `parseSettingsForm` (veld `design`). Prisma-enum `GameDesign` en kolom `game_settings.design` (migratie `20261019000000_game_settings_design`, met de hand; toegepast op Neon `dev`, `migrate diff` leeg). `settingsStore.ts` leest en schrijft de kolom.
+3. `src/lib/designs.ts`: maten per design (rolcellen 104/90 px, speelknop SPEEL/DRAAI, beginbericht) en `fitField` (speelveld altijd in beeld, schildering zo veel mogelijk in het midden). `game.ts`: `READY_MESSAGE`.
+4. Spel: `SlotMachine.tsx` met `#game.jungle` of `#game.origineel`; rollen, knoppen en berichtenbord gedeeld, de oude kast alleen bij origineel; `#backdrop` (vervaagde schildering) bij jungle. `Reel.tsx` krijgt celhoogte en rolhoogte als props; `Lever.tsx` (jungle: stang en bal als plaatjes, stang krimpt en bal zakt bij trekken); `InfoPanel.tsx` ("Hoe Speel Je? Druk op DRAAI. Je hebt 3 pogingen per hand."); `Stats.tsx` (Credits en "4 Credits: € 1,00" bij betalen); tandwiel toont het design. `page.tsx`: `?design=` alleen met `GAME_ALLOW_ODDS_URL`.
+5. CSS `src/app/jungle.css` (posities = schildering − 64 px), lettertypes Open Sans en VT323 via `next/font/google` in `layout.tsx`; `#game` krijgt positie en schaal uit `fitField` (`transform-origin: 0 0`).
+6. Game-manager, tab Instellingen: keuzelijst Design (Standaard / Jungle (nieuw) / Origineel) en "Design: …" in de huidige instellingen.
+7. Tests: Vitest 294 (o.a. `designs.test.ts`, design in `settings.test.ts` en `settingsStore.test.ts`); Playwright 38 (jungle: laden zonder balken, knoppen VAST VAST VAST DRAAI onder de rollen, 1920x1080 en 390x844, tandwiel; origineel: kast, lampjes, SPEEL; betalen/PayPal met DRAAI en "4 Credits: € 1,00"; game-manager met de keuzelijst Design). Lint en typecheck zonder fouten.
+8. In de browser gecontroleerd (1024x768, 1376x768, 1920x1080, 390x844; hendel getrokken, rol vast, winst met munten, NIEUW SPEL), console zonder fouten. README (designs, `GAME_DESIGN`, `?design=`, script, projectstructuur) en `.env.example` bijgewerkt.
+
+---
+
+## Stap 113 — Review Redesign (19 oktober 2026)
+
+**Vraag:**
+> /feature review
+
+**Uitgevoerde handelingen:**
+1. Doelen nagelopen: voorbeeldplaatje goedgekeurd vóór de code; jungle-look naar design2 met rollen, VAST – VAST – VAST – DRAAI/NIEUW SPEL, GRAND JACKPOT in het midden zonder vakje, borden met echte waarden, hendel en LED-bord; keuze in de game-manager; origineel design ongewijzigd; Playwright voor beide designs. Alle doelen gehaald.
+2. Gevonden en opgelost: in het jungle-design bedekte de donkere laag van een popup (instellingen, betalen, prijzen) alleen het speelveld, de schildering ernaast bleef fel. In `jungle.css` loopt die laag nu aan alle kanten 5000 px door (popup blijft in het midden van het speelveld); gecontroleerd op 1920x1080.
+3. Verder geen fouten gevonden; geen code buiten de doelen (alleen de regel Design in het tandwiel en het script voor de achtergrond als ondersteuning). Lint en typecheck zonder fouten, 294 Vitest- en 38 Playwright-tests geslaagd. Dev-server van de gebruiker leest het design uit de database (tandwiel: bron database).
+
+---
+
 ## Huidige bestandsstructuur
 
 ```
@@ -1422,17 +1524,18 @@ Gokkast/
 ├── .claude/skills/       cleanup, feature, list-components, neon, neon-postgres, neon-postgres-branches
 ├── .github/workflows/    ci-cd.yml
 ├── package.json, tsconfig.json, next.config.ts, eslint.config.mjs
-├── public/images/        shot.png, kakkerlak.png, vraagteken.png
+├── public/images/        shot.png, kakkerlak.png, vraagteken.png; jungle/ (achtergrond.jpg, hendel-bal.png, hendel-stang.png)
 ├── src/
-│   ├── app/              layout.tsx, page.tsx, actions.ts, globals.css
+│   ├── app/              layout.tsx, page.tsx, actions.ts, globals.css, jungle.css
 │   │   ├── game-manager/ layout.tsx, page.tsx, actions.ts, actions.test.ts, ManagerTabs.tsx, SettingsForm.tsx, StatsSection.tsx, PaymentsSection.tsx, TableParts.tsx, game-manager.module.css, inloggen/page.tsx
 │   │   └── api/auth/[...nextauth]/route.ts
 │   ├── auth.ts           Auth.js (Google, alleen beheerders)
 │   ├── components/       SlotMachine, Reel, Lever, InfoPanel, Stats, SettingsDialog, GameClient, PaymentDialog, PrizeDialog
-│   ├── lib/              encryption.ts, encryption.test.ts, prizes.ts, payments.ts, paymentService.ts, paymentStore.ts, mollie.ts, qr.ts, game.ts, settings.ts, settingsStore.ts, db.ts, gameStore.ts, gameStats.ts, tables.ts, managerQuery.ts, paymentOverview.ts, admins.ts, dal.ts, sound.ts, storage.ts, coinShower.ts, game.test.ts, settings.test.ts, settingsStore.test.ts, gameStore.test.ts, gameStats.test.ts, tables.test.ts, managerQuery.test.ts, paymentOverview.test.ts, admins.test.ts
+│   ├── lib/              designs.ts, designs.test.ts, encryption.ts, encryption.test.ts, prizes.ts, payments.ts, paymentService.ts, paymentStore.ts, mollie.ts, qr.ts, game.ts, settings.ts, settingsStore.ts, db.ts, gameStore.ts, gameStats.ts, tables.ts, managerQuery.ts, paymentOverview.ts, admins.ts, dal.ts, sound.ts, storage.ts, coinShower.ts, game.test.ts, settings.test.ts, settingsStore.test.ts, gameStore.test.ts, gameStats.test.ts, tables.test.ts, managerQuery.test.ts, paymentOverview.test.ts, admins.test.ts
 │   └── generated/prisma/ Prisma Client (gegenereerd, niet in git)
-├── prisma/               schema.prisma, seed.ts, migrations/ (20261013000000_init, 20261013163330_games_name_optional, 20261013200000_game_settings_optional, 20261013230000_games_outcome_symbol, 20261014000000_payments_mollie, 20261014120000_payments_reference, 20261014200000_payments_account_encrypted, migration_lock.toml)
+├── prisma/               schema.prisma, seed.ts, migrations/ (20261013000000_init, 20261013163330_games_name_optional, 20261013200000_game_settings_optional, 20261013230000_games_outcome_symbol, 20261014000000_payments_mollie, 20261014120000_payments_reference, 20261014200000_payments_account_encrypted, 20261015000000_payments_paypal, 20261019000000_game_settings_design, migration_lock.toml)
+├── scripts/              jungle-achtergrond.mjs
 ├── e2e/                  gokkast.spec.ts, game-manager.spec.ts, helpers.ts, auth.ts
-├── voorbeeld/            fruitmachine.jpg
+├── voorbeeld/            fruitmachine.jpg, design1.png, design2.png, voorbeeld-nieuw-design.jpeg, redesign-voorbeeld-1376.png, redesign-voorbeeld-1024.png
 └── project-details/      build-log.md, current-feature.md, goals.md, to-do.md
 ```

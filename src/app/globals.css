@@ -10,10 +10,9 @@ html, body {
 /* Vast 1024x768 speelveld, geschaald naar het venster */
 #game {
   position: absolute;
-  left: 50%; top: 50%;
+  left: 0; top: 0;
   width: 1024px; height: 768px;
-  transform: translate(-50%, -50%); /* schaal wordt in SlotMachine gezet */
-  transform-origin: center center;
+  transform-origin: 0 0; /* positie en schaal worden in SlotMachine gezet (designs.ts) */
   background:
     radial-gradient(ellipse at 20% 15%, rgba(80,140,255,.25), transparent 45%),
     radial-gradient(ellipse at 80% 20%, rgba(255,60,160,.25), transparent 45%),

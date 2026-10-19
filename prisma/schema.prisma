@@ -19,6 +19,7 @@ model GameSettings {
   maxTries         Int?             @map("max_tries")
   roundsPerPayment Int?             @map("rounds_per_payment")
   paymentProvider  PaymentProvider? @map("payment_provider") // leeg = GAME_PAYMENT_PROVIDER, anders Mollie (taak 13b)
+  design           GameDesign? // leeg = GAME_DESIGN, anders jungle (versie 3, taak 1)
   updatedAt        DateTime         @updatedAt @map("updated_at")
 
   @@map("game_settings")
@@ -58,6 +59,12 @@ enum PaymentStatus {
   CANCELED   @map("canceled")
   EXPIRED    @map("expired")
   FAILED     @map("failed")
+}
+
+// Uiterlijk van het spel (versie 3, taak 1); in de database letterlijk "jungle" en "origineel"
+enum GameDesign {
+  JUNGLE    @map("jungle")
+  ORIGINEEL @map("origineel")
 }
 
 // Betaalmethode (taak 13b); in de database letterlijk "mollie" en "paypal"

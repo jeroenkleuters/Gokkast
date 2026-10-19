@@ -1,5 +1,6 @@
 import { expect, test } from "@playwright/test";
 import { loginAs, TEST_ADMIN } from "./auth";
+import { READY } from "./helpers";
 
 // Zonder echte Google-login: de testserver heeft nep-sleutels (zie playwright.config.ts).
 // We controleren dat de game-manager dicht zit en dat inloggen naar Google gaat; voor de
@@ -51,7 +52,7 @@ test("het spel blijft zonder inloggen speelbaar", async ({ page }) => {
   await page.goto("/");
 
   await expect(page).toHaveURL(/\/$/);
-  await expect(page.locator("#display")).toHaveText("DRUK OP SPEEL!");
+  await expect(page.locator("#display")).toHaveText(READY);
   await expect(page.locator("#playbtn")).toBeEnabled();
 });
 
@@ -83,6 +84,13 @@ test.describe("ingelogd", () => {
       "Standaard: Mollie (iDEAL) — niet ingesteld",
       "Mollie (iDEAL) — niet ingesteld",
       "PayPal — niet ingesteld",
+    ]);
+    // Design (versie 3, taak 1): standaard jungle
+    await expect(page.getByTestId("current-settings")).toContainText("Design: Jungle (nieuw).");
+    await expect(page.getByLabel("Design", { exact: true }).locator("option")).toHaveText([
+      "Standaard: Jungle (nieuw)",
+      "Jungle (nieuw)",
+      "Origineel",
     ]);
   });
 
