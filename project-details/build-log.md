@@ -1557,6 +1557,18 @@ Melding gebruiker: in de database alleen `LOST`, ook na winst. Oorzaak: de dev-s
 
 ---
 
+## Stap 117 — Feature afgerond: Kosten Credits (19 oktober 2026)
+
+**Vraag:**
+> /feature complete
+
+**Uitgevoerde handelingen:**
+1. Taak "2 Kosten Credits" (versie 3) afgevinkt in `to-do.md`. Commit `68fe6cd` op `feature/kosten-credits`, gemerged in `main` (fast-forward), branch verwijderd (stond niet op origin). De nieuwe plaatjes in `voorbeeld/` (voor taak 3, Haven Design) bewust niet meegecommit.
+2. `current-feature.md` teruggezet met de samenvatting in History; `main` gepusht: CI test, past de migratie `20261019120000_game_settings_price` toe op de productiedatabase en deployt productie.
+3. Map `.next` verwijderd en de dev-server opnieuw gestart.
+
+---
+
 ## Huidige bestandsstructuur
 
 ```
