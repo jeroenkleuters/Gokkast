@@ -1,9 +1,41 @@
 import Image from "next/image";
-import { SYMBOLS } from "@/lib/game";
+import { CONTAINERS } from "@/lib/designs";
+import { MAX_HELD, SYMBOL_NAMES, SYMBOLS } from "@/lib/game";
+import { prizeName } from "@/lib/prizes";
 import type { Design } from "@/lib/settings";
 
 export default function InfoPanel({ design, maxTries }: { design: Design; maxTries: number }) {
   const tries = maxTries === 1 ? "1 poging" : `${maxTries} pogingen`;
+
+  // Haven: spelregels op een donker bord, met per container de prijs
+  if (design === "haven") {
+    return (
+      <div id="info" className="board">
+        <h2 className="head">SPELREGELS</h2>
+        <p>
+          Druk op <b>UITHALEN</b>. Je hebt <b>{tries}</b> per spel.
+        </p>
+        <p>
+          Zet tot {MAX_HELD} rollen <b>VAST</b> en haal opnieuw uit: dat vergroot je kans.
+        </p>
+        <p>
+          3 dezelfde containers op de lijn = <b>JACKPOT!</b>
+        </p>
+        <ul className="pay">
+          {SYMBOL_NAMES.map((name, i) => (
+            <li key={name}>
+              <span>
+                {[0, 1, 2].map((k) => (
+                  <Image key={k} src={CONTAINERS[i]} alt="" width={24} height={24} />
+                ))}
+              </span>
+              {prizeName(name)}
+            </li>
+          ))}
+        </ul>
+      </div>
+    );
+  }
 
   // Jungle: korte tekst op het houten bord; de drie shotjes staan in de achtergrond
   if (design === "jungle") {

@@ -1,16 +1,34 @@
-# Current Feature
+# Current Feature: Haven Design
 
 ## Status
 
-Not Started
+In Progress
 
 ## Goals
 
-<!-- Doelen van de feature, in te vullen met /feature load -->
+- Derde design **Harbor Jackpot** (haven) naast Jungle en Origineel, te kiezen in de game-manager (tab Instellingen, keuzelijst Design) en met `GAME_DESIGN` / `?design=`
+- Achtergrond is de foto `voorbeeld/de-ect-terminal-op-de-maasvlakte-in-de-haven-van-rotterdam.jpeg` (ECT-terminal Maasvlakte bij nacht)
+- Look volgens `voorbeeld/HarborJackpot.png`: neontitel HARBOR JACKPOT, metalen kast met rollen achter gaas en rode pijlen op de winlijn, knoppen VAST – VAST – VAST – UITHALEN (groen), LED-berichtenbord ("DRUK OP UITHALEN!")
+- Het vakje rechtsboven (mini-gokkast met winbank/credits) is weg
+- In het vakje linksboven (perkament) staan de spelregels in plaats van de uitbetalingstabel
+- Rollen met 3 soorten containers als vierkante plaatjes: **MSC** (lichtgeel), **MAERSK** (lichtblauw) en **Loyd** (okergeel), in plaats van shot, kakkerlak en vraagteken
+- Speelknop UITHALEN, na een spel NIEUW SPEL; geen hendel
+- Credits en prijs ("4 Credits: € 1,50") krijgen een plek in het design; eerst in het voorbeeldplaatje laten zien, de gebruiker beslist daarna
+- Jungle blijft het standaarddesign
+- Het POGING-bord (3 lampjes) staat links naast de VAST-knoppen (op de plek van het lege zwarte vakje in het knoppendek)
+- Eerst een voorbeeldplaatje laten goedkeuren voordat de code wordt aangepast (zoals bij Redesign)
+- Jungle- en origineel design blijven ongewijzigd
+- Vitest- en Playwright-tests uitgebreid voor het nieuwe design (laden, knoppen, poging-bord, schalen op 1024x768, 1920x1080 en 390x844, keuze in de game-manager)
 
 ## Notes
 
-<!-- Extra context, beperkingen of details uit de spec -->
+- Voorbeeld `HarborJackpot.png` is 1376x768 (zelfde maat als de jungle-schildering); de foto is 1920x1280 (3:2) en moet bijgesneden/geschaald worden. Speelveld blijft 1024x768 met `fitField` en een bredere achtergrond (`LAYOUTS` in `src/lib/designs.ts`).
+- Nieuwe waarde in `DESIGNS` (`src/lib/settings.ts`, bijv. `haven` met label "Harbor Jackpot") en in de Prisma-enum `GameDesign` → nieuwe migratie (enumwaarde toevoegen), toepassen op Neon `dev`.
+- Eigen CSS zoals `jungle.css`; plaatjes onder `public/images/haven/`, eventueel een script zoals `scripts/jungle-achtergrond.mjs`.
+- `RandomRunner.png` is alleen de inspiratie voor het vakje rechtsboven dat weg mag.
+- Besluiten gebruiker (19 oktober 2026): containers MSC/MAERSK/Loyd op de rollen; voorbeeldplaatje eerst, dan beslist de gebruiker over de plek van credits en prijs; UITHALEN/NIEUW SPEL zonder hendel; Jungle blijft de standaard.
+- Besluiten gebruiker na het eerste voorbeeld (20 oktober 2026): creditsbord (LED-getal, "4 Credits: € 1,50", statistieken) onder de spelregels; spelregels in hetzelfde donkere bord als de credits; titel met de letters uit `HarborJackpot.png` (uitgeknipt als plaatje); koppeling MSC = shot (gratis shotje), MAERSK = kakkerlak (kakkerlak om te blingen), Loyd = vraagteken (vrije keuze) blijft voorlopig, prijzen misschien later anders.
+- Containers en uitkomst: intern blijven de drie symbolen `shot`, `kakkerlak`, `vraagteken` (opslag `WON shot` enz., prijzen in `prizes.ts`, statistieken). Voorstel: per design een eigen plaatje per symbool (MSC = shot, MAERSK = kakkerlak, Loyd = vraagteken, volgorde van het voorbeeld); de koppeling en de prijzen-/scoreteksten in dit design bij het voorbeeldplaatje voorleggen.
 
 ## History
 

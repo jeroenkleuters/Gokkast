@@ -267,3 +267,122 @@ test.describe("origineel design", () => {
     await expect(litLamps(page)).toHaveCount(3);
   });
 });
+
+// Het havendesign Harbor Jackpot (versie 3, taak 3; te kiezen in de game-manager, hier met ?design=haven)
+test.describe("havendesign", () => {
+  // Achter de schermen blijven het de plaatjes shot, kakkerlak en vraagteken
+  const SYMBOL_OF = { msc: "shot", maersk: "kakkerlak", loyd: "vraagteken" } as Record<string, string>;
+  const tries = (page: Page) => page.locator("#tries");
+
+  test("laadt met de foto, de titel, containers, spelregels, POGING en UITHALEN", async ({ page }) => {
+    const images: string[] = [];
+    page.on("response", (res) => {
+      if (res.url().includes("/images/haven/") && res.ok()) images.push(new URL(res.url()).pathname);
+    });
+    await openGame(page, "lose", "haven");
+
+    await expect(page.locator("#game")).toHaveClass("haven");
+    await expect(page.getByRole("heading", { level: 1, name: "Harbor Jackpot" })).toBeVisible();
+    await expect(page.locator("#housing")).toBeVisible();
+    await expect(page.locator("#cabinet")).toHaveCount(0);
+    await expect(lever(page)).toHaveCount(0); // geen hendel
+    await expect(page.locator("#backdrop")).toHaveClass("haven");
+    await expect(reels(page)).toHaveCount(3);
+    await expect(page.locator("#panel button")).toHaveText(["VAST", "VAST", "VAST", "UITHALEN"]);
+    await expect(tries(page)).toContainText("POGING");
+    await expect(litLamps(page)).toHaveCount(3);
+
+    // Spelregels met per container de prijs; zonder betalen alleen de stand
+    const info = page.locator("#info");
+    await expect(info.getByRole("heading", { name: "SPELREGELS" })).toBeVisible();
+    await expect(info).toContainText("Druk op UITHALEN. Je hebt 3 pogingen per spel.");
+    await expect(info.locator(".pay li")).toHaveText(["gratis shotje", "kakkerlak om te blingen", "vrije keuze"]);
+    await expect(page.locator("#stats .head")).toHaveText("STAND");
+    await expect(page.getByTestId("credits")).toHaveCount(0);
+
+    await expect.poll(() => images).toContain("/images/haven/achtergrond.jpg");
+    await expect.poll(() => images).toEqual(expect.arrayContaining(["/images/haven/kast.png", "/images/haven/titel.png"]));
+    const box = await expectFieldInView(page, 1024, 768);
+    expect(box.width).toBeCloseTo(1024, 0);
+
+    // Containers op de rollen, drie verschillende
+    const shown = await symbols(page);
+    expect(new Set(shown).size).toBe(3);
+    for (const name of shown) expect(Object.keys(SYMBOL_OF)).toContain(name);
+  });
+
+  test("POGING staat links naast de VAST-knoppen, elke VAST onder zijn rol", async ({ page }) => {
+    await openGame(page, "lose", "haven");
+
+    const buttons = page.locator("#panel button");
+    const boxes = await Promise.all((await buttons.all()).map((b) => b.boundingBox()));
+    const board = (await tries(page).boundingBox())!;
+    expect(board.x + board.width).toBeLessThan(boxes[0]!.x); // links van de eerste VAST
+    expect(board.y).toBeLessThan(boxes[0]!.y + boxes[0]!.height); // op dezelfde hoogte
+    expect(board.y + board.height).toBeGreaterThan(boxes[0]!.y);
+    for (let k = 1; k < boxes.length; k++) expect(boxes[k]!.x).toBeGreaterThan(boxes[k - 1]!.x + boxes[k - 1]!.width);
+
+    for (let i = 0; i < 3; i++) {
+      const reel = (await reels(page).nth(i).boundingBox())!;
+      const center = boxes[i]!.x + boxes[i]!.width / 2;
+      expect(center).toBeGreaterThan(reel.x);
+      expect(center).toBeLessThan(reel.x + reel.width);
+      expect(boxes[i]!.y).toBeGreaterThan(reel.y + reel.height);
+    }
+    expect((await display(page).boundingBox())!.y).toBeGreaterThan(boxes[3]!.y + boxes[3]!.height);
+  });
+
+  test("lampjes gaan uit per poging, vastzetten werkt, daarna NIEUW SPEL", async ({ page }) => {
+    await openGame(page, "lose", "haven");
+
+    await spin(page);
+    await expect(litLamps(page)).toHaveCount(2);
+    await expect(display(page)).toHaveText("NOG 2 POGINGEN — ZET ROLLEN VAST!");
+    await holdButtons(page).first().click();
+    await expect(holdButtons(page).first()).toHaveClass(/\bon\b/);
+    await spin(page);
+    await spin(page);
+    await expect(display(page)).toHaveText("HELAAS... PROBEER HET NOG EENS");
+    await expect(litLamps(page)).toHaveCount(0);
+    await expect(playButton(page)).toHaveText("NIEUW SPEL");
+
+    await playButton(page).click();
+    await expect(display(page)).toHaveText(TEXTS.haven.ready);
+    await expect(playButton(page)).toHaveText("UITHALEN");
+    await expect(litLamps(page)).toHaveCount(3);
+  });
+
+  test("winst: de ronde noemt het plaatje achter de container (MSC = shot, MAERSK = kakkerlak, Loyd = vraagteken)", async ({
+    page,
+  }) => {
+    const sent: unknown[] = [];
+    page.on("request", (req) => {
+      if (req.method() === "POST" && req.headers()["next-action"]) sent.push(req.postDataJSON());
+    });
+    await openGame(page, "win", "haven");
+    await spin(page);
+    await expect(display(page)).toHaveText("★ JACKPOT! JE HEBT GEWONNEN! ★");
+    const [won] = await symbols(page);
+    await expect.poll(() => sent).toEqual([[{ outcome: `WON ${SYMBOL_OF[won]}`, tries: 1 }]]);
+  });
+
+  test("op een breed scherm en een telefoon past het hele speelveld, de foto schaalt mee", async ({ page }) => {
+    for (const [width, height] of [
+      [1920, 1080],
+      [390, 844],
+    ]) {
+      await page.setViewportSize({ width, height });
+      await openGame(page, "lose", "haven");
+      await expectFieldInView(page, width, height);
+      const backdrop = (await page.locator("#backdrop").boundingBox())!;
+      expect(backdrop.width).toBeGreaterThanOrEqual(width);
+      expect(backdrop.height).toBeGreaterThanOrEqual(height);
+    }
+  });
+
+  test("het tandwiel toont het design", async ({ page }) => {
+    await openGame(page, "lose", "haven");
+    await page.locator("#gear").click();
+    await expect(page.locator("#settings")).toContainText("DesignHarbor Jackpot");
+  });
+});

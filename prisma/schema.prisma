@@ -62,9 +62,10 @@ enum PaymentStatus {
   FAILED     @map("failed")
 }
 
-// Uiterlijk van het spel (versie 3, taak 1); in de database letterlijk "jungle" en "origineel"
+// Uiterlijk van het spel (versie 3, taak 1 en 3); in de database letterlijk "jungle", "haven" en "origineel"
 enum GameDesign {
   JUNGLE    @map("jungle")
+  HAVEN     @map("haven")
   ORIGINEEL @map("origineel")
 }
 

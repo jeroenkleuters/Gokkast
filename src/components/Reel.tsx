@@ -3,7 +3,7 @@
 import Image from "next/image";
 import { useImperativeHandle, useRef, useState, type Ref } from "react";
 import { flushSync } from "react-dom";
-import { restCells, SYMBOLS, SYMBOL_COUNT } from "@/lib/game";
+import { restCells, SYMBOL_COUNT } from "@/lib/game";
 
 export interface ReelHandle {
   spin(target: number, duration: number): Promise<void>;
@@ -17,6 +17,7 @@ interface ReelProps {
   win: boolean;
   cell: number; // hoogte van een plaatje op de rol (incl. rand), per design (designs.ts)
   height: number; // binnenhoogte van de rol
+  symbols: readonly string[]; // plaatjes per design (designs.ts)
   onTick(): void;
   onStop(): void;
 }
@@ -27,7 +28,7 @@ const easeOutBack = (t: number) => {
   return 1 + c3 * Math.pow(t - 1, 3) + c1 * Math.pow(t - 1, 2);
 };
 
-export default function Reel({ ref, index, initialSymbol, held, win, cell, height, onTick, onStop }: ReelProps) {
+export default function Reel({ ref, index, initialSymbol, held, win, cell, height, symbols, onTick, onStop }: ReelProps) {
   const centerOffset = (height - cell) / 2;
   const restY = centerOffset - cell;
   const [cells, setCells] = useState(() => restCells(initialSymbol));
@@ -88,7 +89,7 @@ export default function Reel({ ref, index, initialSymbol, held, win, cell, heigh
       >
         {cells.map((s, k) => (
           <div className="cell" key={k}>
-            <Image src={SYMBOLS[s]} alt="" width={96} height={96} draggable={false} loading="eager" />
+            <Image src={symbols[s]} alt="" width={96} height={96} draggable={false} loading="eager" />
           </div>
         ))}
       </div>

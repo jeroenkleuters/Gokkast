@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { fitField, LAYOUTS } from "@/lib/designs";
-import { READY_MESSAGE } from "@/lib/game";
+import { CONTAINERS, fitField, LAYOUTS } from "@/lib/designs";
+import { READY_MESSAGE, SYMBOL_COUNT, SYMBOLS } from "@/lib/game";
 
 describe("fitField", () => {
   it("origineel: het speelveld staat in het midden, met balken waar het niet past", () => {
@@ -33,6 +33,24 @@ describe("fitField", () => {
     // 3000 breed: de schildering (1376) past ruim; het speelveld begint 64 px na de linkerrand ervan
     expect(fitField(3000, 768, LAYOUTS.jungle).left).toBe((3000 - 1376) / 2 + 64);
   });
+
+  it("haven: het speelveld staat in het midden van de foto (176 px van links)", () => {
+    expect(fitField(1024, 768, LAYOUTS.haven)).toEqual({ scale: 1, left: 0, top: 0 });
+    expect(fitField(1376, 768, LAYOUTS.haven)).toEqual({ scale: 1, left: 176, top: 0 });
+    expect(fitField(2752, 1536, LAYOUTS.haven)).toEqual({ scale: 2, left: 352, top: 0 });
+    // breder dan de foto: het speelveld blijft in het midden van het venster
+    expect(fitField(3000, 768, LAYOUTS.haven).left).toBe((3000 - 1024) / 2);
+  });
+
+  it("haven: het speelveld blijft altijd helemaal in beeld", () => {
+    for (const [w, h] of [[1100, 768], [1920, 1080], [390, 844], [3000, 768], [800, 1200]]) {
+      const { scale, left, top } = fitField(w, h, LAYOUTS.haven);
+      expect(left, `${w}x${h}`).toBeGreaterThanOrEqual(0);
+      expect(left + 1024 * scale, `${w}x${h}`).toBeLessThanOrEqual(w + 1e-9);
+      expect(top, `${w}x${h}`).toBeGreaterThanOrEqual(0);
+      expect(top + 768 * scale, `${w}x${h}`).toBeLessThanOrEqual(h + 1e-9);
+    }
+  });
 });
 
 describe("LAYOUTS", () => {
@@ -41,5 +59,22 @@ describe("LAYOUTS", () => {
     expect(LAYOUTS.origineel.readyMessage).toBe(READY_MESSAGE);
     expect(LAYOUTS.jungle.playLabel).toBe("DRAAI");
     expect(LAYOUTS.jungle.readyMessage).toBe("DRUK OP DRAAI OF TREK DE HENDEL!");
+    expect(LAYOUTS.haven.playLabel).toBe("UITHALEN");
+    expect(LAYOUTS.haven.readyMessage).toBe("DRUK OP UITHALEN!");
+  });
+
+  it("haven: containers op de rollen, in de volgorde van de plaatjes (MSC = shot, MAERSK = kakkerlak, Loyd = vraagteken)", () => {
+    expect(LAYOUTS.haven.symbols).toEqual(["/images/haven/msc.png", "/images/haven/maersk.png", "/images/haven/loyd.png"]);
+    expect(LAYOUTS.haven.symbols).toBe(CONTAINERS);
+    expect(LAYOUTS.jungle.symbols).toBe(SYMBOLS);
+    expect(LAYOUTS.origineel.symbols).toBe(SYMBOLS);
+  });
+
+  it("elk design heeft precies één plaatje per symbool, en 3 rijen per rol", () => {
+    for (const layout of Object.values(LAYOUTS)) {
+      expect(layout.symbols).toHaveLength(SYMBOL_COUNT);
+      expect(new Set(layout.symbols).size).toBe(SYMBOL_COUNT);
+    }
+    expect(LAYOUTS.haven.reelHeight / LAYOUTS.haven.cell).toBe(3);
   });
 });

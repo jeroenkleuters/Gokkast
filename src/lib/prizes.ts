@@ -39,6 +39,9 @@ const LABELS: Record<SymbolName, [one: string, more: string]> = {
   vraagteken: ["vrije keuze", "vrije keuzes"],
 };
 
+// Naam van de prijs zonder aantal, bijv. "gratis shotje" (spelregels in het havendesign)
+export const prizeName = (name: SymbolName) => LABELS[name][0];
+
 export function prizeLabel(name: SymbolName, count: number): string {
   return `${count} ${LABELS[name][count === 1 ? 0 : 1]}`;
 }

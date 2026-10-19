@@ -1593,6 +1593,84 @@ Melding gebruiker: in de database alleen `LOST`, ook na winst. Oorzaak: de dev-s
 
 ---
 
+## Stap 120 — Feature geladen: Haven Design (19 oktober 2026)
+
+**Vraag:**
+> /feature load 3 haven design
+
+**Uitgevoerde handelingen:**
+1. Taak "3 Haven Design" (versie 3) gevonden in `to-do.md`; voorbeelden bekeken: `HarborJackpot.png` (1376x768: neontitel, perkament met uitbetalingstabel linksboven, mini-gokkast rechtsboven, POGING-bord met 3 lampjes, metalen kast met rollen, VAST – VAST – VAST – UITHALEN, LED-bord "DRUK OP UITHALEN!"), de havenfoto (1920x1280, ECT-terminal Maasvlakte bij nacht) en `RandomRunner.png` (inspiratie voor het vakje rechtsboven).
+2. `current-feature.md` ingevuld: doelen (derde design Harbor Jackpot naast jungle en origineel, foto als achtergrond, vakje rechtsboven weg, spelregels in het vakje linksboven, POGING links naast de VAST-knoppen, eerst een voorbeeldplaatje, tests) en notities (maten, nieuwe enumwaarde en migratie, open vragen over rollen, credits/prijs, speelknop/hendel en standaarddesign). Status Not Started.
+
+---
+
+## Stap 121 — Keuzes Haven Design vastgelegd (19 oktober 2026)
+
+**Vraag:**
+> 1. ik wil 3 soorten containers. vierkante plaatjes met de namen MSC (licht gele kleur), MAERSK (lichtblauwe kleur), Loyd (okergeel)
+> 2. maak eerst een voorbeeldplaatje, dan beslis ik
+> 3. klopt allebei
+> 4. Jungle is de standaard
+
+**Uitgevoerde handelingen:**
+1. `current-feature.md` bijgewerkt: doelen voor de containers op de rollen (MSC lichtgeel, MAERSK lichtblauw, Loyd okergeel, vierkant), UITHALEN/NIEUW SPEL zonder hendel, plek van credits en prijs eerst in het voorbeeldplaatje, Jungle blijft standaard. Open vragen vervangen door de besluiten; voorstel genoteerd om intern de symbolen `shot`/`kakkerlak`/`vraagteken` te houden met per design een eigen plaatje (MSC/MAERSK/Loyd).
+
+---
+
+## Stap 122 — Feature gestart: Haven Design, voorbeeldplaatje gemaakt (19 oktober 2026)
+
+**Vraag:**
+> /feature start
+
+**Uitgevoerde handelingen:**
+1. Status in `current-feature.md` op In Progress; branch `feature/haven-design` aangemaakt.
+2. Posities in `HarborJackpot.png` opgemeten met een raster (rollenhuis x 406–969, y 204–532; rolvensters ca. 145x255; knoppendek y 530–648; LED-bord y 652–768; perkament x 46–348, y 37–325; POGING-bord x 100–277, y 335–417).
+3. Plaatjes gemaakt met `sharp` (script in de scratchpad): achtergrond 1376x768 uit de havenfoto (breedte 1376, 90 px van boven weg); rollenhuis met gaas en rode pijlen uitgeknipt uit het voorbeeld (afgeronde hoeken); drie vierkante containers (SVG, 10ft-container in lichte 3D met ribbels en hoekstukken): MSC lichtgeel, MAERSK lichtblauw, Loyd okergeel.
+4. HTML-voorbeeld in de scratchpad: speelveld 1024x768 midden op de foto (foto 176 px links ervan); neontitel HARBOR JACKPOT in CSS (Montserrat, gekleurde rand en gloed); perkament linksboven met spelregels en per container de prijs (MSC = gratis shotje, MAERSK = kakkerlak om te blingen, Loyd = vrije keuze); voorstel voor credits: donker bord CREDITS onder de spelregels met LED-getal, "4 Credits: € 1,50" en de statistieken; knoppendek en LED-bord in CSS; POGING-bord met 3 lampjes links naast VAST – VAST – VAST, groene knop UITHALEN; LED-tekst "DRUK OP UITHALEN!". Vastgelegd met Playwright: `voorbeeld/haven-voorbeeld-1376.png` en `voorbeeld/haven-voorbeeld-1024.png`. Code van het spel nog niet aangepast (wacht op goedkeuring).
+
+---
+
+## Stap 123 — Voorbeeld Haven Design aangepast (20 oktober 2026)
+
+**Vraag:**
+> 1. de plek is goed, geef de spelregels het zelfde design als het creditsboard
+> 2. houd dat maar zo voor nu. Misschien verzin ik later andere prijzen
+> 3. gebruik het zelfde lettertype voor de titel als in HarborJackpot.png
+
+**Uitgevoerde handelingen:**
+1. Besluiten vastgelegd in `current-feature.md`: creditsbord onder de spelregels; koppeling MSC = gratis shotje, MAERSK = kakkerlak om te blingen, Loyd = vrije keuze blijft (prijzen mogelijk later anders); spelregels in hetzelfde donkere bord als de credits; titel met de letters uit het voorbeeld.
+2. Titel uit `HarborJackpot.png` geknipt als plaatje met transparantie (`titel.png`, 449x158): de dekking volgt hoe "warm" een pixel is (rood boven blauw), zodat de donkere lucht en de blauwe kraan wegvallen; de kleur is teruggerekend zonder de lucht, en de kraan rechts weggeschoven. Op de havenfoto gecontroleerd. In het spel komt de tekst er voor schermlezers bij (`h1`).
+3. Spelregels nu in hetzelfde donkere bord als de credits (`.board`: kop in neongeel, lichte tekst); beide borden 280 px breed. Schermafdrukken `voorbeeld/haven-voorbeeld-1376.png` en `-1024.png` vernieuwd.
+
+---
+
+## Stap 124 — Haven Design gebouwd: Harbor Jackpot als derde design (20 oktober 2026)
+
+**Vraag:**
+> zo is het goed
+
+**Uitgevoerde handelingen:**
+1. Script `scripts/haven-plaatjes.mjs` maakt `public/images/haven/`: `achtergrond.jpg` (havenfoto 1376x768), `kast.png` (rollenhuis uit `HarborJackpot.png`), `titel.png` (neonletters met transparantie) en de containers `msc.png`, `maersk.png`, `loyd.png` (256x256).
+2. Instelling: `haven` in `DESIGNS` met label "Harbor Jackpot" (`src/lib/settings.ts`, foutmelding "Kies Jungle, Harbor Jackpot, Origineel of de standaard."); Prisma-enum `GameDesign` met `HAVEN` (`@map("haven")`), migratie `20261020000000_game_settings_design_haven` (`ALTER TYPE ... ADD VALUE`), toegepast op Neon `dev` (`migrate diff` leeg). Jungle blijft de standaard.
+3. `src/lib/designs.ts`: `LAYOUTS.haven` (foto 1376 breed, speelveld 176 px van links, cel 80, rol 240, UITHALEN, "DRUK OP UITHALEN!") en per design `symbols`; `CONTAINERS` (MSC = shot, MAERSK = kakkerlak, Loyd = vraagteken). `Reel` en `PrizeDialog` krijgen de plaatjes per design, zodat ook de score-popup containers toont; uitkomst, prijzen en statistieken blijven gelijk.
+4. Componenten: `SlotMachine.tsx` met een eigen opbouw voor haven (titel als `h1` "Harbor Jackpot" voor schermlezers, rollenhuis, knoppendek, POGING-bord met de lampjes links naast VAST, LED-bord), geen hendel, vervaagde foto als `#backdrop.haven`; lampjes gedeeld met het originele design. `InfoPanel.tsx`: bord SPELREGELS met per container de prijs (`prizeName` in `prizes.ts`). `Stats.tsx`: bord CREDITS met LED-getal en "4 Credits: € 1,50" (zonder betalen heet het bord STAND), daaronder de statistieken.
+5. CSS `src/app/haven.css` (knoppen, borden, LED-bord, posities); lettertype Montserrat (`--font-title`) via `next/font` in `layout.tsx`. Game-manager: Harbor Jackpot in de keuzelijst Design (hint aangepast).
+6. Tests: Vitest 307 (haven in `designs.test.ts`, `settings.test.ts`, `settingsStore.test.ts`, `prizeName` in `prizes.test.ts`); Playwright 46 (havendesign: laden, POGING links naast VAST en knoppen onder de rollen, lampjes/vastzetten/NIEUW SPEL, winst noemt het plaatje achter de container, 1920x1080 en 390x844, tandwiel; betaalserver: bord CREDITS en containers in de score-popup; game-manager: keuzelijst met Harbor Jackpot). Lint en typecheck zonder fouten.
+7. In de browser gecontroleerd op een eigen testserver (poort 3200, zonder database, `?design=haven`): 1024x768, 1376x768, 1920x1080 en 390x844, vastzetten, verlies, winst met munten; teksten passen op het LED-bord, console zonder fouten. README (designs, speelknop, containers, `GAME_DESIGN`, script, projectstructuur) en `.env.example` bijgewerkt.
+
+---
+
+## Stap 125 — Melding: oude dev-server kon Harbor Jackpot niet opslaan (20 oktober 2026)
+
+**Vraag:**
+> (melding: de eerder gestarte dev-server is gestopt met code 1)
+
+**Uitgevoerde handelingen:**
+1. Uitvoer van de oude dev-server bekeken: opslaan van het design in de game-manager gaf `Invalid value for argument design. Expected GameDesign.` (waarde `HAVEN`). Oorzaak: die server had nog de oude Prisma Client zonder `HAVEN` in het geheugen (zoals verwacht na `prisma generate`); er is niets opgeslagen.
+2. Op poort 3000 draait sinds 00:19 een nieuwe dev-server (gestart na het genereren van de nieuwe Prisma Client); die kan Harbor Jackpot wel opslaan. Geen code aangepast.
+
+---
+
 ## Huidige bestandsstructuur
 
 ```
@@ -1602,18 +1680,18 @@ Gokkast/
 ├── .claude/skills/       cleanup, feature, list-components, neon, neon-postgres, neon-postgres-branches
 ├── .github/workflows/    ci-cd.yml
 ├── package.json, tsconfig.json, next.config.ts, eslint.config.mjs
-├── public/images/        shot.png, kakkerlak.png, vraagteken.png; jungle/ (achtergrond.jpg, hendel-bal.png, hendel-stang.png)
+├── public/images/        shot.png, kakkerlak.png, vraagteken.png; jungle/ (achtergrond.jpg, hendel-bal.png, hendel-stang.png); haven/ (achtergrond.jpg, kast.png, titel.png, msc.png, maersk.png, loyd.png)
 ├── src/
-│   ├── app/              layout.tsx, page.tsx, actions.ts, globals.css, jungle.css
+│   ├── app/              layout.tsx, page.tsx, actions.ts, globals.css, jungle.css, haven.css
 │   │   ├── game-manager/ layout.tsx, page.tsx, actions.ts, actions.test.ts, ManagerTabs.tsx, SettingsForm.tsx, StatsSection.tsx, PaymentsSection.tsx, TableParts.tsx, game-manager.module.css, inloggen/page.tsx
 │   │   └── api/auth/[...nextauth]/route.ts
 │   ├── auth.ts           Auth.js (Google, alleen beheerders)
 │   ├── components/       SlotMachine, Reel, Lever, InfoPanel, Stats, SettingsDialog, GameClient, PaymentDialog, PrizeDialog
 │   ├── lib/              designs.ts, designs.test.ts, encryption.ts, encryption.test.ts, prizes.ts, payments.ts, paymentService.ts, paymentStore.ts, mollie.ts, qr.ts, game.ts, settings.ts, settingsStore.ts, db.ts, gameStore.ts, gameStats.ts, tables.ts, managerQuery.ts, paymentOverview.ts, admins.ts, dal.ts, sound.ts, storage.ts, coinShower.ts, game.test.ts, settings.test.ts, settingsStore.test.ts, gameStore.test.ts, gameStats.test.ts, tables.test.ts, managerQuery.test.ts, paymentOverview.test.ts, admins.test.ts
 │   └── generated/prisma/ Prisma Client (gegenereerd, niet in git)
-├── prisma/               schema.prisma, seed.ts, migrations/ (20261013000000_init, 20261013163330_games_name_optional, 20261013200000_game_settings_optional, 20261013230000_games_outcome_symbol, 20261014000000_payments_mollie, 20261014120000_payments_reference, 20261014200000_payments_account_encrypted, 20261015000000_payments_paypal, 20261019000000_game_settings_design, 20261019120000_game_settings_price, migration_lock.toml)
-├── scripts/              jungle-achtergrond.mjs
+├── prisma/               schema.prisma, seed.ts, migrations/ (20261013000000_init, 20261013163330_games_name_optional, 20261013200000_game_settings_optional, 20261013230000_games_outcome_symbol, 20261014000000_payments_mollie, 20261014120000_payments_reference, 20261014200000_payments_account_encrypted, 20261015000000_payments_paypal, 20261019000000_game_settings_design, 20261019120000_game_settings_price, 20261020000000_game_settings_design_haven, migration_lock.toml)
+├── scripts/              jungle-achtergrond.mjs, haven-plaatjes.mjs
 ├── e2e/                  gokkast.spec.ts, game-manager.spec.ts, helpers.ts, auth.ts
-├── voorbeeld/            fruitmachine.jpg, design1.png, design2.png, voorbeeld-nieuw-design.jpeg, redesign-voorbeeld-1376.png, redesign-voorbeeld-1024.png
+├── voorbeeld/            fruitmachine.jpg, design1.png, design2.png, voorbeeld-nieuw-design.jpeg, redesign-voorbeeld-1376.png, redesign-voorbeeld-1024.png, HarborJackpot.png, RandomRunner.png, de-ect-terminal-op-de-maasvlakte-in-de-haven-van-rotterdam.jpeg, haven-voorbeeld-1376.png, haven-voorbeeld-1024.png
 └── project-details/      build-log.md, current-feature.md, goals.md, to-do.md
 ```

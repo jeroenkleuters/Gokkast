@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
   DEFAULT_SETTINGS,
+  DESIGN_LABELS,
+  DESIGNS,
   euroInput,
   MAX_ODDS,
   MAX_PRICE_CENTS,
@@ -249,9 +251,18 @@ describe("design (versie 3, taak 1)", () => {
     expect(readSettings({ GAME_DESIGN: "origineel" }).design).toBe("origineel");
   });
 
-  it("leest de keuze uit het formulier: jungle, origineel of leeg (standaard)", () => {
+  it("GAME_DESIGN kan ook het havendesign kiezen (versie 3, taak 3)", () => {
+    expect(readDefaultDesign({ GAME_DESIGN: "haven" })).toBe("haven");
+    expect(readDefaultDesign({ GAME_DESIGN: " HAVEN " })).toBe("haven");
+    expect(readSettings({ GAME_DESIGN: "haven" }).design).toBe("haven");
+    expect(DESIGN_LABELS.haven).toBe("Harbor Jackpot");
+    expect(DESIGNS).toEqual(["jungle", "haven", "origineel"]);
+  });
+
+  it("leest de keuze uit het formulier: jungle, haven, origineel of leeg (standaard)", () => {
     expect(parseSettingsForm(form({ design: "origineel" }))).toMatchObject({ ok: true, values: { design: "origineel" } });
     expect(parseSettingsForm(form({ design: "jungle" }))).toMatchObject({ ok: true, values: { design: "jungle" } });
+    expect(parseSettingsForm(form({ design: "haven" }))).toMatchObject({ ok: true, values: { design: "haven" } });
     expect(parseSettingsForm(form({ design: "" }))).toMatchObject({ ok: true, values: { design: null } });
   });
 
@@ -263,7 +274,7 @@ describe("design (versie 3, taak 1)", () => {
   it("weigert een onbekend design", () => {
     expect(parseSettingsForm(form({ design: "neon" }))).toEqual({
       ok: false,
-      errors: { design: "Kies Jungle, Origineel of de standaard." },
+      errors: { design: "Kies Jungle, Harbor Jackpot, Origineel of de standaard." },
     });
   });
 });

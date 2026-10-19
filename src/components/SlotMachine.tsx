@@ -52,7 +52,7 @@ export default function SlotMachine({ settings, payment }: SlotMachineProps) {
   const reelRefs = useRef<(ReelHandle | null)[]>([]);
   const busyRef = useRef(false); // voorkomt dubbel starten voor de volgende render
 
-  // Vast 1024x768 speelveld, geschaald naar het venster (de jungle-achtergrond schaalt mee)
+  // Vast 1024x768 speelveld, geschaald naar het venster (de jungle- of havenachtergrond schaalt mee)
   useLayoutEffect(() => {
     const fit = () => {
       const { scale, left, top } = fitField(window.innerWidth, window.innerHeight, layout);
@@ -185,6 +185,7 @@ export default function SlotMachine({ settings, payment }: SlotMachineProps) {
           win={won}
           cell={layout.cell}
           height={layout.reelHeight}
+          symbols={layout.symbols}
           onTick={sfx.tick}
           onStop={sfx.stop}
         />
@@ -222,10 +223,89 @@ export default function SlotMachine({ settings, payment }: SlotMachineProps) {
     </div>
   );
 
+  const lamps = (
+    <div id="tries-lamps">
+      {Array.from({ length: state.maxTries }, (_, k) => (
+        <div key={k} className={`lamp${k < state.triesLeft ? " on" : ""}`} />
+      ))}
+    </div>
+  );
+
+  let machine;
+  if (design === "jungle") {
+    // De kast staat in de achtergrond; rollen, knoppen en bord liggen erop
+    machine = (
+      <>
+        {reels}
+        {panel}
+        {display}
+      </>
+    );
+  } else if (design === "haven") {
+    // Titel en rollenhuis zijn plaatjes uit het voorbeeld; knoppendek, POGING en LED-bord zijn CSS
+    machine = (
+      <>
+        <h1 id="logo">Harbor Jackpot</h1>
+        <div id="housing" />
+        {reels}
+        <div id="deck" />
+        <div id="tries">
+          <div className="label">POGING</div>
+          {lamps}
+        </div>
+        {panel}
+        <div id="led">{display}</div>
+      </>
+    );
+  } else {
+    machine = (
+      <div id="cabinet">
+        <div id="topper">
+          <div className="knob" />
+          <div id="title">
+            {"JACKPOT".split("").map((ch, k) => (
+              <span key={k}>{ch}</span>
+            ))}
+          </div>
+        </div>
+        <div id="body">
+          <div className="side left">
+            <div className="neon-red">★ ★ ★</div>
+            <div className="neon-blue">POGING</div>
+            {lamps}
+            <div className="neon-red arrow">➜</div>
+          </div>
+
+          {reels}
+
+          <div className="side right">
+            <div className="neon-gold">
+              BIG
+              <br />
+              WIN
+            </div>
+            <div className="neon-red arrow">⬅</div>
+            <div className="neon-blue">
+              WIN
+              <br />
+              SLOTS
+            </div>
+            <div className="neon-green">€€€</div>
+          </div>
+
+          {panel}
+
+          <div id="grille" />
+          {display}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <>
-      {/* Jungle: de schildering vult ook de ruimte buiten het speelveld (vervaagd) */}
-      {design === "jungle" && <div id="backdrop" />}
+      {/* Jungle en haven: de achtergrond vult ook de ruimte buiten het speelveld (vervaagd) */}
+      {design !== "origineel" && <div id="backdrop" className={design} />}
       <div id="game" ref={gameRef} className={design}>
         <button id="sound" title="Geluid aan/uit" onClick={toggleSound}>
           {soundOn ? "🔊" : "🔇"}
@@ -245,61 +325,11 @@ export default function SlotMachine({ settings, payment }: SlotMachineProps) {
           offer={payment && { credits: payment.credits, price: payment.price }}
         />
 
-        {design === "jungle" ? (
-          // De kast staat in de achtergrond; rollen, knoppen en bord liggen erop
-          <>
-            {reels}
-            {panel}
-            {display}
-          </>
-        ) : (
-          <div id="cabinet">
-            <div id="topper">
-              <div className="knob" />
-              <div id="title">
-                {"JACKPOT".split("").map((ch, k) => (
-                  <span key={k}>{ch}</span>
-                ))}
-              </div>
-            </div>
-            <div id="body">
-              <div className="side left">
-                <div className="neon-red">★ ★ ★</div>
-                <div className="neon-blue">POGING</div>
-                <div id="tries-lamps">
-                  {Array.from({ length: state.maxTries }, (_, k) => (
-                    <div key={k} className={`lamp${k < state.triesLeft ? " on" : ""}`} />
-                  ))}
-                </div>
-                <div className="neon-red arrow">➜</div>
-              </div>
+        {machine}
 
-              {reels}
-
-              <div className="side right">
-                <div className="neon-gold">
-                  BIG
-                  <br />
-                  WIN
-                </div>
-                <div className="neon-red arrow">⬅</div>
-                <div className="neon-blue">
-                  WIN
-                  <br />
-                  SLOTS
-                </div>
-                <div className="neon-green">€€€</div>
-              </div>
-
-              {panel}
-
-              <div id="grille" />
-              {display}
-            </div>
-          </div>
+        {design !== "haven" && (
+          <Lever design={design} pulled={leverPulled} disabled={state.spinning} onPull={() => void play()} />
         )}
-
-        <Lever design={design} pulled={leverPulled} disabled={state.spinning} onPull={() => void play()} />
 
         {paymentOpen && payment && (
           <PaymentDialog
@@ -313,7 +343,7 @@ export default function SlotMachine({ settings, payment }: SlotMachineProps) {
           />
         )}
 
-        {prizes && <PrizeDialog summary={prizes} onClose={() => setPrizes(null)} />}
+        {prizes && <PrizeDialog summary={prizes} symbols={layout.symbols} onClose={() => setPrizes(null)} />}
 
         {settingsOpen && (
           <SettingsDialog settings={settings} onClose={() => setSettingsOpen(false)} />

@@ -2,17 +2,18 @@
 
 import Image from "next/image";
 import { useEffect, useRef } from "react";
-import { SYMBOL_NAMES, SYMBOLS } from "@/lib/game";
+import { SYMBOL_NAMES } from "@/lib/game";
 import { prizeLabel, totalPrizes, type PrizeSummary } from "@/lib/prizes";
 
 interface PrizeDialogProps {
   summary: PrizeSummary;
+  symbols: readonly string[]; // plaatjes per design (designs.ts)
   onClose(): void;
 }
 
 // Score-popup na het laatste spelletje van een betaling met minstens één winst.
 // Sluit alleen met de knop (niet met Escape of ernaast klikken): eerst de prijzen uitdelen.
-export default function PrizeDialog({ summary, onClose }: PrizeDialogProps) {
+export default function PrizeDialog({ summary, symbols, onClose }: PrizeDialogProps) {
   const { name, games, prizes } = summary;
   const won = totalPrizes(prizes);
   const boxRef = useRef<HTMLDivElement>(null);
@@ -37,7 +38,7 @@ export default function PrizeDialog({ summary, onClose }: PrizeDialogProps) {
           {SYMBOL_NAMES.map((symbol, i) =>
             prizes[symbol] > 0 ? (
               <li key={symbol} data-prize={symbol}>
-                <Image src={SYMBOLS[i]} alt="" width={48} height={48} />
+                <Image src={symbols[i]} alt="" width={48} height={48} />
                 {prizeLabel(symbol, prizes[symbol])}
               </li>
             ) : null,

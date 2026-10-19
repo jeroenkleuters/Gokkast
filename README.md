@@ -4,10 +4,12 @@ Een webbased eenarmige bandiet (1024x768) gebouwd met Next.js, React en TypeScri
 Drie rollen, standaard drie pogingen per spel, rollen los vast te zetten en een instelbare winkans
 (standaard 1 op 30). De instellingen staan in een `.env`-bestand.
 
-Er zijn twee designs, te kiezen in de game-manager: het **jungle-design** (standaard, een
-geschilderde houten kast "CASINO — Kakkelakken Kasino" in een jungle met insecten) en het
-**originele design** (de neon-kast "JACKPOT"). Het speelveld is in beide 1024x768 en schaalt mee
-met het venster; de jungle-schildering is breder en vult op een breder of hoger venster de rest.
+Er zijn drie designs, te kiezen in de game-manager: het **jungle-design** (standaard, een
+geschilderde houten kast "CASINO — Kakkelakken Kasino" in een jungle met insecten), het
+**havendesign Harbor Jackpot** (een metalen kast met neontitel voor een foto van de ECT-terminal op
+de Maasvlakte, met containers op de rollen) en het **originele design** (de neon-kast "JACKPOT").
+Het speelveld is in alle drie 1024x768 en schaalt mee met het venster; de jungle-schildering en de
+havenfoto zijn breder en vullen op een breder of hoger venster de rest.
 
 Productie: **https://jackpot.broadsight.nl** (ook nog bereikbaar op `https://gokkast.vercel.app`).
 Bij Vercel, Neon, PayPal, Mollie en Google heet het project nog **Gokkast** (de werktitel), net als
@@ -114,8 +116,13 @@ Voor PayPal (`e2e/paypal.spec.ts`) komen er nog twee bij: een nep-PayPal op poor
 - Vastzetten van rollen met hetzelfde plaatje vergroot de winkans.
 - Het **tandwiel** toont de huidige instellingen (alleen-lezen).
 - Staat [betalen](#betalen) aan, dan kost elk spel één credit; zonder credits opent de speelknop de betaalpopup.
-- De speelknop heet **DRAAI** in het jungle-design en **SPEEL** in het originele; na een spel **NIEUW SPEL**.
-  Het jungle-design heeft geen lampjes voor de pogingen: het berichtenbord meldt hoeveel er nog over zijn.
+- De speelknop heet **DRAAI** in het jungle-design, **UITHALEN** in het havendesign en **SPEEL** in het
+  originele; na een spel **NIEUW SPEL**. Het jungle-design heeft geen lampjes voor de pogingen: het
+  berichtenbord meldt hoeveel er nog over zijn. Het havendesign heeft geen hendel; het POGING-bord met de
+  lampjes staat links naast de VAST-knoppen.
+- In het havendesign staan containers op de rollen. Achter de schermen zijn het dezelfde plaatjes:
+  **MSC** = shot (gratis shotje), **MAERSK** = kakkerlak (kakkerlak om te blingen), **Loyd** = vraagteken
+  (vrije keuze). Uitkomsten, prijzen en statistieken zijn dus in elk design gelijk.
 
 ## Instellingen
 
@@ -136,19 +143,27 @@ ongeldig, dan geldt de standaardwaarde. Na een wijziging de server herstarten.
 | `GAME_MAX_TRIES`          | Aantal pogingen per spel                                     | 1 t/m 5             | `3`       |
 | `GAME_ROUNDS_PER_PAYMENT` | Spelletjes (credits) per betaling, zie [Betalen](#betalen)  | 1 t/m 100           | `4`       |
 | `GAME_PRICE_CENTS`        | Prijs van één betaling in centen (in de game-manager in euro's) | 1 t/m 10000      | `100`     |
-| `GAME_DESIGN`             | Design als er in de game-manager niets gekozen is            | `jungle`/`origineel` | `jungle` |
+| `GAME_DESIGN`             | Design als er in de game-manager niets gekozen is            | `jungle`/`haven`/`origineel` | `jungle` |
 | `GAME_ALLOW_ODDS_URL`     | Winkans en design via de adresbalk overschrijven, bijv. `/?kans=1` | `true`/`1`/`ja`/`aan` | uit     |
 
 Met `GAME_ALLOW_ODDS_URL=true` geeft
 [http://localhost:3000/?kans=10](http://localhost:3000/?kans=10) een winkans van 1 op 10 en
 [http://localhost:3000/?design=origineel](http://localhost:3000/?design=origineel) het originele
-design. Handig bij ontwikkelen en testen; laat dit in productie uit.
+design (of `?design=haven` het havendesign). Handig bij ontwikkelen en testen; laat dit in productie uit.
 
 **Jungle-design maken.** De plaatjes in `public/images/jungle/` (achtergrond en de hendel als losse
 bal en stang) komen uit de schildering `voorbeeld/voorbeeld-nieuw-design.jpeg`. Het script
 `node scripts/jungle-achtergrond.mjs` haalt de voorbeeldteksten en -knoppen weg, zet "GRAND JACKPOT"
 in het midden, schuift het statistiekenbord binnen het speelveld en knipt de hendel uit. De posities
 van rollen, knoppen en borden staan in `src/app/jungle.css` (speelveld-px = schildering-px − 64).
+
+**Havendesign maken.** Het script `node scripts/haven-plaatjes.mjs` maakt de plaatjes in
+`public/images/haven/`: de achtergrond uit de havenfoto
+(`voorbeeld/de-ect-terminal-op-de-maasvlakte-in-de-haven-van-rotterdam.jpeg`, 1376x768), het
+rollenhuis met gaas en de neontitel HARBOR JACKPOT uit het ontwerp `voorbeeld/HarborJackpot.png` (de
+titel met transparantie, zodat de foto erachter doorloopt) en de drie containers (getekend als SVG).
+Knoppendek, knoppen, borden en LED-bord zijn CSS in `src/app/haven.css`; het speelveld staat in het
+midden van de foto (speelveld-px = foto-px − 176).
 
 ## Betalen
 
@@ -341,7 +356,7 @@ sorteren, worden de betalingen in het geheugen gesorteerd en verdeeld over pagin
 moeilijk 1 op 100, of een eigen getal), de pogingen per spel, de speelrondes per betaling, de prijs
 per betaling (in euro's, bijv. `1,50`; opgeslagen in centen, € 0,01 t/m € 100,00), de
 betaalmethode (Mollie, PayPal of de standaard uit `GAME_PAYMENT_PROVIDER`) en het design (Jungle,
-Origineel of de standaard uit `GAME_DESIGN`) in. Een methode zonder
+Harbor Jackpot, Origineel of de standaard uit `GAME_DESIGN`) in. Een methode zonder
 sleutels op deze server staat erbij als "niet ingesteld"; wordt die toch gekozen, dan meldt de
 pagina welke methode het spel echt gebruikt.
 Opslaan gaat via een server action die opnieuw controleert of je beheerder bent en de invoer op de
@@ -474,9 +489,9 @@ In previews werkt `?kans=` dus wel, in productie niet. Een wijziging geldt vanaf
 
 ```
 Gokkast/
-├── public/images/      plaatjes voor de rollen (shot, kakkerlak, vraagteken); jungle/: achtergrond en hendel van het jungle-design
+├── public/images/      plaatjes voor de rollen (shot, kakkerlak, vraagteken); jungle/: achtergrond en hendel van het jungle-design; haven/: achtergrond, rollenhuis, titel en containers van het havendesign
 ├── src/
-│   ├── app/            layout, pagina, server actions (actions.ts) en CSS: globals.css (origineel design) en jungle.css (Next.js App Router)
+│   ├── app/            layout, pagina, server actions (actions.ts) en CSS: globals.css (origineel design), jungle.css en haven.css (Next.js App Router)
 │   │   ├── game-manager/  beheerpagina met tabs (ManagerTabs): speelrondes en statistieken (StatsSection), betalingen (PaymentsSection), instellingen (SettingsForm), sorteren/bladeren/filteren (TableParts), server actions en inlogpagina (inloggen/)
 │   │   ├── betaald/       terugkeer na betalen bij Mollie
 │   │   ├── api/auth/      Auth.js-routes (inloggen, terugkeer van Google, uitloggen)
@@ -495,8 +510,8 @@ Gokkast/
 ├── e2e/                visuele tests met Playwright (*.spec.ts), de nep-Mollie (mollie-mock.ts) en de nep-PayPal (paypal-mock.ts)
 ├── playwright.config.ts instellingen voor de visuele tests
 ├── vitest.config.mts   instellingen voor de unit-tests
-├── scripts/            jungle-achtergrond.mjs: plaatjes van het jungle-design maken
-├── voorbeeld/          ontwerpvoorbeelden (fruitmachine.jpg, design1.png, design2.png, voorbeeld-nieuw-design.jpeg, redesign-voorbeeld-*.png)
+├── scripts/            jungle-achtergrond.mjs en haven-plaatjes.mjs: plaatjes van het jungle- en havendesign maken
+├── voorbeeld/          ontwerpvoorbeelden (fruitmachine.jpg, design1.png, design2.png, voorbeeld-nieuw-design.jpeg, redesign-voorbeeld-*.png, HarborJackpot.png, RandomRunner.png, de havenfoto, haven-voorbeeld-*.png)
 └── project-details/    doelen, to-do, huidige feature en build-log
 ```
 

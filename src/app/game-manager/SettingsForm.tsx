@@ -174,7 +174,7 @@ export default function SettingsForm({ row, defaults, payment }: SettingsFormPro
           </select>
         </div>
         <p id="design-hint" className={styles.muted}>
-          Het uiterlijk van het spel: het nieuwe jungle-design of het originele. Leeg = standaard uit{" "}
+          Het uiterlijk van het spel: het jungle-design, het havendesign Harbor Jackpot of het originele. Leeg = standaard uit{" "}
           <code>.env</code>.
         </p>
         {designError && (

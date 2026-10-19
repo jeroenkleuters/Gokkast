@@ -25,12 +25,16 @@ export const PAYMENT_PROVIDER_LABELS: Record<PaymentProvider, string> = { mollie
 export const isPaymentProvider = (value: unknown): value is PaymentProvider =>
   typeof value === "string" && (PAYMENT_PROVIDERS as readonly string[]).includes(value);
 
-// Design (versie 3, taak 1): het nieuwe jungle-design of het originele. Niets gekozen in de
-// game-manager: GAME_DESIGN, anders jungle.
-export const DESIGNS = ["jungle", "origineel"] as const;
+// Design (versie 3, taak 1 en 3): het jungle-design, het havendesign Harbor Jackpot of het originele.
+// Niets gekozen in de game-manager: GAME_DESIGN, anders jungle.
+export const DESIGNS = ["jungle", "haven", "origineel"] as const;
 export type Design = (typeof DESIGNS)[number];
 export const DEFAULT_DESIGN: Design = "jungle";
-export const DESIGN_LABELS: Record<Design, string> = { jungle: "Jungle (nieuw)", origineel: "Origineel" };
+export const DESIGN_LABELS: Record<Design, string> = {
+  jungle: "Jungle (nieuw)",
+  haven: "Harbor Jackpot",
+  origineel: "Origineel",
+};
 
 export const isDesign = (value: unknown): value is Design =>
   typeof value === "string" && (DESIGNS as readonly string[]).includes(value);
@@ -153,7 +157,7 @@ export type SettingsFormResult =
 
 // Formulier van de game-manager: per veld een geheel getal binnen de grenzen, of leeg = standaard.
 // De prijs is een bedrag in euro's (bijv. 1,50), opgeslagen in centen.
-// Betaalmethode: mollie, paypal of leeg (standaard); design: jungle, origineel of leeg (standaard).
+// Betaalmethode: mollie, paypal of leeg (standaard); design: jungle, haven, origineel of leeg (standaard).
 // Zonder zo'n veld blijft de opgeslagen keuze staan.
 export function parseSettingsForm(form: { get(name: string): unknown }): SettingsFormResult {
   const values = {} as SettingsRow;
@@ -185,7 +189,7 @@ export function parseSettingsForm(form: { get(name: string): unknown }): Setting
   if (typeof design === "string") {
     if (design === "") values.design = null;
     else if (isDesign(design)) values.design = design;
-    else errors.design = "Kies Jungle, Origineel of de standaard.";
+    else errors.design = "Kies Jungle, Harbor Jackpot, Origineel of de standaard.";
   }
   return Object.keys(errors).length ? { ok: false, errors } : { ok: true, values };
 }

@@ -93,6 +93,7 @@ test.describe("ingelogd", () => {
     await expect(page.getByLabel("Design", { exact: true }).locator("option")).toHaveText([
       "Standaard: Jungle (nieuw)",
       "Jungle (nieuw)",
+      "Harbor Jackpot",
       "Origineel",
     ]);
   });

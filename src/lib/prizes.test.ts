@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { countPrizes, prizeLabel, prizeSummary, totalPrizes } from "@/lib/prizes";
+import { countPrizes, prizeLabel, prizeName, prizeSummary, totalPrizes } from "@/lib/prizes";
 
 describe("countPrizes", () => {
   it("telt de winsten per plaatje en slaat verlies over", () => {
@@ -45,5 +45,13 @@ describe("prizeLabel", () => {
     expect(prizeLabel("kakkerlak", 2)).toBe("2 kakkerlakken om te blingen");
     expect(prizeLabel("vraagteken", 1)).toBe("1 vrije keuze");
     expect(prizeLabel("vraagteken", 4)).toBe("4 vrije keuzes");
+  });
+});
+
+describe("prizeName", () => {
+  it("noemt de prijs zonder aantal (spelregels in het havendesign)", () => {
+    expect(prizeName("shot")).toBe("gratis shotje");
+    expect(prizeName("kakkerlak")).toBe("kakkerlak om te blingen");
+    expect(prizeName("vraagteken")).toBe("vrije keuze");
   });
 });

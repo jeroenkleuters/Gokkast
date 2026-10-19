@@ -62,6 +62,7 @@ describe("loadSettings", () => {
     expect((await loadSettings(async () => ({ ...numbers, design: null }), { GAME_DESIGN: "origineel" })).design).toBe("origineel");
     expect((await loadSettings(null, { GAME_DESIGN: "origineel" })).design).toBe("origineel");
     expect((await loadSettings(null, {})).design).toBe("jungle");
+    expect((await loadSettings(async () => ({ ...numbers, design: "haven" as const }), {})).design).toBe("haven");
   });
 });
 
@@ -148,6 +149,7 @@ describe("design opslaan (versie 3, taak 1)", () => {
     const numbers = { odds: 30, maxTries: null, roundsPerPayment: 4, priceCents: 150 };
     expect(settingsData({ ...numbers, design: "origineel" })).toEqual({ ...numbers, design: "ORIGINEEL" });
     expect(settingsData({ ...numbers, design: "jungle" })).toEqual({ ...numbers, design: "JUNGLE" });
+    expect(settingsData({ ...numbers, design: "haven" })).toEqual({ ...numbers, design: "HAVEN" });
     expect(settingsData({ ...numbers, design: null })).toEqual({ ...numbers, design: null });
     expect(settingsData({ ...numbers, paymentProvider: "paypal", design: "origineel" })).toEqual({
       ...numbers,

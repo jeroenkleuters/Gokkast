@@ -84,6 +84,30 @@ test("zonder credits opent DRAAI de betaalpopup met QR-code", async ({ page }) =
   await expect(payLink(page)).toHaveAttribute("href", href!);
 });
 
+// Havendesign (versie 3, taak 3): credits als LED-getal op het bord CREDITS, containers in de score-popup
+test("havendesign: credits op het bord, na 4 spelletjes de score-popup met containers", async ({ page }) => {
+  await page.addInitScript(() => localStorage.setItem("gokkast-geluid", "uit"));
+  await page.goto("/?design=haven");
+  await expect(display(page)).toHaveText("DRUK OP UITHALEN!");
+  await expect(page.locator("#stats .head")).toHaveText("CREDITS");
+  await expect(credits(page)).toHaveText("0");
+  await expect(page.locator("#stats")).toContainText("4 Credits: € 1,50");
+
+  await pay(page, "/?design=haven");
+  for (const left of ["3", "2", "1", "0"]) {
+    await finishOneGame(page);
+    await expect(credits(page)).toHaveText(left);
+    if (left !== "0") await playButton(page).click(); // NIEUW SPEL
+  }
+  await expect(prizes(page)).toBeVisible();
+  const containers = await prizes(page).locator("li img").evaluateAll((imgs) =>
+    imgs.map((img) => decodeURIComponent((img as HTMLImageElement).src).match(/images\/haven\/(\w+)\.png/)?.[1]),
+  );
+  expect(containers.length).toBeGreaterThan(0);
+  for (const name of containers) expect(["msc", "maersk", "loyd"]).toContain(name);
+  await prizes(page).getByRole("button", { name: "Prijzen uitgedeeld" }).click();
+});
+
 test("betalen op dit apparaat: terug naar het spel met 4 credits, elk spel kost 1 credit, daarna de score-popup", async ({ page }) => {
   // Het rekeningnummer (taak 11) mag nooit in een antwoord van de app naar de browser staan
   const leaks: string[] = [];

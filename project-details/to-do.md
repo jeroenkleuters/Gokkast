@@ -137,7 +137,7 @@ De taken staan in volgorde: latere taken bouwen voort op eerdere.
   [x] **2 Kosten Credits**
     - Maak de prijs van credits kopen configurabel in de Game Manager
 
-  [ ] **3 Haven Design**
+  [x] **3 Haven Design**
     - Maak een nieuwe theme Harbor Jackpot
     - de achtergrond is de-ect-terminal-op-de-maasvlakte-in-de-haven-van-rotterdam.jpg
     - Design voor de Jackpot is HarborJackpot.png
