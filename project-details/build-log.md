@@ -1515,6 +1515,18 @@ Melding gebruiker: in de database alleen `LOST`, ook na winst. Oorzaak: de dev-s
 
 ---
 
+## Stap 114 — Feature afgerond: Redesign (19 oktober 2026)
+
+**Vraag:**
+> /feature complete
+
+**Uitgevoerde handelingen:**
+1. Taak "1 Redesign" (versie 3) afgevinkt in `to-do.md`. Commit `d054fd6` op `feature/redesign`, gemerged in `main` (fast-forward), branch verwijderd (stond niet op origin).
+2. `current-feature.md` teruggezet met de samenvatting in History; `main` gepusht: CI test, past de migratie `20261019000000_game_settings_design` toe op de productiedatabase en deployt productie.
+3. Map `.next` verwijderd en de dev-server opnieuw gestart.
+
+---
+
 ## Huidige bestandsstructuur
 
 ```

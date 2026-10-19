@@ -1,32 +1,16 @@
-# Current Feature: Redesign
+# Current Feature
 
 ## Status
 
-In Progress
+Not Started
 
 ## Goals
 
-- Eerst een voorbeeldplaatje van het nieuwe design tonen en laten goedkeuren door de gebruiker, pas daarna de code aanpassen
-- Nieuwe look voor het spel op basis van `voorbeeld/design2.png`: jungle-achtergrond met insecten, houten kast met dak, lichtbord "CASINO", ondertitel "KAKKELAKKEN KASINO", rode balk "GRAND JACKPOT", paneel "Hoe Speel Je?" (linksboven), statistiekenpaneel (linksonder), knoppen VAST / DRAAI / VAST, hendel rechts, berichtenbord onderaan
-- Knoppen zoals de vorige versie: VAST – VAST – VAST – DRAAI (na afloop NIEUW SPEL)
-- Het vakje naast "GRAND JACKPOT" vervalt; "GRAND JACKPOT" staat in het midden van de balk
-- De rollen met de 3 plaatjes (shot, kakkerlak, vraagteken) blijven hetzelfde als in de eerdere versies (niet de insecten uit het voorbeeld)
-- In de game-manager, tab Instellingen: keuze tussen het nieuwe design en het originele design; het spel toont het gekozen design
-- Het originele design blijft werken zoals nu
-- Playwright-tests aangepast aan de nieuwe layout (en het originele design blijft getest)
+<!-- Doelen van de feature, in te vullen met /feature load -->
 
 ## Notes
 
-- Bron: `project-details/to-do.md`, Versie 3 — taak 1 Redesign.
-- Voorbeeld: `voorbeeld/design2.png` (liggend, ca. 16:9; op 19 oktober door de gebruiker aangepast: nu vol groen/bruin in plaats van blauwig). In de map staan ook `design1.png`, `voorbeeld-nieuw-design.jpeg` en `fruitmachine.jpg`; de spec noemt alleen design2.
-- In het voorbeeld zitten insecten (sprinkhaan, kever, libel, bidsprinkhaan, jackpot-kroon) in de rollen; die vervallen, de rollen blijven zoals nu.
-- Huidig spel is gebouwd voor 1024x768 (Playwright draait op 1024x768); het voorbeeld is breder (16:9). Te bepalen bij start: verhouding/schaal van het nieuwe design en hoe het op 1024x768 en mobiel past.
-- Bestaande teksten en waarden in het voorbeeld (Winkans, Kredieten, Muntwaarde €1.00, "Druk op DRAAI…", 3 pogingen) moeten de echte instellingen tonen (winkans, pogingen, credits, prijs uit `GAME_PRICE_CENTS`).
-- Te bepalen bij start: achtergrond en decoratie als afbeelding(en) (zelf maken of uit het voorbeeld) of in CSS; design-keuze opslaan in `game_settings` (nieuwe kolom + migratie, standaard via `.env`?) zoals de betaalmethode in taak 13b; standaard nieuw of origineel design.
-- Knoppen (besluit gebruiker): zoals de vorige versie VAST – VAST – VAST – speelknop, niet de VAST / DRAAI / VAST uit het voorbeeld. De speelknop heet in het nieuwe design **DRAAI** en na afloop **NIEUW SPEL**. Het originele design houdt SPEEL / NIEUW SPEL. Tests zoeken nu op SPEEL; aanpassen.
-- Bestaande gedrag (betaalpopup, score-popup, tandwiel, geluid, munten) moet in beide designs blijven werken.
-- Besluiten gebruiker (19 oktober, na het voorbeeldplaatje): voorbeeld goedgekeurd; regel "Muntwaarde" wordt "4 Credits: € 1,00" (uit de betaalinstellingen); geen lampjes voor de pogingen in het jungle-design; speelveld blijft 1024x768, de achtergrond schaalt mee (geen zwarte balken op 1024x768).
-- Uitwerking: achtergrond `public/images/jungle/achtergrond.jpg` (1376x768) met de hendel als losse plaatjes, gemaakt door `scripts/jungle-achtergrond.mjs`; speelveld 1024x768 ligt 64 px vanaf de linkerrand van de schildering (statistiekenbord daarvoor 50 px naar rechts geschoven); `fitField` (`src/lib/designs.ts`) houdt het speelveld altijd in beeld en de schildering zo veel mogelijk in het midden; rest van het venster een vervaagde kopie (`#backdrop`). Keuze in `game_settings.design` (migratie `20261019000000_game_settings_design`, toegepast op Neon `dev`), standaard `GAME_DESIGN`, anders jungle; `?design=origineel` alleen met `GAME_ALLOW_ODDS_URL`.
+<!-- Extra context, beperkingen of details uit de spec -->
 
 ## History
 
@@ -54,3 +38,4 @@ In Progress
 - **PayPal productieomgeving** (17 oktober 2026, taak 12b) — `readPayPalConfig` (`src/lib/payments.ts`): in productie alleen met `PAYPAL_ENV=live`, en dan altijd de live-API (`https://api-m.paypal.com`, `live: true`); zonder die vlag PayPal uit in productie (nooit de sandbox daar); buiten productie altijd de sandbox, `PAYPAL_ENV=live` of een live-URL geweigerd. `PayPalClient.live` en `isTestPayment` (`paymentService.ts`): de popup toont "Testomgeving" alleen bij een testbetaling (Mollie blijft test tot 12a). Live-app van de gebruiker met Invoicing en een webhook op `https://gokkast.vercel.app/api/paypal/webhook`; in Vercel Production `PAYPAL_ENV=live` en de live-sleutels en het webhook-ID (gecontroleerd zonder waarden te tonen, via een tijdelijk bestand dat daarna is verwijderd). 278 Vitest- en 33 Playwright-tests. Open: echte testbetaling van € 1,00 op productie en terugbetalen. Commit `643b42f`.
 - **Mollie productieomgeving** (17 oktober 2026, taak 12a) — `readMollieConfig` (`src/lib/payments.ts`): in productie alleen een live-key (`live_...`), altijd met de echte Mollie-API (`MOLLIE_API_URL` genegeerd), `live: true`; een test-key of een andere key (zoals een organization access token `access_...`) zet Mollie daar uit. Buiten productie alleen een test-key, een live-key geweigerd. `MollieConfig.live` en `MollieClient.live` (zoals PayPal); `isTestPayment` (`paymentService.ts`) kijkt per methode, zodat "Testomgeving" alleen bij een testbetaling verschijnt. In Vercel `MOLLIE_API_KEY` apart voor Production en Preview (test-key). Besluit gebruiker: geen ondersteuning voor access-tokens, de Live API key gebruiken. 281 Vitest- en 33 Playwright-tests. Open: Live API key in Vercel Production (nu een access-token), daarna een echte betaling van € 1,00 met Mollie op productie en terugbetalen. Commit `bd53feb`.
 - **Domein en naam spel** (19 oktober 2026, taak 16) — spelers en beheerders zien **Jackpot**: titels `Jackpot`, `Betaling — Jackpot`, `Game-manager — Jackpot`, inlogpagina, "Ga terug naar Jackpot" op `/betaald` en omschrijving `Jackpot: 4 spelletjes` (`paymentService.ts`); interne namen (package, cookie `gokkast-betaling`, localStorage `gokkast-geluid`) en de werktitel Gokkast bij Vercel, Neon, PayPal, Mollie en Google bewust gelaten. `jackpot.broadsight.nl` via de CLI aan het Vercel-project `gokkast` toegevoegd (eigendom al geverifieerd, geen TXT); DNS bij de eigen hoster: CNAME `jackpot` → `bbc7e97c480826fb.vercel-dns-017.com.` (gaat voor het wildcard-record), door de gebruiker gezet en door Vercel goedgekeurd. Keuze gebruiker: `gokkast.vercel.app` blijft werken zonder doorverwijzing. Geen `AUTH_URL` nodig (Auth.js neemt het adres van het verzoek); Mollie-URL's volgen de request-origin. README (sectie Deployen → Domein, PayPal-webhook, Google-redirect-URI, Mollie-websiteprofiel) en `.env.example`. Ook: map `v1/` verwijderd (op verzoek, met de uitzonderingen in `eslint.config.mjs` en `tsconfig.json`). 281 Vitest- en 33 Playwright-tests. Open: redirect-URI bij Google, URL van de PayPal-live-webhook en websiteprofiel bij Mollie op het nieuwe domein. Commit `45a8c24`.
+- **Redesign** (19 oktober 2026, versie 3 taak 1) — jungle-design naar `voorbeeld/design2.png` naast het originele design: achtergrond `public/images/jungle/achtergrond.jpg` (1376x768, gemaakt door `scripts/jungle-achtergrond.mjs` uit `voorbeeld-nieuw-design.jpeg`: voorbeeldteksten en -knoppen weg, GRAND JACKPOT in het midden zonder vakje, statistiekenbord 50 px naar rechts, hendel als losse bal en stang die bewegen). Eerst een voorbeeldplaatje, goedgekeurd door de gebruiker. Besluiten gebruiker: knoppen VAST – VAST – VAST – DRAAI (na een spel NIEUW SPEL; origineel houdt SPEEL), rollen ongewijzigd, regel "4 Credits: € 1,00" in plaats van Muntwaarde, geen lampjes, speelveld blijft 1024x768 en de schildering schaalt mee (`fitField` in `src/lib/designs.ts`; rest van het venster een vervaagde kopie, popups dimmen ook de schildering). Posities in `src/app/jungle.css` (schildering − 64 px), lettertypes Open Sans en VT323 via `next/font`; `Reel` met cel- en rolhoogte per design. Keuze in de game-manager (tab Instellingen): `game_settings.design` (migratie `20261019000000_game_settings_design`, toegepast op Neon `dev`), standaard `GAME_DESIGN`, anders jungle; `?design=` alleen met `GAME_ALLOW_ODDS_URL`; tandwiel toont het design. 294 Vitest- en 38 Playwright-tests (beide designs, 1024x768, 1920x1080, 390x844). Commit `d054fd6`.
