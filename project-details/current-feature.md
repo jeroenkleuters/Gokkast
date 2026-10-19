@@ -1,29 +1,16 @@
-# Current Feature: Domein en naam spel (Jackpot)
+# Current Feature
 
 ## Status
 
-In Progress
+Not Started
 
 ## Goals
 
-- Het productiedomein wordt `https://jackpot.broadsight.nl` (custom domain op het Vercel-project `gokkast`); `gokkast.vercel.app` blijft werken of stuurt door
-- Het spel heet voor spelers en beheerders **Jackpot**: paginatitels (`layout.tsx`, `betaald/page.tsx`, `game-manager/layout.tsx`), inlogpagina game-manager, teksten op `/betaald` ("Ga terug naar de gokkast") en de omschrijving van de betaling bij Mollie/PayPal (`Gokkast: 4 spelletjes` → `Jackpot: 4 spelletjes`)
-- Productie-URL's bij de diensten op het nieuwe domein:
-  - Mollie: redirect- en webhook-URL komen al uit de request-origin (`requestOrigin()` in `actions.ts`), controleren dat dat op het nieuwe domein klopt
-  - PayPal live-app: webhook naar `https://jackpot.broadsight.nl/api/paypal/webhook` (webhook-ID blijft of wordt vernieuwd in `PAYPAL_WEBHOOK_ID`)
-  - Google OAuth: redirect-URI `https://jackpot.broadsight.nl/api/auth/callback/google` toevoegen (en zo nodig `AUTH_URL` in Vercel Production)
-  - Vercel: domein toevoegen en als productiedomein instellen
-- Instructies voor de gebruiker voor de DNS-records bij broadsight.nl (CNAME `jackpot` → Vercel, eventueel TXT-verificatie)
-- Tests, README en `.env.example` bijgewerkt op de nieuwe naam en het nieuwe domein; lint, typecheck, Vitest en Playwright zonder fouten
+<!-- Doelen van de feature, in te vullen met /feature load -->
 
 ## Notes
 
-- Taak 16 uit `to-do.md` (Versie 2, Game-manager uitbreiden).
-- Bij Vercel, Neon, PayPal, Mollie en Google Auth blijft de oude werktitel **Gokkast** staan: projectnamen, app-namen, `neon-gokkast`, `gokkast-preview.vercel.app` niet hernoemen.
-- Interne namen zonder zichtbaarheid voor spelers (package-naam `gokkast`, cookie `gokkast-betaling`, localStorage `gokkast-geluid`, codecommentaar) kunnen blijven; hernoemen van cookie/localStorage zou betaalde credits en geluidsinstelling van spelers wissen.
-- Instellingen in dashboards (Vercel-domein, PayPal-webhook, Google redirect-URI, DNS) doet de gebruiker of gaan via CLI na toestemming; geen geheimen tonen.
-- Preview blijft `gokkast-preview.vercel.app` (sandbox/test).
-- Open uit 12a/12b: echte betalingen van € 1,00 op productie — kan na de domeinwissel op het nieuwe domein.
+<!-- Extra context, beperkingen of details uit de spec -->
 
 ## History
 
@@ -50,3 +37,4 @@ In Progress
 - **PayPal als tweede betaalmogelijkheid** (15–17 oktober 2026, taak 13b) — PayPal Invoicing v2 (`src/lib/paypal.ts`): per speler een factuur van € 1,00, verstuurd zonder e-mail, met de QR-code van PayPal (`generate-qr-code`, PNG; anders eigen QR van de link); token gedeeld en vernieuwd na 401/403; statussen afgebeeld op die van het spel. Alleen de sandbox: uit in productie en bij een live-URL (live volgt in 12b; taak 12 werd 12a/12b). Betaalmethode kiezen in Instellingen (`game_settings.payment_provider`, standaard `GAME_PAYMENT_PROVIDER`, anders Mollie; gekozen methode zonder sleutels → de andere, met melding); methode per betaling (`payments.provider`, `paypal_id`, `mollie_id` optioneel, migratie `20261015000000_payments_paypal`), kolom Methode in Betalingen. Webhook `/api/paypal/webhook` laat de handtekening door PayPal controleren (`PAYPAL_WEBHOOK_ID`) en haalt daarna zelf de status op. Besluit gebruiker na sandbox-test: geen naam bij PayPal (staat niet in de factuur; alleen Transaction Search, die niet actief werd). Previews: vast adres `gokkast-preview.vercel.app` (workflow) en het bypass-geheim van Vercel in de webhook-URL's (ook Mollie); PayPal-sleutels in Vercel Preview. 275 Vitest- en 33 Playwright-tests (nep-PayPal op 3103, derde server op 3104); echte sandbox-betaling: factuur, QR, 4 credits, 4 rondes, webhook 200. Commits `c65dd91`, `fff294e`.
 - **PayPal productieomgeving** (17 oktober 2026, taak 12b) — `readPayPalConfig` (`src/lib/payments.ts`): in productie alleen met `PAYPAL_ENV=live`, en dan altijd de live-API (`https://api-m.paypal.com`, `live: true`); zonder die vlag PayPal uit in productie (nooit de sandbox daar); buiten productie altijd de sandbox, `PAYPAL_ENV=live` of een live-URL geweigerd. `PayPalClient.live` en `isTestPayment` (`paymentService.ts`): de popup toont "Testomgeving" alleen bij een testbetaling (Mollie blijft test tot 12a). Live-app van de gebruiker met Invoicing en een webhook op `https://gokkast.vercel.app/api/paypal/webhook`; in Vercel Production `PAYPAL_ENV=live` en de live-sleutels en het webhook-ID (gecontroleerd zonder waarden te tonen, via een tijdelijk bestand dat daarna is verwijderd). 278 Vitest- en 33 Playwright-tests. Open: echte testbetaling van € 1,00 op productie en terugbetalen. Commit `643b42f`.
 - **Mollie productieomgeving** (17 oktober 2026, taak 12a) — `readMollieConfig` (`src/lib/payments.ts`): in productie alleen een live-key (`live_...`), altijd met de echte Mollie-API (`MOLLIE_API_URL` genegeerd), `live: true`; een test-key of een andere key (zoals een organization access token `access_...`) zet Mollie daar uit. Buiten productie alleen een test-key, een live-key geweigerd. `MollieConfig.live` en `MollieClient.live` (zoals PayPal); `isTestPayment` (`paymentService.ts`) kijkt per methode, zodat "Testomgeving" alleen bij een testbetaling verschijnt. In Vercel `MOLLIE_API_KEY` apart voor Production en Preview (test-key). Besluit gebruiker: geen ondersteuning voor access-tokens, de Live API key gebruiken. 281 Vitest- en 33 Playwright-tests. Open: Live API key in Vercel Production (nu een access-token), daarna een echte betaling van € 1,00 met Mollie op productie en terugbetalen. Commit `bd53feb`.
+- **Domein en naam spel** (19 oktober 2026, taak 16) — spelers en beheerders zien **Jackpot**: titels `Jackpot`, `Betaling — Jackpot`, `Game-manager — Jackpot`, inlogpagina, "Ga terug naar Jackpot" op `/betaald` en omschrijving `Jackpot: 4 spelletjes` (`paymentService.ts`); interne namen (package, cookie `gokkast-betaling`, localStorage `gokkast-geluid`) en de werktitel Gokkast bij Vercel, Neon, PayPal, Mollie en Google bewust gelaten. `jackpot.broadsight.nl` via de CLI aan het Vercel-project `gokkast` toegevoegd (eigendom al geverifieerd, geen TXT); DNS bij de eigen hoster: CNAME `jackpot` → `bbc7e97c480826fb.vercel-dns-017.com.` (gaat voor het wildcard-record), door de gebruiker gezet en door Vercel goedgekeurd. Keuze gebruiker: `gokkast.vercel.app` blijft werken zonder doorverwijzing. Geen `AUTH_URL` nodig (Auth.js neemt het adres van het verzoek); Mollie-URL's volgen de request-origin. README (sectie Deployen → Domein, PayPal-webhook, Google-redirect-URI, Mollie-websiteprofiel) en `.env.example`. Ook: map `v1/` verwijderd (op verzoek, met de uitzonderingen in `eslint.config.mjs` en `tsconfig.json`). 281 Vitest- en 33 Playwright-tests. Open: redirect-URI bij Google, URL van de PayPal-live-webhook en websiteprofiel bij Mollie op het nieuwe domein. Commit `45a8c24`.

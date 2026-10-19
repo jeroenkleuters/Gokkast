@@ -1400,6 +1400,19 @@ Melding gebruiker: in de database alleen `LOST`, ook na winst. Oorzaak: de dev-s
 
 ---
 
+## Stap 105 — Feature afgerond: Domein en naam spel (19 oktober 2026)
+
+**Vraag:**
+> /feature complete
+
+**Uitgevoerde handelingen:**
+1. DNS gecontroleerd: de gebruiker had de CNAME `jackpot` → `bbc7e97c480826fb.vercel-dns-017.com.` al gezet; `vercel domains verify`: "configured_correctly". Het HTTPS-certificaat werd op dat moment nog aangemaakt (TLS-handshake mislukte nog).
+2. Taak 16 afgevinkt in `to-do.md`. Commit `45a8c24` op de feature-branch (ook de verwijderde `v1/` en de ontwerpvoorbeelden in `voorbeeld/`), gemerged in `main`, branch verwijderd.
+3. `current-feature.md` teruggezet met de samenvatting in History; `main` gepusht: CI test en deployt productie.
+4. Open: redirect-URI bij Google, URL van de PayPal-live-webhook en websiteprofiel bij Mollie op het nieuwe domein.
+
+---
+
 ## Huidige bestandsstructuur
 
 ```
