@@ -1671,6 +1671,18 @@ Melding gebruiker: in de database alleen `LOST`, ook na winst. Oorzaak: de dev-s
 
 ---
 
+## Stap 126 — Feature afgerond: Haven Design (20 oktober 2026)
+
+**Vraag:**
+> /feature complete
+
+**Uitgevoerde handelingen:**
+1. Taak "3 Haven Design" (versie 3) afgevinkt in `to-do.md`. Commit `dc696db` op `feature/haven-design`, gemerged in `main` (fast-forward), branch verwijderd (stond niet op origin).
+2. `current-feature.md` teruggezet met de samenvatting in History; `main` gepusht: CI test, past de migratie `20261020000000_game_settings_design_haven` toe op de productiedatabase en deployt productie.
+3. Dev-server gestopt, map `.next` verwijderd en `npm run dev` opnieuw gestart.
+
+---
+
 ## Huidige bestandsstructuur
 
 ```
