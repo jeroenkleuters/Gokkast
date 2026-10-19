@@ -186,7 +186,7 @@ export async function startPayment(
     const reference = newPaymentReference();
     const remote = await client.createPayment({
       amountCents,
-      description: `Gokkast: ${credits} ${credits === 1 ? "spel" : "spelletjes"}`,
+      description: `Jackpot: ${credits} ${credits === 1 ? "spel" : "spelletjes"}`,
       reference,
       redirectUrl: `${origin}/betaald?ref=${reference}`,
       webhookUrl: provider === "mollie" ? webhookUrl(origin) : undefined,

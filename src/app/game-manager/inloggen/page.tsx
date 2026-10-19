@@ -29,7 +29,7 @@ export default async function SignInPage({
       <h1 className={styles.title}>Game-manager</h1>
       <section className={styles.card}>
         <h2>Inloggen</h2>
-        <p className={styles.muted}>Alleen voor beheerders van de Eenarmige Bandiet.</p>
+        <p className={styles.muted}>Alleen voor beheerders van Jackpot.</p>
         {message && (
           <p className={styles.error} role="alert">
             {message}

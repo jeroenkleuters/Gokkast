@@ -77,7 +77,7 @@ describe("createMollieClient", () => {
     const { fetchFn, calls } = fakeFetch(() => json(molliePayment, 201));
     const payment = await createMollieClient(config, fetchFn).createPayment({
       amountCents: 100,
-      description: "Gokkast: 4 spelletjes",
+      description: "Jackpot: 4 spelletjes",
       reference: "r".repeat(16),
       redirectUrl: "https://gokkast.test/betaald",
       webhookUrl: "https://gokkast.test/api/mollie/webhook",
@@ -90,7 +90,7 @@ describe("createMollieClient", () => {
     expect((init.headers as Record<string, string>).Authorization).toBe("Bearer test_abc");
     expect(JSON.parse(init.body as string)).toEqual({
       amount: { currency: "EUR", value: "1.00" },
-      description: "Gokkast: 4 spelletjes",
+      description: "Jackpot: 4 spelletjes",
       redirectUrl: "https://gokkast.test/betaald",
       webhookUrl: "https://gokkast.test/api/mollie/webhook",
     });

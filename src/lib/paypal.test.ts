@@ -149,7 +149,7 @@ describe("createPayPalClient", () => {
     });
     const payment = await createPayPalClient(config, fetchFn).createPayment({
       amountCents: 100,
-      description: "Gokkast: 4 spelletjes",
+      description: "Jackpot: 4 spelletjes",
       reference: "r".repeat(16),
       redirectUrl: "https://gokkast.test/betaald",
     });
@@ -161,8 +161,8 @@ describe("createPayPalClient", () => {
     expect((create[1].headers as Record<string, string>).Authorization).toBe("Bearer A21");
     expect((create[1].headers as Record<string, string>).Prefer).toBe("return=representation");
     expect(JSON.parse(create[1].body as string)).toEqual({
-      detail: { currency_code: "EUR", reference: "r".repeat(16), note: "Gokkast: 4 spelletjes" },
-      items: [{ name: "Gokkast: 4 spelletjes", quantity: "1", unit_amount: { currency_code: "EUR", value: "1.00" } }],
+      detail: { currency_code: "EUR", reference: "r".repeat(16), note: "Jackpot: 4 spelletjes" },
+      items: [{ name: "Jackpot: 4 spelletjes", quantity: "1", unit_amount: { currency_code: "EUR", value: "1.00" } }],
     });
     expect(send[0]).toBe(`https://paypal.test/v2/invoicing/invoices/${ID}/send`);
     expect(JSON.parse(send[1].body as string)).toEqual({ send_to_recipient: false, send_to_invoicer: false });

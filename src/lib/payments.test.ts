@@ -131,6 +131,10 @@ describe("isFinalStatus", () => {
 describe("webhookUrl", () => {
   it("geeft de webhook op een bereikbaar adres", () => {
     expect(webhookUrl("https://gokkast.vercel.app")).toBe("https://gokkast.vercel.app/api/mollie/webhook");
+    // Productiedomein: de webhook volgt het adres waarop het spel geopend is
+    expect(webhookUrl("https://jackpot.broadsight.nl", { VERCEL_ENV: "production" })).toBe(
+      "https://jackpot.broadsight.nl/api/mollie/webhook",
+    );
   });
 
   it("geen webhook op localhost (Mollie kan daar niet bij)", () => {

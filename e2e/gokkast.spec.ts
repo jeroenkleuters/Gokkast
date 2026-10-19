@@ -14,6 +14,7 @@ import {
 test("het spel laadt op 1024x768", async ({ page }) => {
   await openGame(page, "lose");
 
+  await expect(page).toHaveTitle("Jackpot");
   await expect(page.locator("#cabinet")).toBeVisible();
   await expect(reels(page)).toHaveCount(3);
   for (const reel of await reels(page).all()) await expect(reel).toBeVisible();

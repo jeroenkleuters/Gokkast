@@ -3,7 +3,7 @@ import { TabProvider } from "./ManagerTabs";
 import styles from "./game-manager.module.css";
 
 export const metadata: Metadata = {
-  title: "Game-manager — Eenarmige Bandiet",
+  title: "Game-manager — Jackpot",
   robots: { index: false, follow: false },
 };
 

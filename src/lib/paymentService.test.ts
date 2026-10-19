@@ -92,7 +92,7 @@ describe("betaalflow", () => {
     expect(b.payment.checkoutUrl).toBe("https://mollie.test/checkout/tr_test2");
     expect(mollie.created[0]).toEqual({
       amountCents: 100,
-      description: "Gokkast: 4 spelletjes",
+      description: "Jackpot: 4 spelletjes",
       reference: expect.stringMatching(/^[A-Za-z0-9_-]{16}$/),
       redirectUrl: expect.stringMatching(/^https:\/\/gokkast\.test\/betaald\?ref=[A-Za-z0-9_-]{16}$/),
       webhookUrl: "https://gokkast.test/api/mollie/webhook",
@@ -376,7 +376,7 @@ describe("betalen met PayPal (taak 13b)", () => {
     const result = await start();
     expect(result).toMatchObject({ provider: "paypal", providerId: "INV2-TEST-0000-0000-0001" });
     expect(result.payment).toEqual({ status: "open", creditsLeft: 0, checkoutUrl: "https://paypal.test/invoice/p/#INV2-TEST-0000-0000-0001" });
-    expect(paypal.created[0]).toMatchObject({ amountCents: 100, description: "Gokkast: 4 spelletjes", webhookUrl: undefined });
+    expect(paypal.created[0]).toMatchObject({ amountCents: 100, description: "Jackpot: 4 spelletjes", webhookUrl: undefined });
     expect(mollie.created).toHaveLength(0);
 
     const stored = (await store.findByToken(result.token))!;

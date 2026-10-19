@@ -118,15 +118,20 @@ De taken staan in volgorde: latere taken bouwen voort op eerdere.
     - Hernoem tablad Moeilijkheidsgraad naar Instellingen
     - zet instellingen als derde tablad
 
-  - [ ] **16 Domein en naamspel**
+  - [x] **16 Domein en naamspel**
     - het productie domein wordt jackpot.broadsight.nl
     - hernoem het spel naar Jackpot
     - pas de API productie urls aan in Mollie, Paypall, Vercel
     - in vercel, neon, paypall, molie, google auth houden wij de oude werktitel Gokkast
+    - geef instructies als ik nog dns aanpassingen moet maken
 
 ## Versie 3 — Open
   [ ] **1 Redesign**
-    - gebruik de voorbeeld afbeelding om een nieuwe frontend look te maken
+    - Ik het tabblad instellinngen in de game manager kun je kiezen tussen het nieuwe design en het originele design 
+    - gebruik de voorbeeld afbeelding design2 om een nieuwe frontend look te maken. Naast de tekst grand jackpot staat een vierkantje. dat mag weg
+    - grand jackpot in het midden uitlijnen.
+    - de rollen met de 3 plaatjes moeten het zelfde blijven als in de eerste versies.
+    - toon eerst een voorbeeld plaatje voordat de code word aangepast.
     - pas de playwright testen  aan op de nieuwe layout
   
 

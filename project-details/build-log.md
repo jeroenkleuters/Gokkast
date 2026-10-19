@@ -1358,6 +1358,48 @@ Melding gebruiker: in de database alleen `LOST`, ook na winst. Oorzaak: de dev-s
 
 ---
 
+## Stap 102 — Feature geladen: Domein en naam spel (19 oktober 2026)
+
+**Vraag:**
+> /feature load 16
+
+**Uitgevoerde handelingen:**
+1. Taak 16 uit `to-do.md` geladen in `current-feature.md`: productiedomein `jackpot.broadsight.nl`, spel hernoemd naar Jackpot (titels, inlogpagina, `/betaald`, omschrijving van de betaling), productie-URL's bij Mollie, PayPal (webhook), Google OAuth (redirect-URI) en Vercel (domein), DNS-instructies voor de gebruiker, tests en README.
+2. Genoteerd: bij Vercel, Neon, PayPal, Mollie en Google blijft de werktitel Gokkast; interne namen (package, cookie `gokkast-betaling`, localStorage `gokkast-geluid`) blijven zodat spelers geen credits of instellingen verliezen; Mollie-URL's komen al uit de request-origin.
+
+---
+
+## Stap 103 — Feature gestart: Domein en naam spel (19 oktober 2026)
+
+**Vraag:**
+> /feature start
+
+**Uitgevoerde handelingen:**
+1. Branch `feature/domein-en-naam-jackpot`, status In Progress.
+2. Naam Jackpot voor spelers en beheerders: titels `Jackpot`, `Betaling — Jackpot`, `Game-manager — Jackpot` (`layout.tsx`, `betaald/page.tsx`, `game-manager/layout.tsx`), "Alleen voor beheerders van Jackpot." (inlogpagina), "Ga terug naar Jackpot" op `/betaald`, omschrijving van de betaling `Jackpot: 4 spelletjes` (`paymentService.ts`). Interne namen (package, cookie, localStorage, `gokkast.test` in tests) bewust gelaten.
+3. Tests: titels en teksten in `gokkast.spec.ts`, `game-manager.spec.ts` en `betalen.spec.ts`; webhook-URL op `https://jackpot.broadsight.nl` in `payments.test.ts`; omschrijving in de Mollie-, PayPal- en paymentService-tests.
+4. DNS bekeken: broadsight.nl bij de eigen hoster (nameservers `webhostingserver.g1-dns.one`/`.com`) met een wildcard-record `*` (daarom gaf `jackpot` al een adres), geen CAA-records. broadsight.nl stond al in het Vercel-account (subdomein `devsquirrel` voor het project devstash, met een CNAME).
+5. Keuzes gebruiker: domein via de CLI toevoegen; `gokkast.vercel.app` blijft werken zonder doorverwijzing. `vercel domains add jackpot.broadsight.nl gokkast` uitgevoerd; `domains verify`: eigendom al geverifieerd (geen TXT), nodig is CNAME `jackpot` → `bbc7e97c480826fb.vercel-dns-017.com.`
+6. Vercel Production heeft geen `AUTH_URL` (alleen namen bekeken): Auth.js neemt het adres van het verzoek, dus alleen de redirect-URI bij Google toevoegen. Mollie-URL's volgen de request-origin.
+7. README: titel Jackpot, productie-adres en werktitel, PayPal-live-webhook en Google-redirect-URI op het nieuwe domein, Mollie-websiteprofiel, nieuwe sectie Deployen → Domein met het DNS-record. `.env.example` bijgewerkt.
+8. Lint, typecheck, 281 Vitest- en 33 Playwright-tests zonder fouten.
+9. Open voor de gebruiker: CNAME bij de hoster, redirect-URI (en zo nodig authorized domain) bij Google, URL van de PayPal-live-webhook, websiteprofiel bij Mollie.
+
+---
+
+## Stap 104 — Map v1 verwijderd (19 oktober 2026)
+
+**Vraag:**
+> haal de v1 map weg
+
+**Uitgevoerde handelingen:**
+1. `v1/` (index.html, style.css, game.js) verwijderd met `git rm`; de oude versie staat nog in de git-geschiedenis.
+2. Uitzonderingen voor `v1` weggehaald uit `eslint.config.mjs` (`globalIgnores`) en `tsconfig.json` (`exclude`).
+3. README: regel `v1/` uit de projectstructuur en de sectie "Versie 1" verwijderd; bestandsstructuur hieronder bijgewerkt.
+4. Lint en typecheck zonder fouten.
+
+---
+
 ## Huidige bestandsstructuur
 
 ```
@@ -1378,7 +1420,6 @@ Gokkast/
 │   └── generated/prisma/ Prisma Client (gegenereerd, niet in git)
 ├── prisma/               schema.prisma, seed.ts, migrations/ (20261013000000_init, 20261013163330_games_name_optional, 20261013200000_game_settings_optional, 20261013230000_games_outcome_symbol, 20261014000000_payments_mollie, 20261014120000_payments_reference, 20261014200000_payments_account_encrypted, migration_lock.toml)
 ├── e2e/                  gokkast.spec.ts, game-manager.spec.ts, helpers.ts, auth.ts
-├── v1/                   index.html, style.css, game.js (versie 1)
 ├── voorbeeld/            fruitmachine.jpg
 └── project-details/      build-log.md, current-feature.md, goals.md, to-do.md
 ```

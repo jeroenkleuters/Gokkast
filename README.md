@@ -1,8 +1,12 @@
-# Gokkast — Eenarmige Bandiet
+# Jackpot — Eenarmige Bandiet
 
 Een webbased eenarmige bandiet (1024x768) gebouwd met Next.js, React en TypeScript.
 Drie rollen, standaard drie pogingen per spel, rollen los vast te zetten en een instelbare winkans
 (standaard 1 op 30). De instellingen staan in een `.env`-bestand.
+
+Productie: **https://jackpot.broadsight.nl** (ook nog bereikbaar op `https://gokkast.vercel.app`).
+Bij Vercel, Neon, PayPal, Mollie en Google heet het project nog **Gokkast** (de werktitel), net als
+de map, de package en interne namen zoals de cookie `gokkast-betaling`.
 
 ## Vereisten
 
@@ -141,6 +145,9 @@ de sandbox (taak 12b). Zo wordt er buiten productie nooit echt geld geïnd, en i
 zonder.
 De betaalpopup zegt "Testomgeving: er wordt geen echt geld afgeschreven" alleen bij een testbetaling.
 Welke methode spelers gebruiken kies je in de game-manager (tab Instellingen); standaard is dat Mollie.
+Bij Mollie staan de terugkeer- en webhook-URL niet in het dashboard: de app geeft ze per betaling mee,
+op het adres waarop het spel geopend is (`/betaald` en `/api/mollie/webhook`). Het websiteprofiel in
+het Mollie-dashboard (*Settings → Website profiles*) staat op `https://jackpot.broadsight.nl`.
 
 - Een speler zonder credits klikt op **SPEEL** → een popup met een QR-code. Die hoort bij een eigen
   Mollie-betaling voor deze speler (per speler een unieke betaallink). Scannen met de telefoon, of
@@ -227,11 +234,11 @@ http://localhost:3000`) en de webhook-URL tijdelijk op dat adres. Let op: client
 webhook-ID moeten van dezelfde **Sandbox**-app zijn (niet Live), anders weigert PayPal de handtekening.
 
 **Live (productie, taak 12b).** In de *Live*-app op developer.paypal.com (zakelijk account, feature
-**Invoicing** aan) staat een eigen webhook op `https://gokkast.vercel.app/api/paypal/webhook` (events
-*Invoice paid* en *Invoice cancelled*). In Vercel staan alleen voor **Production** `PAYPAL_ENV=live`
+**Invoicing** aan) staat een eigen webhook op `https://jackpot.broadsight.nl/api/paypal/webhook`
+(events *Invoice paid* en *Invoice cancelled*). In Vercel staan alleen voor **Production** `PAYPAL_ENV=live`
 en de client-ID, het secret en het webhook-ID van die live-app. Live-sleutels nooit in `.env.local`:
 lokaal weigert de app ze toch (`PAYPAL_ENV=live` mag alleen in productie). Verandert het domein, pas
-dan de webhook-URL in de live-app aan.
+dan de URL van de bestaande webhook aan (*Edit*): het webhook-ID blijft dan hetzelfde.
 
 ## Database
 
@@ -336,7 +343,11 @@ een project kiezen, *APIs & Services → OAuth consent screen* invullen (type *E
 *Web application* maken met deze *Authorized redirect URIs*:
 
 - `http://localhost:3000/api/auth/callback/google` (lokaal)
-- `https://gokkast.vercel.app/api/auth/callback/google` (productie)
+- `https://jackpot.broadsight.nl/api/auth/callback/google` (productie)
+- `https://gokkast.vercel.app/api/auth/callback/google` (productie, oud adres)
+
+Bij *Branding → Authorized domains* staat `broadsight.nl`. `AUTH_URL` is niet nodig: Auth.js neemt op
+Vercel het adres van het verzoek, dus inloggen werkt op elk domein dat hierboven staat.
 
 Inloggen werkt alleen lokaal en in productie. Preview-URL's wisselen per deploy en staan niet bij
 Google; daar stuurt `/game-manager` wel door naar de inlogpagina, maar Google weigert de terugkeer-URL.
@@ -367,6 +378,26 @@ logt dan uitgebreid (`--debug`).
 
 Vercels eigen Git-deploys staan uit (`git.deploymentEnabled: false` in [`vercel.json`](vercel.json)),
 zodat er nooit iets live gaat zonder geslaagde tests.
+
+### Domein
+
+Productie draait op **jackpot.broadsight.nl**, als domein van het Vercel-project `gokkast`
+(*Settings → Domains*; toegevoegd met `npx vercel@60.1.3 domains add jackpot.broadsight.nl gokkast`).
+`gokkast.vercel.app` blijft daarnaast werken, zonder doorverwijzing. De DNS van broadsight.nl staat
+niet bij Vercel maar bij de eigen hoster (nameservers `webhostingserver.g1-dns.one` en `.com`). Daar
+staat één record:
+
+| Type  | Naam      | Waarde                                 |
+| ----- | --------- | -------------------------------------- |
+| CNAME | `jackpot` | `bbc7e97c480826fb.vercel-dns-017.com.` |
+
+Het CNAME-record gaat voor het wildcard-record (`*`) van de hoster. Een TXT-record is niet nodig:
+broadsight.nl is al van dit Vercel-account. Controleren: `npx vercel@60.1.3 domains verify
+jackpot.broadsight.nl`; zodra de DNS klopt, maakt Vercel zelf het HTTPS-certificaat.
+
+Na een domeinwissel ook aanpassen: de webhook van de PayPal-live-app (zie
+[Betalen met PayPal](#betalen-met-paypal)), de redirect-URI bij Google (zie
+[Game-manager](#game-manager)) en het websiteprofiel bij Mollie (zie [Betalen](#betalen)).
 
 ### Instellingen per omgeving
 
@@ -443,15 +474,9 @@ Gokkast/
 ├── e2e/                visuele tests met Playwright (*.spec.ts), de nep-Mollie (mollie-mock.ts) en de nep-PayPal (paypal-mock.ts)
 ├── playwright.config.ts instellingen voor de visuele tests
 ├── vitest.config.mts   instellingen voor de unit-tests
-├── v1/                 versie 1: losse HTML/CSS/JS, opent direct in de browser
 ├── voorbeeld/          ontwerpvoorbeeld (fruitmachine.jpg)
 └── project-details/    doelen, to-do, huidige feature en build-log
 ```
-
-## Versie 1
-
-De oorspronkelijke versie zonder build-stap staat in [`v1/`](v1/). Open
-`v1/index.html` direct in de browser om die te spelen.
 
 ## Meer informatie
 

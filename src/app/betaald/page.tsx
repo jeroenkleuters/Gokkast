@@ -7,14 +7,14 @@ import { isFinalStatus, isPaymentToken, PAYMENT_COOKIE, type PaymentStatus } fro
 import { defaultPaymentDeps, getPlayerPayment, getReturnPayment } from "@/lib/paymentService";
 import styles from "./betaald.module.css";
 
-export const metadata: Metadata = { title: "Betaling — Eenarmige Bandiet" };
+export const metadata: Metadata = { title: "Betaling — Jackpot" };
 
 const REFRESH_SECONDS = 3; // zolang de betaling nog verwerkt wordt
 
 // Hier stuurt Mollie de speler na het betalen naartoe (redirectUrl, met ?ref= van de betaling).
 // Zelfde browser als het spel (cookie): betaald → meteen terug naar het spel.
 // Betaald met een telefoon via de QR-code: die heeft geen cookie; de referentie laat zien of
-// het gelukt is en wat er betaald is. De gokkast ziet de betaling zelf.
+// het gelukt is en wat er betaald is. Het spel ziet de betaling zelf.
 export default async function Betaald({ searchParams }: { searchParams: Promise<{ ref?: string | string[] }> }) {
   await connection();
   const deps = defaultPaymentDeps();
@@ -34,12 +34,12 @@ export default async function Betaald({ searchParams }: { searchParams: Promise<
     status === "paid" && returned
       ? [
           "Betaald!",
-          `${returned.amount} is betaald voor ${returned.credits} ${returned.credits === 1 ? "spel" : "spelletjes"}. Ga terug naar de gokkast: je spelletjes staan klaar.`,
+          `${returned.amount} is betaald voor ${returned.credits} ${returned.credits === 1 ? "spel" : "spelletjes"}. Ga terug naar Jackpot: je spelletjes staan klaar.`,
         ]
       : status === "none"
-        ? ["Bedankt!", "Ga terug naar de gokkast. Zodra je betaling binnen is, staan je spelletjes daar klaar."]
+        ? ["Bedankt!", "Ga terug naar Jackpot. Zodra je betaling binnen is, staan je spelletjes daar klaar."]
         : failed
-          ? ["Betaling niet gelukt", "Er is niets afgeschreven. Ga terug naar de gokkast om het opnieuw te proberen."]
+          ? ["Betaling niet gelukt", "Er is niets afgeschreven. Ga terug naar Jackpot om het opnieuw te proberen."]
           : ["Betaling wordt verwerkt", "Dit duurt meestal maar even. Deze pagina ververst vanzelf."];
   const waiting = status !== "none" && !isFinalStatus(status);
 

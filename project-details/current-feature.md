@@ -1,16 +1,29 @@
-# Current Feature
+# Current Feature: Domein en naam spel (Jackpot)
 
 ## Status
 
-Not Started
+In Progress
 
 ## Goals
 
-<!-- Doelen van de feature, in te vullen met /feature load -->
+- Het productiedomein wordt `https://jackpot.broadsight.nl` (custom domain op het Vercel-project `gokkast`); `gokkast.vercel.app` blijft werken of stuurt door
+- Het spel heet voor spelers en beheerders **Jackpot**: paginatitels (`layout.tsx`, `betaald/page.tsx`, `game-manager/layout.tsx`), inlogpagina game-manager, teksten op `/betaald` ("Ga terug naar de gokkast") en de omschrijving van de betaling bij Mollie/PayPal (`Gokkast: 4 spelletjes` → `Jackpot: 4 spelletjes`)
+- Productie-URL's bij de diensten op het nieuwe domein:
+  - Mollie: redirect- en webhook-URL komen al uit de request-origin (`requestOrigin()` in `actions.ts`), controleren dat dat op het nieuwe domein klopt
+  - PayPal live-app: webhook naar `https://jackpot.broadsight.nl/api/paypal/webhook` (webhook-ID blijft of wordt vernieuwd in `PAYPAL_WEBHOOK_ID`)
+  - Google OAuth: redirect-URI `https://jackpot.broadsight.nl/api/auth/callback/google` toevoegen (en zo nodig `AUTH_URL` in Vercel Production)
+  - Vercel: domein toevoegen en als productiedomein instellen
+- Instructies voor de gebruiker voor de DNS-records bij broadsight.nl (CNAME `jackpot` → Vercel, eventueel TXT-verificatie)
+- Tests, README en `.env.example` bijgewerkt op de nieuwe naam en het nieuwe domein; lint, typecheck, Vitest en Playwright zonder fouten
 
 ## Notes
 
-<!-- Extra context, beperkingen of details uit de spec -->
+- Taak 16 uit `to-do.md` (Versie 2, Game-manager uitbreiden).
+- Bij Vercel, Neon, PayPal, Mollie en Google Auth blijft de oude werktitel **Gokkast** staan: projectnamen, app-namen, `neon-gokkast`, `gokkast-preview.vercel.app` niet hernoemen.
+- Interne namen zonder zichtbaarheid voor spelers (package-naam `gokkast`, cookie `gokkast-betaling`, localStorage `gokkast-geluid`, codecommentaar) kunnen blijven; hernoemen van cookie/localStorage zou betaalde credits en geluidsinstelling van spelers wissen.
+- Instellingen in dashboards (Vercel-domein, PayPal-webhook, Google redirect-URI, DNS) doet de gebruiker of gaan via CLI na toestemming; geen geheimen tonen.
+- Preview blijft `gokkast-preview.vercel.app` (sandbox/test).
+- Open uit 12a/12b: echte betalingen van € 1,00 op productie — kan na de domeinwissel op het nieuwe domein.
 
 ## History
 

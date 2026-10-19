@@ -147,8 +147,9 @@ test("betalen met een telefoon via de QR-code: de popup ziet de betaling zelf", 
   // De telefoon ziet op /betaald dat het gelukt is en wat er betaald is
   await expect(phone).toHaveURL(/\/betaald\?ref=[\w-]{16}$/);
   await expect(phone.getByRole("heading", { name: "Betaald!" })).toBeVisible();
-  await expect(phone.getByTestId("betaald")).toContainText("€ 1,00 is betaald voor 4 spelletjes");
-  await expect(phone.getByRole("link", { name: "Terug naar het spel" })).toHaveCount(0); // terug naar de gokkast zelf
+  await expect(phone).toHaveTitle("Betaling — Jackpot");
+  await expect(phone.getByTestId("betaald")).toContainText("€ 1,00 is betaald voor 4 spelletjes. Ga terug naar Jackpot");
+  await expect(phone.getByRole("link", { name: "Terug naar het spel" })).toHaveCount(0); // terug naar het spel zelf
   await phone.close();
 
   // De popup vraagt elke paar seconden de status op en sluit na betalen

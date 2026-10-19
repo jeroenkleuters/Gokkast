@@ -9,7 +9,9 @@ test("zonder inloggen stuurt /game-manager door naar de inlogpagina", async ({ p
   await page.goto("/game-manager");
 
   await expect(page).toHaveURL(/\/game-manager\/inloggen$/);
+  await expect(page).toHaveTitle("Game-manager — Jackpot");
   await expect(page.getByRole("heading", { name: "Inloggen" })).toBeVisible();
+  await expect(page.getByText("Alleen voor beheerders van Jackpot.")).toBeVisible();
   await expect(page.getByRole("button", { name: "Inloggen met Google" })).toBeVisible();
   await expect(page.getByText("Instellingen")).toHaveCount(0);
 });
