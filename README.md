@@ -440,7 +440,7 @@ De spelinstellingen (zie [Instellingen](#instellingen)) staan in Vercel onder
 | `PAYPAL_WEBHOOK_ID`       | webhook-ID live-app | webhook-ID sandbox-app | leeg |
 | `GAME_PAYMENT_PROVIDER`   | leeg (Mollie) | leeg (Mollie) | leeg (Mollie) |
 | `GAME_DESIGN`             | leeg (jungle) | leeg (jungle) | leeg (jungle) |
-| `GAME_PRICE_CENTS`        | `100`      | `100`   | `100`       |
+| `GAME_PRICE_CENTS`        | `150` (€ 1,50) | leeg (€ 1,00) | leeg (€ 1,00) |
 | `PAYMENT_ENCRYPTION_KEY`  | eigen sleutel | sleutel `dev` | sleutel `dev` (zelfde als Preview) |
 
 In previews werkt `?kans=` dus wel, in productie niet. Een wijziging geldt vanaf de volgende deploy

@@ -1569,6 +1569,30 @@ Melding gebruiker: in de database alleen `LOST`, ook na winst. Oorzaak: de dev-s
 
 ---
 
+## Stap 118 — Standaardprijs € 1,50 in productie (19 oktober 2026)
+
+**Vraag:**
+> maak er maar 1,50 van / ja maakt dat maar standaard / doe jij het maar
+
+**Uitgevoerde handelingen:**
+1. In de `dev`-database stond de prijs al op 150 (door de gebruiker ingesteld in de game-manager); lokaal toont het spel € 1,50.
+2. Deploy van `main` afgewacht (tests en deploy geslaagd); productie toonde nog € 1,00 (veld leeg, `GAME_PRICE_CENTS` niet gezet in Vercel Production).
+3. `GAME_PRICE_CENTS=150` toegevoegd aan Vercel Production (eerst geweigerd door de toestemmingscontrole, daarna met uitdrukkelijke toestemming van de gebruiker). Workflow-run `39292208144` opnieuw gedraaid: tests en deploy geslaagd; `https://jackpot.broadsight.nl/` toont nu € 1,50.
+4. README: tabel met Vercel-variabelen per omgeving bijgewerkt (Production `150`, Preview/Development leeg).
+
+---
+
+## Stap 119 — Standaardprijs afgerond (19 oktober 2026)
+
+**Vraag:**
+> /feature complete
+
+**Uitgevoerde handelingen:**
+1. Geen actieve feature (Kosten Credits was al afgerond); History van Kosten Credits aangevuld met de standaardprijs in productie.
+2. README, build-log en `current-feature.md` gecommit op `main` en gepusht (CI test en deployt productie). Alleen documentatie gewijzigd: dev-server niet herstart.
+
+---
+
 ## Huidige bestandsstructuur
 
 ```
