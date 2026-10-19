@@ -135,6 +135,7 @@ ongeldig, dan geldt de standaardwaarde. Na een wijziging de server herstarten.
 | `GAME_ODDS`               | Winkans per draai zonder vastgezette rollen: 1 op deze waarde | 1 t/m 100000        | `30`      |
 | `GAME_MAX_TRIES`          | Aantal pogingen per spel                                     | 1 t/m 5             | `3`       |
 | `GAME_ROUNDS_PER_PAYMENT` | Spelletjes (credits) per betaling, zie [Betalen](#betalen)  | 1 t/m 100           | `4`       |
+| `GAME_PRICE_CENTS`        | Prijs van één betaling in centen (in de game-manager in euro's) | 1 t/m 10000      | `100`     |
 | `GAME_DESIGN`             | Design als er in de game-manager niets gekozen is            | `jungle`/`origineel` | `jungle` |
 | `GAME_ALLOW_ODDS_URL`     | Winkans en design via de adresbalk overschrijven, bijv. `/?kans=1` | `true`/`1`/`ja`/`aan` | uit     |
 
@@ -167,8 +168,10 @@ het Mollie-dashboard (*Settings → Website profiles*) staat op `https://jackpot
 - Een speler zonder credits klikt op **SPEEL** → een popup met een QR-code. Die hoort bij een eigen
   Mollie-betaling voor deze speler (per speler een unieke betaallink). Scannen met de telefoon, of
   "Of betaal op dit apparaat".
-- Na betalen krijgt de speler **4 spelletjes voor € 1,00** (`GAME_ROUNDS_PER_PAYMENT`, ook in te
-  stellen in de game-manager, en `GAME_PRICE_CENTS`). Elk nieuw spel kost één credit.
+- Na betalen krijgt de speler **4 spelletjes voor € 1,00** (`GAME_ROUNDS_PER_PAYMENT` en
+  `GAME_PRICE_CENTS`, allebei ook in te stellen in de game-manager). Elk nieuw spel kost één credit.
+  Een nieuwe prijs geldt voor nieuwe betalingen; een betaling houdt haar eigen bedrag
+  (`payments.amount_cents`). Een open betaling met een oude prijs wordt vervangen door een nieuwe.
 - De credits staan op de server bij de betaling (tabel `payments`); de browser heeft alleen een
   willekeurige sleutel in een httpOnly-cookie. De naam van de rekeninghouder (van Mollie, o.a. bij
   iDEAL) komt bij de betaling en bij elke ronde die ermee gespeeld is (`games.name`, `games.payment_id`).
@@ -185,7 +188,7 @@ het Mollie-dashboard (*Settings → Website profiles*) staat op `https://jackpot
 | Variabele          | Betekenis                                                   | Standaard        |
 | ------------------ | ----------------------------------------------------------- | ---------------- |
 | `MOLLIE_API_KEY`   | Key uit het Mollie-dashboard (*Developers → API keys*): live-key in productie, test-key elders. Leeg = Mollie uit (zonder PayPal is het spel gratis) | leeg |
-| `GAME_PRICE_CENTS` | Prijs van één betaling in centen (1 t/m 10000)              | `100` (€ 1,00)   |
+| `GAME_PRICE_CENTS` | Prijs van één betaling in centen (1 t/m 10000); de game-manager gaat voor | `100` (€ 1,00)   |
 | `PAYMENT_ENCRYPTION_KEY` | Sleutel voor het rekeningnummer: 32 willekeurige bytes als base64. Leeg = rekeningnummer niet opslaan | leeg |
 
 Sleutel maken: `node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"`.
@@ -262,7 +265,7 @@ Het schema staat in [`prisma/schema.prisma`](prisma/schema.prisma), de migraties
 
 | Tabel           | Inhoud                                                                 |
 | --------------- | ---------------------------------------------------------------------- |
-| `game_settings` | Eén rij (id 1): winkans, pogingen, speelrondes per betaling; leeg = `.env`-waarde |
+| `game_settings` | Eén rij (id 1): winkans, pogingen, speelrondes en prijs (`price_cents`) per betaling, betaalmethode, design; leeg = `.env`-waarde |
 | `games`         | Gespeelde rondes: uitkomst (`WON shot`, `WON kakkerlak`, `WON vraagteken` of `LOST`), gebruikte pogingen, datum; naam leeg tot betalen (taak 10/11) |
 | `payments`      | Betalingen: naam, bedrag in centen, datum (Mollie en versleuteling volgen in taak 10/11) |
 
@@ -335,7 +338,8 @@ ontsleutelen" (een waarschuwing in de serverlog, zonder nummers). Om op het reke
 sorteren, worden de betalingen in het geheugen gesorteerd en verdeeld over pagina's.
 
 **Instellingen.** Hier stel je de winkans (snelkeuze makkelijk 1 op 10, normaal 1 op 30,
-moeilijk 1 op 100, of een eigen getal), de pogingen per spel, de speelrondes per betaling, de
+moeilijk 1 op 100, of een eigen getal), de pogingen per spel, de speelrondes per betaling, de prijs
+per betaling (in euro's, bijv. `1,50`; opgeslagen in centen, € 0,01 t/m € 100,00), de
 betaalmethode (Mollie, PayPal of de standaard uit `GAME_PAYMENT_PROVIDER`) en het design (Jungle,
 Origineel of de standaard uit `GAME_DESIGN`) in. Een methode zonder
 sleutels op deze server staat erbij als "niet ingesteld"; wordt die toch gekozen, dan meldt de

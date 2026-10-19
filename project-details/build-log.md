@@ -1527,6 +1527,36 @@ Melding gebruiker: in de database alleen `LOST`, ook na winst. Oorzaak: de dev-s
 
 ---
 
+## Stap 115 — Feature geladen: Kosten Credits (19 oktober 2026)
+
+**Vraag:**
+> /feature load 2 kosten credits
+
+**Uitgevoerde handelingen:**
+1. Taak "2 Kosten Credits" (versie 3) gevonden in `to-do.md`; nagegaan waar de prijs nu vandaan komt (`readPriceCents` in `payments.ts`, alleen `GAME_PRICE_CENTS`, vast bij het opstarten in `paymentService.ts`) en waar hij te zien is (betaalpopup, jungle-design, tandwiel, game-manager).
+2. `current-feature.md` ingevuld: doelen (prijs instellen in de tab Instellingen, opslaan in `game_settings` met `.env` als standaard, invoer in euro's met dezelfde grenzen, Mollie en PayPal gebruiken de ingestelde prijs, overal de juiste prijs tonen, tests) en notities (patroon van `roundsPerPayment` volgen, nieuwe migratie, open vraag euro's of centen). Status Not Started.
+3. Besluit gebruiker: de prijs wordt in euro's ingevoerd (bijv. `1,50`) en in centen opgeslagen; vastgelegd in de notities van `current-feature.md`.
+
+---
+
+## Stap 116 — Feature gestart en gebouwd: Kosten Credits (19 oktober 2026)
+
+**Vraag:**
+> /feature start
+
+**Uitgevoerde handelingen:**
+1. Branch `feature/kosten-credits`, status In Progress.
+2. `src/lib/settings.ts`: `priceCents` als vierde instelling (`SettingKey`, `SETTING_LIMITS`, `DEFAULT_SETTINGS` 100, `readSettings` uit `GAME_PRICE_CENTS`); `MAX_PRICE_CENTS` hierheen verplaatst; nieuw `parseEuroCents` ("1,50", "1.5", "2", "€ 2" → centen; max twee decimalen, € 0,01 t/m € 100,00) en `euroInput` (150 → "1,50"); `parseSettingsForm` leest de prijs in euro's met een eigen foutmelding. `mergeSettings` ongewijzigd (zelfde grenzen per veld).
+3. `src/lib/payments.ts`: `readPriceCents`, `DEFAULT_PRICE_CENTS` en `MollieConfig.priceCents` weg (werden niet door de Mollie-client gebruikt); `formatEuro` via `euroInput`.
+4. `src/lib/paymentService.ts`: `PaymentDeps.priceCents` en `credits()` vervangen door `offer()` (prijs en credits uit `loadSettings()`, één databaseverzoek per nieuwe betaling); `loadPaymentInfo` krijgt het `Offer` van de pagina. `startPayment` hergebruikt een open betaling alleen als methode, prijs en credits nog kloppen, en geeft prijs en credits van de betaling zelf terug; `actions.ts` geeft die door en `PaymentDialog.tsx` toont ze (zo komt het bedrag in de popup altijd overeen met de QR-code, ook als de prijs sinds het laden veranderd is).
+5. Database: kolom `game_settings.price_cents` (optioneel), migratie `20261019120000_game_settings_price`, `prisma generate`; `settingsStore.ts` leest de kolom; `seed.ts` zet ook de prijs.
+6. Game-manager: veld **Prijs per betaling** (€, tekstveld met decimaal toetsenbord, placeholder `standaard: 1,00`, "Terug naar standaard") onder Speelrondes per betaling; regel "Nu in het spel" noemt de prijs. Tandwiel toont de prijs per betaling.
+7. Tests: Vitest bijgewerkt en uitgebreid (prijs in `settings`, `settingsStore`, `actions`, nieuwe betaling na prijswijziging, betaalde betaling houdt haar prijs, andere credits → nieuwe betaling): 301 tests. Playwright: betaalserver met `GAME_PRICE_CENTS=150` (geen standaardprijs) zodat € 1,50 in jungle-regel, popup, nep-Mollie, `/betaald` en Betalingen gecontroleerd wordt; nieuwe test voor het prijsveld (centen intypen geeft een melding, terug naar standaard, `2,50` opslaan zonder database): 39 tests. Lint en typecheck zonder fouten.
+8. Migratie toegepast op Neon `dev` (`ep-silent-tooth`). Gecontroleerd met een productieserver op poort 3105 tegen `dev`: prijs op 250 gezet → bord "4 Credits: € 2,50", popup "4 spelletjes voor € 2,50", Mollie-testbetaling van € 2.50; daarna de prijs weer leeg gemaakt, server gestopt en tijdelijke scripts verwijderd.
+9. README (tabel Instellingen, Betalen, tabel `game_settings`, game-manager Instellingen) en `.env.example` bijgewerkt.
+
+---
+
 ## Huidige bestandsstructuur
 
 ```
@@ -1545,7 +1575,7 @@ Gokkast/
 │   ├── components/       SlotMachine, Reel, Lever, InfoPanel, Stats, SettingsDialog, GameClient, PaymentDialog, PrizeDialog
 │   ├── lib/              designs.ts, designs.test.ts, encryption.ts, encryption.test.ts, prizes.ts, payments.ts, paymentService.ts, paymentStore.ts, mollie.ts, qr.ts, game.ts, settings.ts, settingsStore.ts, db.ts, gameStore.ts, gameStats.ts, tables.ts, managerQuery.ts, paymentOverview.ts, admins.ts, dal.ts, sound.ts, storage.ts, coinShower.ts, game.test.ts, settings.test.ts, settingsStore.test.ts, gameStore.test.ts, gameStats.test.ts, tables.test.ts, managerQuery.test.ts, paymentOverview.test.ts, admins.test.ts
 │   └── generated/prisma/ Prisma Client (gegenereerd, niet in git)
-├── prisma/               schema.prisma, seed.ts, migrations/ (20261013000000_init, 20261013163330_games_name_optional, 20261013200000_game_settings_optional, 20261013230000_games_outcome_symbol, 20261014000000_payments_mollie, 20261014120000_payments_reference, 20261014200000_payments_account_encrypted, 20261015000000_payments_paypal, 20261019000000_game_settings_design, migration_lock.toml)
+├── prisma/               schema.prisma, seed.ts, migrations/ (20261013000000_init, 20261013163330_games_name_optional, 20261013200000_game_settings_optional, 20261013230000_games_outcome_symbol, 20261014000000_payments_mollie, 20261014120000_payments_reference, 20261014200000_payments_account_encrypted, 20261015000000_payments_paypal, 20261019000000_game_settings_design, 20261019120000_game_settings_price, migration_lock.toml)
 ├── scripts/              jungle-achtergrond.mjs
 ├── e2e/                  gokkast.spec.ts, game-manager.spec.ts, helpers.ts, auth.ts
 ├── voorbeeld/            fruitmachine.jpg, design1.png, design2.png, voorbeeld-nieuw-design.jpeg, redesign-voorbeeld-1376.png, redesign-voorbeeld-1024.png

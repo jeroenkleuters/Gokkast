@@ -21,7 +21,7 @@ function fetchFromDb(): FetchSettingsRow | null {
   return async () => {
     const row = await db.gameSettings.findUnique({
       where: { id: 1 },
-      select: { odds: true, maxTries: true, roundsPerPayment: true, paymentProvider: true, design: true },
+      select: { odds: true, maxTries: true, roundsPerPayment: true, priceCents: true, paymentProvider: true, design: true },
     });
     return (
       row && {

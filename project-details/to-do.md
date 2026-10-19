@@ -134,6 +134,16 @@ De taken staan in volgorde: latere taken bouwen voort op eerdere.
     - toon eerst een voorbeeld plaatje voordat de code word aangepast.
     - pas de playwright testen  aan op de nieuwe layout
   
+  [x] **2 Kosten Credits**
+    - Maak de prijs van credits kopen configurabel in de Game Manager
+
+  [ ] **3 Haven Design**
+    - Maak een nieuwe theme Harbor Jackpot
+    - de achtergrond is de-ect-terminal-op-de-maasvlakte-in-de-haven-van-rotterdam.jpg
+    - Design voor de Jackpot is HarborJackpot.png
+    - in het plaatje zit er rechtsboven een vierkantje, dit mag weg
+    - in het  vierkantje linksboven mogen de spelregels
+    - zet poging links naast de vast knoppen
 
 ## Open vragen
 

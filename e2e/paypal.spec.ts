@@ -4,7 +4,7 @@ import { display, PLAY, playButton, READY } from "./helpers";
 import { MOCK_PAYPAL_PAYER, MOCK_PAYPAL_QR, PAYPAL_APP_URL } from "./payments";
 
 // Betalen met PayPal (taak 13b) op de derde server: PayPal is de standaard, nep-PayPal, winkans 1
-// (elk spel is na één draai gewonnen en klaar), 4 spelletjes voor € 1,00.
+// (elk spel is na één draai gewonnen en klaar), 4 spelletjes voor € 1,50.
 test.use({ baseURL: PAYPAL_APP_URL });
 
 const popup = (page: Page) => page.getByRole("dialog", { name: "Betalen" });
@@ -50,7 +50,7 @@ test("met PayPal: QR-code van PayPal, betalen in een nieuw tabblad, de popup zie
   await openGame(page);
   await openPopup(page);
 
-  await expect(popup(page)).toContainText("4 spelletjes voor € 1,00");
+  await expect(popup(page)).toContainText("4 spelletjes voor € 1,50");
   await expect(popup(page)).toContainText("betaal met PayPal");
   // Sandbox: de testmelding staat erbij (bij live PayPal in productie niet, taak 12b)
   await expect(popup(page)).toContainText("Testomgeving: er wordt geen echt geld afgeschreven.");

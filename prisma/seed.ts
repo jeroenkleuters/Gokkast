@@ -12,13 +12,15 @@ if (!connectionString) throw new Error("DATABASE_URL ontbreekt (zie .env.example
 const prisma = new PrismaClient({ adapter: new PrismaNeon({ connectionString }) });
 
 async function main() {
-  const { odds, maxTries, roundsPerPayment } = readSettings();
+  const { odds, maxTries, roundsPerPayment, priceCents } = readSettings();
   await prisma.gameSettings.upsert({
     where: { id: 1 },
-    create: { id: 1, odds, maxTries, roundsPerPayment },
-    update: { odds, maxTries, roundsPerPayment },
+    create: { id: 1, odds, maxTries, roundsPerPayment, priceCents },
+    update: { odds, maxTries, roundsPerPayment, priceCents },
   });
-  console.log(`game_settings: winkans 1 op ${odds}, ${maxTries} pogingen, ${roundsPerPayment} ronde(s) per betaling`);
+  console.log(
+    `game_settings: winkans 1 op ${odds}, ${maxTries} pogingen, ${roundsPerPayment} ronde(s) per betaling voor ${priceCents} cent`,
+  );
 
   if ((await prisma.game.count()) === 0) {
     const day = (n: number) => new Date(Date.now() - n * 24 * 60 * 60 * 1000);

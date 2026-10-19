@@ -48,7 +48,7 @@ const paidEnv = {
   ...testEnv,
   GAME_ODDS: "1", // elke draai wint: een spel is na één draai klaar
   GAME_ROUNDS_PER_PAYMENT: "4",
-  GAME_PRICE_CENTS: "100",
+  GAME_PRICE_CENTS: "150", // geen standaardprijs: zo is te zien dat de ingestelde prijs overal doorkomt
   MOLLIE_API_KEY: MOCK_API_KEY,
   MOLLIE_API_URL: `http://localhost:${MOLLIE_MOCK_PORT}/v2`,
   PAYMENTS_TEST_STORE: "true", // betalingen in het geheugen (er is geen database)

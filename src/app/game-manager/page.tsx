@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { checkAdmin } from "@/lib/dal";
 import { parseManagerQuery } from "@/lib/managerQuery";
-import { readMollieConfig, readPayPalConfig } from "@/lib/payments";
+import { formatEuro, readMollieConfig, readPayPalConfig } from "@/lib/payments";
 import {
   DESIGN_LABELS,
   mergeSettings,
@@ -34,7 +34,8 @@ async function SettingsSection() {
       <h2 id="instellingen">Instellingen</h2>
       <p className={styles.muted} data-testid="current-settings">
         Nu in het spel: winkans 1 op {current.odds}, {current.maxTries} pogingen, {current.roundsPerPayment}{" "}
-        speelronde(s) per betaling (bron: {current.source === "database" ? "database" : ".env"}).{" "}
+        speelronde(s) per betaling van {formatEuro(current.priceCents)} (bron:{" "}
+        {current.source === "database" ? "database" : ".env"}).{" "}
         {used ? `Betalen met ${PAYMENT_PROVIDER_LABELS[used]}.` : "Betalen staat uit: het spel is gratis."} Design:{" "}
         {DESIGN_LABELS[current.design]}.
       </p>

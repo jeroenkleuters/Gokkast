@@ -4,7 +4,7 @@ import { display, PLAY, playButton, READY } from "./helpers";
 import { MOCK_CONSUMER_ACCOUNT, MOCK_CONSUMER_NAME, PAID_APP_URL } from "./payments";
 
 // Betalen met Mollie (taak 10) op de tweede server: betalen aan, nep-Mollie, winkans 1
-// (elk spel is na één draai gewonnen en klaar), 4 spelletjes voor € 1,00.
+// (elk spel is na één draai gewonnen en klaar), 4 spelletjes voor € 1,50.
 test.use({ baseURL: PAID_APP_URL });
 
 const popup = (page: Page) => page.getByRole("dialog", { name: "Betalen" });
@@ -54,6 +54,7 @@ async function playOneGame(page: Page) {
 async function pay(page: Page, url = "/") {
   await openPopup(page);
   await payLink(page).click();
+  await expect(page.getByText("Jackpot: 4 spelletjes — € 1.50")).toBeVisible(); // bedrag bij (nep-)Mollie
   await page.getByRole("button", { name: "Betaald" }).click();
   await expect(page).toHaveURL(`${PAID_APP_URL}/`);
   if (url !== "/") await page.goto(url);
@@ -63,10 +64,10 @@ async function pay(page: Page, url = "/") {
 test("zonder credits opent DRAAI de betaalpopup met QR-code", async ({ page }) => {
   await openGame(page);
   await expect(credits(page)).toHaveText("0");
-  await expect(page.locator("#stats")).toContainText("4 Credits: € 1,00"); // wat een betaling oplevert
+  await expect(page.locator("#stats")).toContainText("4 Credits: € 1,50"); // wat een betaling oplevert
 
   await openPopup(page);
-  await expect(popup(page)).toContainText("4 spelletjes voor € 1,00");
+  await expect(popup(page)).toContainText("4 spelletjes voor € 1,50");
   await expect(popup(page)).toContainText("Testomgeving");
   const qr = popup(page).getByRole("img", { name: "QR-code om te betalen" });
   expect(await qr.getAttribute("src")).toMatch(/^data:image\/svg\+xml/);
@@ -149,7 +150,7 @@ test("betalen met een telefoon via de QR-code: de popup ziet de betaling zelf", 
   await expect(phone).toHaveURL(/\/betaald\?ref=[\w-]{16}$/);
   await expect(phone.getByRole("heading", { name: "Betaald!" })).toBeVisible();
   await expect(phone).toHaveTitle("Betaling — Jackpot");
-  await expect(phone.getByTestId("betaald")).toContainText("€ 1,00 is betaald voor 4 spelletjes. Ga terug naar Jackpot");
+  await expect(phone.getByTestId("betaald")).toContainText("€ 1,50 is betaald voor 4 spelletjes. Ga terug naar Jackpot");
   await expect(phone.getByRole("link", { name: "Terug naar het spel" })).toHaveCount(0); // terug naar het spel zelf
   await phone.close();
 
@@ -251,7 +252,7 @@ test("de game-manager toont de betaling met het ontsleutelde rekeningnummer", as
   await expect(table.getByRole("columnheader")).toHaveText(["Datum", "Naam", "Methode", "Rekeningnummer", "Bedrag", "Status", "Gespeeld"]);
   // Andere tests op deze server betalen ook met deze naam: een betaalde betaling van T. TEST zoeken
   const paid = table.getByRole("row").filter({ hasText: MOCK_CONSUMER_NAME }).filter({ hasText: "Betaald" }).first();
-  await expect(paid.getByRole("cell")).toHaveText([/^\d\d-\d\d-\d{4}/, MOCK_CONSUMER_NAME, "Mollie (iDEAL)", MOCK_ACCOUNT_SHOWN, "€ 1,00", "Betaald", /^\d van 4$/]);
+  await expect(paid.getByRole("cell")).toHaveText([/^\d\d-\d\d-\d{4}/, MOCK_CONSUMER_NAME, "Mollie (iDEAL)", MOCK_ACCOUNT_SHOWN, "€ 1,50", "Betaald", /^\d van 4$/]);
   // Ontsleuteld op de server: de versleutelde tekst en de betaallink staan niet op de pagina
   const html = await page.content();
   expect(html).not.toMatch(/v1:[A-Za-z0-9+/=]+:/);

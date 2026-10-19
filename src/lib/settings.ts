@@ -6,14 +6,15 @@ export interface GameSettings {
   odds: number; // winkans 1 op odds per draai zonder vastgezette rollen
   maxTries: number; // pogingen per spel
   roundsPerPayment: number; // speelrondes (credits) per betaling, zie payments.ts
+  priceCents: number; // prijs van één betaling in centen (versie 3, taak 2)
   design: Design; // uiterlijk van het spel (versie 3, taak 1)
   source?: SettingsSource; // waar de waarden vandaan komen (getoond bij het tandwiel)
 }
 
 export type SettingsSource = "database" | "env";
 
-export type SettingKey = "odds" | "maxTries" | "roundsPerPayment";
-export const SETTING_KEYS: SettingKey[] = ["odds", "maxTries", "roundsPerPayment"];
+export type SettingKey = "odds" | "maxTries" | "roundsPerPayment" | "priceCents";
+export const SETTING_KEYS: SettingKey[] = ["odds", "maxTries", "roundsPerPayment", "priceCents"];
 
 // Betaalmethode (taak 13b). Niets gekozen in de game-manager: GAME_PAYMENT_PROVIDER, anders Mollie.
 export const PAYMENT_PROVIDERS = ["mollie", "paypal"] as const;
@@ -46,6 +47,7 @@ export const DEFAULT_SETTINGS: GameSettings = {
   odds: 30,
   maxTries: 3,
   roundsPerPayment: 4, // 4 spelletjes voor € 1,00 (taak 10)
+  priceCents: 100,
   design: DEFAULT_DESIGN,
 };
 
@@ -53,11 +55,13 @@ export const DEFAULT_SETTINGS: GameSettings = {
 export const MAX_ODDS = 100000;
 export const MAX_TRIES_LIMIT = 5;
 export const MAX_ROUNDS_PER_PAYMENT = 100;
+export const MAX_PRICE_CENTS = 10000; // € 100,00
 
 export const SETTING_LIMITS: Record<SettingKey, number> = {
   odds: MAX_ODDS,
   maxTries: MAX_TRIES_LIMIT,
   roundsPerPayment: MAX_ROUNDS_PER_PAYMENT,
+  priceCents: MAX_PRICE_CENTS,
 };
 
 // Snelkeuzes voor de winkans in de game-manager (een eigen getal mag ook)
@@ -74,6 +78,20 @@ export function parsePositiveInt(value: string | null | undefined, max: number):
   if (!value || !/^\s*\d+\s*$/.test(value)) return null;
   const n = Number(value);
   return n >= 1 && n <= max ? n : null;
+}
+
+// Bedrag in euro's zoals een beheerder het intypt ("1,50", "1.5", "2" of "€ 2") → centen;
+// geen geldig bedrag, meer dan twee decimalen, < 1 cent of > max → null
+export function parseEuroCents(value: string | null | undefined, max = MAX_PRICE_CENTS): number | null {
+  const match = /^\s*(?:€\s*)?(\d{1,6})(?:[.,](\d{1,2}))?\s*$/.exec(value ?? "");
+  if (!match) return null;
+  const cents = Number(match[1]) * 100 + Number((match[2] ?? "").padEnd(2, "0"));
+  return cents >= 1 && cents <= max ? cents : null;
+}
+
+// 150 → "1,50" (voor een invoerveld); formatEuro in payments.ts zet er "€ " voor
+export function euroInput(cents: number): string {
+  return (cents / 100).toFixed(2).replace(".", ",");
 }
 
 export function parseFlag(value: string | undefined): boolean {
@@ -98,6 +116,7 @@ export function readSettings(env: Env = process.env): GameSettings {
     maxTries: parsePositiveInt(env.GAME_MAX_TRIES, MAX_TRIES_LIMIT) ?? DEFAULT_SETTINGS.maxTries,
     roundsPerPayment:
       parsePositiveInt(env.GAME_ROUNDS_PER_PAYMENT, MAX_ROUNDS_PER_PAYMENT) ?? DEFAULT_SETTINGS.roundsPerPayment,
+    priceCents: parsePositiveInt(env.GAME_PRICE_CENTS, MAX_PRICE_CENTS) ?? DEFAULT_SETTINGS.priceCents,
     design: readDefaultDesign(env),
   };
 }
@@ -133,6 +152,7 @@ export type SettingsFormResult =
   | { ok: false; errors: Partial<Record<SettingsFormKey, string>> };
 
 // Formulier van de game-manager: per veld een geheel getal binnen de grenzen, of leeg = standaard.
+// De prijs is een bedrag in euro's (bijv. 1,50), opgeslagen in centen.
 // Betaalmethode: mollie, paypal of leeg (standaard); design: jungle, origineel of leeg (standaard).
 // Zonder zo'n veld blijft de opgeslagen keuze staan.
 export function parseSettingsForm(form: { get(name: string): unknown }): SettingsFormResult {
@@ -143,6 +163,12 @@ export function parseSettingsForm(form: { get(name: string): unknown }): Setting
     const text = typeof raw === "string" ? raw.trim() : "";
     if (text === "") {
       values[key] = null;
+      continue;
+    }
+    if (key === "priceCents") {
+      const cents = parseEuroCents(text);
+      if (cents === null) errors[key] = `Vul een bedrag van € 0,01 t/m € ${euroInput(MAX_PRICE_CENTS)} in (bijv. 1,50), of laat het leeg voor de standaard.`;
+      else values[key] = cents;
       continue;
     }
     const n = parsePositiveInt(text, SETTING_LIMITS[key]);

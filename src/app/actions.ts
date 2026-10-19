@@ -63,7 +63,15 @@ export async function spendGameCredit(): Promise<CreditResult> {
 }
 
 export type StartPaymentResponse =
-  | { ok: true; payment: PaymentView; qr: string | null; provider: PaymentProvider; testMode: boolean }
+  | {
+      ok: true;
+      payment: PaymentView;
+      qr: string | null;
+      provider: PaymentProvider;
+      testMode: boolean;
+      price: string; // van deze betaling (de prijs kan sinds het laden van het spel veranderd zijn)
+      credits: number;
+    }
   | { ok: false; error: string };
 
 // Popup: betaling van deze speler starten (of de lopende tonen) met een QR-code: bij Mollie van de
@@ -83,7 +91,15 @@ export async function startPayment(): Promise<StartPaymentResponse> {
     path: "/",
   });
   const qr = await paymentQr(result.provider, result.providerId, result.payment.checkoutUrl, deps);
-  return { ok: true, payment: result.payment, qr, provider: result.provider, testMode: isTestPayment(result.provider, deps) };
+  return {
+    ok: true,
+    payment: result.payment,
+    qr,
+    provider: result.provider,
+    testMode: isTestPayment(result.provider, deps),
+    price: result.price,
+    credits: result.credits,
+  };
 }
 
 // Popup vraagt regelmatig of er al betaald is (bijv. met een telefoon via de QR-code)

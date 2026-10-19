@@ -1,16 +1,30 @@
-# Current Feature
+# Current Feature: Kosten Credits
 
 ## Status
 
-Not Started
+In Progress
 
 ## Goals
 
-<!-- Doelen van de feature, in te vullen met /feature load -->
+- De prijs van één betaling (credits kopen) is in te stellen in de game-manager, tab Instellingen, naast "Speelrondes per betaling"
+- De prijs wordt opgeslagen in de database (`game_settings`); leeg = standaardwaarde uit `GAME_PRICE_CENTS` (`.env`), anders € 1,00, met "Terug naar standaard" zoals de andere velden
+- Invoer in euro's (bijv. `1,50` of `2`), opgeslagen in centen; zelfde grenzen als `GAME_PRICE_CENTS` (1 t/m 10000 cent); ongeldige invoer geeft een duidelijke melding
+- Nieuwe betalingen via Mollie én PayPal gebruiken de ingestelde prijs; lopende/afgeronde betalingen houden hun eigen bedrag
+- Overal waar de prijs zichtbaar is komt de ingestelde waarde: betaalpopup, regel "4 Credits: € 1,00" in het jungle-design, tandwiel (instellingen) en de regel "Nu in het spel" in de game-manager
+- Vitest-tests voor inlezen, samenvoegen en formulier-controle van de prijs; Playwright-test dat een gewijzigde prijs in de game-manager in het spel/de betaalpopup verschijnt
 
 ## Notes
 
-<!-- Extra context, beperkingen of details uit de spec -->
+- Bron: `project-details/to-do.md`, versie 3 taak 2: "Maak de prijs van credits kopen configurabel in de Game Manager"
+- Nu: `readPriceCents` in `src/lib/payments.ts` leest alleen `GAME_PRICE_CENTS` (standaard 100, max `MAX_PRICE_CENTS`); `paymentService.ts` zet `priceCents` vast bij het opstarten van de deps, terwijl `credits` al via `loadSettings()` uit de database komt — de prijs moet op dezelfde manier per betaling uit `loadSettings()` komen
+- `MollieConfig.priceCents` kan dan weg of blijft alleen als `.env`-standaard; PayPal-factuur gebruikt hetzelfde bedrag
+- Volg het patroon van `roundsPerPayment`: kolom optioneel in `game_settings` (nieuwe migratie, toepassen op Neon `dev`), `SettingKey`/`SETTING_KEYS`, `mergeSettings`, `parseSettingsForm`, `SettingsForm.tsx`, `settingsStore.ts` (select), `seed.ts`
+- Bedrag per betaling staat al in `payments.amount_cents`, dus het overzicht Betalingen blijft kloppen bij een prijswijziging
+- Prijs en aantal credits horen bij elkaar ("4 spelletjes voor € 1,00"); omschrijving `Jackpot: 4 spelletjes` volgt al het aantal
+- Besluit gebruiker: invoerveld in euro's (bijv. `1,50` of `2`), opslaan in centen
+- Gebouwd: `priceCents` als instelling in `settings.ts` (`parseEuroCents`, `euroInput`), `PaymentDeps.offer()` in `paymentService.ts`, kolom `price_cents` (migratie `20261019120000_game_settings_price`, toegepast op `dev`). Een open betaling met een andere prijs of andere credits wordt vervangen; de popup toont prijs en credits van de betaling zelf
+- Playwright heeft geen database: opslaan van de prijs is daar niet te testen; daarom draait de betaalserver met `GAME_PRICE_CENTS=150` en is opslaan → spel → Mollie met de hand gecontroleerd tegen `dev` (€ 2,50)
+- De lokale dev-server (poort 3000) heeft nog de oude Prisma Client in het geheugen: herstarten (en eventueel `.next` weg) voordat je lokaal test
 
 ## History
 

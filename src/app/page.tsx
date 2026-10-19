@@ -21,10 +21,10 @@ export default async function Home({
     if (isDesign(design)) settings.design = design;
   }
 
-  // Betalen (taak 10): alleen met een Mollie-key; anders is het spel gratis
+  // Betalen (taak 10): alleen met Mollie- of PayPal-sleutels; anders is het spel gratis
   const deps = defaultPaymentDeps();
-  const payment =
-    deps && (await loadPaymentInfo((await cookies()).get(PAYMENT_COOKIE)?.value, settings.roundsPerPayment, deps));
+  const offer = { priceCents: settings.priceCents, credits: settings.roundsPerPayment };
+  const payment = deps && (await loadPaymentInfo((await cookies()).get(PAYMENT_COOKIE)?.value, offer, deps));
 
   return <GameClient settings={settings} payment={payment} />;
 }

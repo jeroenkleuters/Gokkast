@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { createMollieClient, isMollieId, parseMolliePayment } from "@/lib/mollie";
 
-const config = { apiKey: "test_abc", apiUrl: "https://mollie.test/v2", priceCents: 100, live: false };
+const config = { apiKey: "test_abc", apiUrl: "https://mollie.test/v2", live: false };
 
 const molliePayment = {
   resource: "payment",

@@ -18,6 +18,7 @@ model GameSettings {
   odds             Int? // winkans 1 op odds per draai zonder vastgezette rollen
   maxTries         Int?             @map("max_tries")
   roundsPerPayment Int?             @map("rounds_per_payment")
+  priceCents       Int?             @map("price_cents") // prijs van één betaling; leeg = GAME_PRICE_CENTS, anders 100 (versie 3, taak 2)
   paymentProvider  PaymentProvider? @map("payment_provider") // leeg = GAME_PAYMENT_PROVIDER, anders Mollie (taak 13b)
   design           GameDesign? // leeg = GAME_DESIGN, anders jungle (versie 3, taak 1)
   updatedAt        DateTime         @updatedAt @map("updated_at")

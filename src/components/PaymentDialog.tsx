@@ -6,8 +6,8 @@ import type { PaymentView } from "@/lib/paymentService";
 import type { PaymentProvider } from "@/lib/settings";
 
 interface PaymentDialogProps {
-  price: string; // bijv. "€ 1,00"
-  credits: number; // spelletjes per betaling
+  price: string; // bijv. "€ 1,00", zoals bij het laden van het spel
+  credits: number; // spelletjes per betaling, zoals bij het laden van het spel
   onPaid(payment: PaymentView): void;
   onClose(): void;
 }
@@ -22,8 +22,12 @@ const FAILED = ["canceled", "expired", "failed"];
 
 // Popup bij speel zonder credits: QR-code van een eigen betaling voor deze speler (Mollie of PayPal).
 // De popup vraagt elke paar seconden of er betaald is (bijv. met een telefoon) en geeft dan de credits door.
-export default function PaymentDialog({ price, credits, onPaid, onClose }: PaymentDialogProps) {
+export default function PaymentDialog({ price: loadedPrice, credits: loadedCredits, onPaid, onClose }: PaymentDialogProps) {
   const [phase, setPhase] = useState<Phase>({ kind: "loading" });
+  // Prijs en spelletjes van de betaling zelf: de beheerder kan ze sinds het laden veranderd hebben
+  const [offer, setOffer] = useState<{ price: string; credits: number } | null>(null);
+  const price = offer?.price ?? loadedPrice;
+  const credits = offer?.credits ?? loadedCredits;
   const [attempt, setAttempt] = useState(0); // "Opnieuw proberen" start een nieuwe betaling
 
   const paid = useEffectEvent((payment: PaymentView) => onPaid(payment));
@@ -36,6 +40,7 @@ export default function PaymentDialog({ price, credits, onPaid, onClose }: Payme
         if (!active) return;
         if (!result.ok) return setPhase({ kind: "failed", message: result.error });
         if (result.payment.creditsLeft > 0) return paid(result.payment);
+        setOffer({ price: result.price, credits: result.credits });
         if (!result.payment.checkoutUrl) throw new Error("geen betaallink");
         setPhase({
           kind: "ready",

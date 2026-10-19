@@ -30,18 +30,18 @@ describe("updateSettings", () => {
   });
 
   it("slaat geldige waarden op en ververst het spel en de game-manager", async () => {
-    const state = await updateSettings(idle, form({ odds: "100", maxTries: "4", roundsPerPayment: "" }));
+    const state = await updateSettings(idle, form({ odds: "100", maxTries: "4", roundsPerPayment: "", priceCents: "1,50" }));
 
     expect(state.status).toBe("saved");
-    expect(saveStoredSettings).toHaveBeenCalledWith({ odds: 100, maxTries: 4, roundsPerPayment: null });
+    expect(saveStoredSettings).toHaveBeenCalledWith({ odds: 100, maxTries: 4, roundsPerPayment: null, priceCents: 150 });
     expect(revalidatePath).toHaveBeenCalledWith("/");
     expect(revalidatePath).toHaveBeenCalledWith("/game-manager");
   });
 
   it("slaat lege velden op als null (terug naar standaard)", async () => {
-    await updateSettings(idle, form({ odds: "", maxTries: "", roundsPerPayment: "" }));
+    await updateSettings(idle, form({ odds: "", maxTries: "", roundsPerPayment: "", priceCents: "" }));
 
-    expect(saveStoredSettings).toHaveBeenCalledWith({ odds: null, maxTries: null, roundsPerPayment: null });
+    expect(saveStoredSettings).toHaveBeenCalledWith({ odds: null, maxTries: null, roundsPerPayment: null, priceCents: null });
   });
 
   it("slaat niets op voor een niet-beheerder", async () => {
@@ -62,10 +62,10 @@ describe("updateSettings", () => {
   });
 
   it("geeft per veld een fout bij ongeldige invoer en slaat niets op", async () => {
-    const state = await updateSettings(idle, form({ odds: "0", maxTries: "9", roundsPerPayment: "2" }));
+    const state = await updateSettings(idle, form({ odds: "0", maxTries: "9", roundsPerPayment: "2", priceCents: "0" }));
 
     expect(state.status).toBe("invalid");
-    expect(Object.keys(state.errors ?? {}).sort()).toEqual(["maxTries", "odds"]);
+    expect(Object.keys(state.errors ?? {}).sort()).toEqual(["maxTries", "odds", "priceCents"]);
     expect(saveStoredSettings).not.toHaveBeenCalled();
     expect(revalidatePath).not.toHaveBeenCalled();
   });

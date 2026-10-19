@@ -1,6 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
-  DEFAULT_PRICE_CENTS,
   formatEuro,
   isFinalStatus,
   isPaymentReference,
@@ -14,7 +13,6 @@ import {
   PAYPAL_SANDBOX_API_URL,
   readMollieConfig,
   readPayPalConfig,
-  readPriceCents,
   webhookUrl,
 } from "@/lib/payments";
 
@@ -26,14 +24,12 @@ describe("readMollieConfig", () => {
     expect(readMollieConfig({ MOLLIE_API_KEY: "  " })).toBeNull();
   });
 
-  it("gebruikt een test-key met de standaardprijs en de echte Mollie-API", () => {
+  it("gebruikt een test-key met de echte Mollie-API", () => {
     expect(readMollieConfig({ MOLLIE_API_KEY: "test_abc" })).toEqual({
       apiKey: "test_abc",
       apiUrl: MOLLIE_API_URL,
-      priceCents: DEFAULT_PRICE_CENTS,
       live: false,
     });
-    expect(DEFAULT_PRICE_CENTS).toBe(100);
     expect(readMollieConfig({ MOLLIE_API_KEY: " test_abc ", VERCEL_ENV: "preview" })).toMatchObject({
       apiKey: "test_abc",
       live: false,
@@ -54,11 +50,9 @@ describe("readMollieConfig", () => {
     expect(readMollieConfig(live)).toEqual({
       apiKey: "live_abc",
       apiUrl: MOLLIE_API_URL,
-      priceCents: DEFAULT_PRICE_CENTS,
       live: true,
     });
     expect(readMollieConfig({ ...live, MOLLIE_API_URL: "http://localhost:3101/v2" })?.apiUrl).toBe(MOLLIE_API_URL);
-    expect(readMollieConfig({ ...live, GAME_PRICE_CENTS: "250" })?.priceCents).toBe(250);
   });
 
   it("productie zonder live-key: Mollie uit (nooit de testmodus in productie)", () => {
@@ -68,19 +62,9 @@ describe("readMollieConfig", () => {
     expect(error).toHaveBeenCalledTimes(2);
   });
 
-  it("leest de prijs en een andere API-url (voor tests)", () => {
-    const config = readMollieConfig({
-      MOLLIE_API_KEY: "test_abc",
-      GAME_PRICE_CENTS: "250",
-      MOLLIE_API_URL: "http://localhost:3101/v2/",
-    });
-    expect(config).toMatchObject({ priceCents: 250, apiUrl: "http://localhost:3101/v2" });
-  });
-
-  it("valt terug op de standaardprijs bij een ongeldige prijs", () => {
-    for (const price of ["0", "-5", "1.50", "abc", "10001"]) {
-      expect(readMollieConfig({ MOLLIE_API_KEY: "test_abc", GAME_PRICE_CENTS: price })?.priceCents, price).toBe(100);
-    }
+  it("leest een andere API-url (voor tests)", () => {
+    const config = readMollieConfig({ MOLLIE_API_KEY: "test_abc", MOLLIE_API_URL: "http://localhost:3101/v2/" });
+    expect(config).toMatchObject({ apiUrl: "http://localhost:3101/v2" });
   });
 });
 
@@ -103,6 +87,7 @@ describe("bedragen", () => {
   it("toont het bedrag in euro's", () => {
     expect(formatEuro(100)).toBe("€ 1,00");
     expect(formatEuro(1250)).toBe("€ 12,50");
+    expect(formatEuro(5)).toBe("€ 0,05");
   });
 });
 
@@ -228,10 +213,5 @@ describe("readPayPalConfig (taak 13b)", () => {
     expect(readPayPalConfig({ ...keys, PAYPAL_ENV: "live", VERCEL_ENV: "preview" })).toBeNull();
     expect(readPayPalConfig({ ...keys, PAYPAL_ENV: "echt" })).toBeNull();
     expect(error).toHaveBeenCalledTimes(3);
-  });
-
-  it("de prijs geldt voor Mollie en PayPal", () => {
-    expect(readPriceCents({})).toBe(100);
-    expect(readPriceCents({ GAME_PRICE_CENTS: "250" })).toBe(250);
   });
 });

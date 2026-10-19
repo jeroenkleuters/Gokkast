@@ -78,6 +78,9 @@ test.describe("ingelogd", () => {
     const settings = page.getByRole("region", { name: "Instellingen" });
     await expect(settings.getByRole("alert").filter({ hasText: "geen database" })).toBeVisible();
     await expect(page.getByLabel("Winkans", { exact: true })).toHaveAttribute("placeholder", "standaard: 30");
+    // Prijs per betaling (versie 3, taak 2): in euro's, standaard € 1,00
+    await expect(page.getByTestId("current-settings")).toContainText("per betaling van € 1,00");
+    await expect(page.getByLabel("Prijs per betaling", { exact: true })).toHaveAttribute("placeholder", "standaard: 1,00");
     // Betaalmethode (taak 13b): op deze server zijn Mollie en PayPal niet ingesteld
     await expect(page.getByTestId("current-settings")).toContainText("Betalen staat uit: het spel is gratis.");
     await expect(page.getByLabel("Betaalmethode").locator("option")).toHaveText([
@@ -131,6 +134,29 @@ test.describe("ingelogd", () => {
     await tries.fill("4");
     await page.getByRole("button", { name: "Opslaan" }).click();
     await expect(page.getByRole("status")).toHaveText("Niet opgeslagen: er is geen database ingesteld.");
+  });
+
+  test("prijs per betaling: invoer in euro's, de server controleert het bedrag", async ({ page, context }) => {
+    await loginAs(context, TEST_ADMIN);
+    await page.goto("/game-manager");
+    await page.getByRole("tab", { name: "Instellingen" }).click();
+    const price = page.getByLabel("Prijs per betaling", { exact: true });
+    await expect(page.getByText("€ 0,01 t/m € 100,00.")).toBeVisible();
+
+    // Een prijs in centen intypen (150) is € 150: te veel
+    await price.fill("150");
+    await page.getByRole("button", { name: "Opslaan" }).click();
+    await expect(page.getByRole("status")).toHaveText("Niet opgeslagen: controleer de invoer.");
+    await expect(page.getByText("Vul een bedrag van € 0,01 t/m € 100,00 in (bijv. 1,50)")).toBeVisible();
+    await expect(price).toHaveAttribute("aria-invalid", "true");
+
+    await page.getByRole("button", { name: "Prijs per betaling: terug naar standaard" }).click();
+    await expect(price).toHaveValue("");
+
+    await price.fill("2,50");
+    await page.getByRole("button", { name: "Opslaan" }).click();
+    await expect(page.getByRole("status")).toHaveText("Niet opgeslagen: er is geen database ingesteld.");
+    await expect(price).not.toHaveAttribute("aria-invalid");
   });
 
   test("speelrondes en statistieken: zonder database een melding in plaats van een overzicht", async ({ page, context }) => {

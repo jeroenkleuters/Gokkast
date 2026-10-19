@@ -4,6 +4,7 @@ import { useActionState, useState } from "react";
 import {
   DESIGN_LABELS,
   DESIGNS,
+  euroInput,
   ODDS_LEVELS,
   PAYMENT_PROVIDER_LABELS,
   PAYMENT_PROVIDERS,
@@ -16,11 +17,22 @@ import {
 import { updateSettings, type SettingsFormState } from "./actions";
 import styles from "./game-manager.module.css";
 
-const FIELDS: { key: SettingKey; label: string; prefix?: string; hint: string }[] = [
+// euro: invoer in euro's (bijv. 1,50), opgeslagen in centen
+const FIELDS: { key: SettingKey; label: string; prefix?: string; hint: string; euro?: boolean }[] = [
   { key: "odds", label: "Winkans", prefix: "1 op", hint: "Kans per draai zonder vastgezette rollen. Hoger = moeilijker." },
   { key: "maxTries", label: "Pogingen per spel", hint: "Aantal keer draaien per spel." },
   { key: "roundsPerPayment", label: "Speelrondes per betaling", hint: "Zoveel spelletjes (credits) krijgt een speler na één betaling." },
+  {
+    key: "priceCents",
+    label: "Prijs per betaling",
+    prefix: "€",
+    hint: "Wat een speler betaalt voor de speelrondes hierboven, met Mollie en PayPal. Geldt voor nieuwe betalingen.",
+    euro: true,
+  },
 ];
+
+// Waarde zoals in het invoerveld: centen als euro's (150 → "1,50"), de rest als getal
+const shown = (key: SettingKey, n: number) => (key === "priceCents" ? euroInput(n) : String(n));
 
 const initialState: SettingsFormState = { status: "idle" };
 
@@ -40,6 +52,7 @@ export default function SettingsForm({ row, defaults, payment }: SettingsFormPro
     odds: row?.odds?.toString() ?? "",
     maxTries: row?.maxTries?.toString() ?? "",
     roundsPerPayment: row?.roundsPerPayment?.toString() ?? "",
+    priceCents: row?.priceCents ? euroInput(row.priceCents) : "",
   });
   const set = (key: SettingKey, value: string) => setValues((v) => ({ ...v, [key]: value }));
   const [provider, setProvider] = useState<string>(row?.paymentProvider ?? "");
@@ -50,7 +63,7 @@ export default function SettingsForm({ row, defaults, payment }: SettingsFormPro
 
   return (
     <form action={formAction} className={styles.form}>
-      {FIELDS.map(({ key, label, prefix, hint }) => {
+      {FIELDS.map(({ key, label, prefix, hint, euro }) => {
         const error = state.errors?.[key];
         return (
           <fieldset key={key} className={styles.field}>
@@ -75,12 +88,10 @@ export default function SettingsForm({ row, defaults, payment }: SettingsFormPro
               <input
                 id={key}
                 name={key}
-                type="number"
-                inputMode="numeric"
-                min={1}
-                max={SETTING_LIMITS[key]}
-                step={1}
-                placeholder={`standaard: ${defaults[key]}`}
+                {...(euro
+                  ? { type: "text", inputMode: "decimal" as const }
+                  : { type: "number", inputMode: "numeric" as const, min: 1, max: SETTING_LIMITS[key], step: 1 })}
+                placeholder={`standaard: ${shown(key, defaults[key])}`}
                 value={values[key]}
                 onChange={(e) => set(key, e.target.value)}
                 aria-invalid={error ? true : undefined}
@@ -99,7 +110,8 @@ export default function SettingsForm({ row, defaults, payment }: SettingsFormPro
             </div>
             <p id={`${key}-hint`} className={styles.muted}>
               {hint} Leeg = standaard uit <code>.env</code> ({prefix ? `${prefix} ` : ""}
-              {defaults[key]}), 1 t/m {SETTING_LIMITS[key]}.
+              {shown(key, defaults[key])}),{" "}
+              {euro ? `€ 0,01 t/m € ${euroInput(SETTING_LIMITS[key])}` : `1 t/m ${SETTING_LIMITS[key]}`}.
             </p>
             {error && (
               <p id={`${key}-error`} className={styles.fieldError}>

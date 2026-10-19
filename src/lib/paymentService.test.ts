@@ -14,6 +14,7 @@ import {
   spendCredit,
   startPayment,
   syncPaymentById,
+  type Offer,
   type PaymentDeps,
 } from "@/lib/paymentService";
 import { memoryPaymentStore, type PaymentStore } from "@/lib/paymentStore";
@@ -61,17 +62,18 @@ describe("betaalflow", () => {
   let mollie: ReturnType<typeof fakeMollie>;
   let store: PaymentStore;
   let deps: PaymentDeps;
+  let offer: Offer;
 
   beforeEach(() => {
     mollie = fakeMollie();
     store = memoryPaymentStore();
+    offer = { priceCents: 100, credits: 4 };
     deps = {
-      priceCents: 100,
       store,
       mollie: mollie.client,
       paypal: null,
       provider: async () => "mollie",
-      credits: async () => 4,
+      offer: async () => offer,
       encryptionKey: KEY,
     };
   });
@@ -302,12 +304,49 @@ describe("betaalflow", () => {
   it("geeft het spel de prijs, de credits per betaling en de betaling van de speler", async () => {
     const { token } = await start();
     mollie.setStatus("tr_test1", "paid");
-    expect(await loadPaymentInfo(token, 4, deps)).toEqual({
-      price: "€ 1,00",
-      credits: 4,
+    expect(await loadPaymentInfo(token, { priceCents: 250, credits: 5 }, deps)).toEqual({
+      price: "€ 2,50",
+      credits: 5,
       payment: { status: "paid", creditsLeft: 4, checkoutUrl: null },
     });
-    expect((await loadPaymentInfo("ongeldig", 4, deps)).payment).toEqual(NO_PAYMENT);
+    expect((await loadPaymentInfo("ongeldig", offer, deps)).payment).toEqual(NO_PAYMENT);
+  });
+
+  it("gebruikt de prijs uit de instellingen voor een nieuwe betaling en geeft die aan de popup (versie 3, taak 2)", async () => {
+    const first = await start();
+    expect(first).toMatchObject({ price: "€ 1,00", credits: 4 });
+
+    offer = { priceCents: 250, credits: 4 };
+    const next = await start(first.token);
+    // De open betaling van € 1,00 past niet meer bij de prijs: een nieuwe betaling van € 2,50
+    expect(next.token).not.toBe(first.token);
+    expect(next).toMatchObject({ price: "€ 2,50", credits: 4 });
+    expect(mollie.created[1].amountCents).toBe(250);
+    expect(await store.findByToken(next.token)).toMatchObject({ amountCents: 250, credits: 4 });
+    // De eerste betaling houdt haar eigen bedrag
+    expect(await store.findByToken(first.token)).toMatchObject({ amountCents: 100 });
+
+    // Zelfde prijs: dezelfde open betaling
+    expect((await start(next.token)).token).toBe(next.token);
+    expect(mollie.created).toHaveLength(2);
+  });
+
+  it("andere credits per betaling: ook een nieuwe betaling", async () => {
+    const first = await start();
+    offer = { priceCents: 100, credits: 6 };
+    const next = await start(first.token);
+    expect(next.token).not.toBe(first.token);
+    expect(next).toMatchObject({ price: "€ 1,00", credits: 6 });
+    expect(mollie.created[1].description).toBe("Jackpot: 6 spelletjes");
+  });
+
+  it("een betaalde betaling met credits blijft staan na een prijswijziging, met haar eigen prijs", async () => {
+    const { token } = await start();
+    mollie.setStatus("tr_test1", "paid");
+    offer = { priceCents: 300, credits: 10 };
+    const again = await start(token);
+    expect(again).toMatchObject({ token, price: "€ 1,00", credits: 4, payment: { creditsLeft: 4 } });
+    expect(mollie.created).toHaveLength(1);
   });
 });
 
@@ -355,12 +394,11 @@ describe("betalen met PayPal (taak 13b)", () => {
     store = memoryPaymentStore();
     provider = "paypal";
     deps = {
-      priceCents: 100,
       store,
       mollie: mollie.client,
       paypal: paypal.client,
       provider: async () => provider,
-      credits: async () => 4,
+      offer: async () => ({ priceCents: 100, credits: 4 }),
       encryptionKey: KEY,
     };
   });

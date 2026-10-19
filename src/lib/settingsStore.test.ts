@@ -1,15 +1,22 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { loadPaymentProvider, loadSettings, readStoredSettings, saveStoredSettings, settingsData } from "@/lib/settingsStore";
 
-const env = { GAME_ODDS: "40", GAME_MAX_TRIES: "4", GAME_ROUNDS_PER_PAYMENT: "2" };
-const envSettings = { odds: 40, maxTries: 4, roundsPerPayment: 2, design: "jungle", source: "env" };
+const env = { GAME_ODDS: "40", GAME_MAX_TRIES: "4", GAME_ROUNDS_PER_PAYMENT: "2", GAME_PRICE_CENTS: "250" };
+const envSettings = { odds: 40, maxTries: 4, roundsPerPayment: 2, priceCents: 250, design: "jungle", source: "env" };
 
 describe("loadSettings", () => {
   afterEach(() => vi.restoreAllMocks());
 
   it("leest de instellingen uit de database", async () => {
-    const fetchRow = async () => ({ odds: 7, maxTries: 5, roundsPerPayment: 10 });
-    expect(await loadSettings(fetchRow, env)).toEqual({ odds: 7, maxTries: 5, roundsPerPayment: 10, design: "jungle", source: "database" });
+    const fetchRow = async () => ({ odds: 7, maxTries: 5, roundsPerPayment: 10, priceCents: 150 });
+    expect(await loadSettings(fetchRow, env)).toEqual({
+      odds: 7,
+      maxTries: 5,
+      roundsPerPayment: 10,
+      priceCents: 150,
+      design: "jungle",
+      source: "database",
+    });
   });
 
   it("valt terug op .env zonder database", async () => {
@@ -17,8 +24,15 @@ describe("loadSettings", () => {
   });
 
   it("gebruikt .env voor velden die in de database leeg zijn (terug naar standaard)", async () => {
-    const fetchRow = async () => ({ odds: 100, maxTries: null, roundsPerPayment: null });
-    expect(await loadSettings(fetchRow, env)).toEqual({ odds: 100, maxTries: 4, roundsPerPayment: 2, design: "jungle", source: "database" });
+    const fetchRow = async () => ({ odds: 100, maxTries: null, roundsPerPayment: null, priceCents: null });
+    expect(await loadSettings(fetchRow, env)).toEqual({
+      odds: 100,
+      maxTries: 4,
+      roundsPerPayment: 2,
+      priceCents: 250,
+      design: "jungle",
+      source: "database",
+    });
   });
 
   it("valt terug op .env als de tabel nog leeg is", async () => {
@@ -39,11 +53,11 @@ describe("loadSettings", () => {
   });
 
   it("gebruikt zonder database en .env de vaste standaard", async () => {
-    expect(await loadSettings(null, {})).toEqual({ odds: 30, maxTries: 3, roundsPerPayment: 4, design: "jungle", source: "env" });
+    expect(await loadSettings(null, {})).toEqual({ odds: 30, maxTries: 3, roundsPerPayment: 4, priceCents: 100, design: "jungle", source: "env" });
   });
 
   it("leest het design uit de database, anders GAME_DESIGN (versie 3, taak 1)", async () => {
-    const numbers = { odds: null, maxTries: null, roundsPerPayment: null };
+    const numbers = { odds: null, maxTries: null, roundsPerPayment: null, priceCents: null };
     expect((await loadSettings(async () => ({ ...numbers, design: "origineel" as const }), {})).design).toBe("origineel");
     expect((await loadSettings(async () => ({ ...numbers, design: null }), { GAME_DESIGN: "origineel" })).design).toBe("origineel");
     expect((await loadSettings(null, { GAME_DESIGN: "origineel" })).design).toBe("origineel");
@@ -55,7 +69,7 @@ describe("readStoredSettings", () => {
   afterEach(() => vi.restoreAllMocks());
 
   it("geeft de ruwe rij, ook met lege velden", async () => {
-    const row = { odds: null, maxTries: 4, roundsPerPayment: null };
+    const row = { odds: null, maxTries: 4, roundsPerPayment: null, priceCents: 150 };
     expect(await readStoredSettings(async () => row)).toEqual({ status: "ok", row });
   });
 
@@ -76,7 +90,7 @@ describe("readStoredSettings", () => {
 
 describe("saveStoredSettings", () => {
   afterEach(() => vi.restoreAllMocks());
-  const values = { odds: 100, maxTries: null, roundsPerPayment: 2 };
+  const values = { odds: 100, maxTries: null, roundsPerPayment: 2, priceCents: 150 };
 
   it("slaat de waarden op, null = standaard", async () => {
     const saveRow = vi.fn(async () => {});
@@ -98,7 +112,13 @@ describe("saveStoredSettings", () => {
 
 describe("betaalmethode (taak 13b)", () => {
   afterEach(() => vi.restoreAllMocks());
-  const row = (paymentProvider: "mollie" | "paypal" | null) => async () => ({ odds: null, maxTries: null, roundsPerPayment: null, paymentProvider });
+  const row = (paymentProvider: "mollie" | "paypal" | null) => async () => ({
+    odds: null,
+    maxTries: null,
+    roundsPerPayment: null,
+    priceCents: null,
+    paymentProvider,
+  });
 
   it("de keuze in de game-manager gaat voor; leeg of zonder database de standaard", async () => {
     expect(await loadPaymentProvider(row("paypal"), {})).toBe("paypal");
@@ -116,7 +136,7 @@ describe("betaalmethode (taak 13b)", () => {
   });
 
   it("slaat de keuze op als databasewaarde; niet meegestuurd = kolom niet aanraken", () => {
-    const numbers = { odds: 30, maxTries: null, roundsPerPayment: 4 };
+    const numbers = { odds: 30, maxTries: null, roundsPerPayment: 4, priceCents: 150 };
     expect(settingsData({ ...numbers, paymentProvider: "paypal" })).toEqual({ ...numbers, paymentProvider: "PAYPAL" });
     expect(settingsData({ ...numbers, paymentProvider: null })).toEqual({ ...numbers, paymentProvider: null });
     expect(settingsData(numbers)).toEqual(numbers);
@@ -125,7 +145,7 @@ describe("betaalmethode (taak 13b)", () => {
 
 describe("design opslaan (versie 3, taak 1)", () => {
   it("slaat het design op als databasewaarde; niet meegestuurd = kolom niet aanraken", () => {
-    const numbers = { odds: 30, maxTries: null, roundsPerPayment: 4 };
+    const numbers = { odds: 30, maxTries: null, roundsPerPayment: 4, priceCents: 150 };
     expect(settingsData({ ...numbers, design: "origineel" })).toEqual({ ...numbers, design: "ORIGINEEL" });
     expect(settingsData({ ...numbers, design: "jungle" })).toEqual({ ...numbers, design: "JUNGLE" });
     expect(settingsData({ ...numbers, design: null })).toEqual({ ...numbers, design: null });

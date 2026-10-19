@@ -1,7 +1,7 @@
 // Betalen met Mollie (taak 10) of PayPal (taak 13b): instellingen en kleine hulpfuncties, zonder
 // database of netwerk. Alleen op de server: API-keys en secrets mogen nooit naar de browser.
 import { randomBytes } from "node:crypto";
-import { parseFlag, parsePositiveInt } from "@/lib/settings";
+import { euroInput, parseFlag } from "@/lib/settings";
 
 // Statussen van een betaling, in de taal van Mollie (https://docs.mollie.com/docs/status-change).
 // PayPal-statussen worden hierop afgebeeld (src/lib/paypal.ts).
@@ -14,8 +14,6 @@ export const isPaymentStatus = (value: unknown): value is PaymentStatus =>
 // Hierna verandert de status niet meer (betaald, of mislukt: dan maakt de speler een nieuwe betaling)
 export const isFinalStatus = (status: PaymentStatus) => ["paid", "canceled", "expired", "failed"].includes(status);
 
-export const DEFAULT_PRICE_CENTS = 100; // 4 spelletjes voor € 1,00
-export const MAX_PRICE_CENTS = 10000;
 export const MOLLIE_API_URL = "https://api.mollie.com/v2";
 // PayPal: de sandbox overal, live alleen in productie met PAYPAL_ENV=live (taak 12b)
 export const PAYPAL_SANDBOX_API_URL = "https://api-m.sandbox.paypal.com";
@@ -29,7 +27,6 @@ export const PAYMENT_COOKIE_MAX_AGE = 30 * 24 * 60 * 60; // 30 dagen
 export interface MollieConfig {
   apiKey: string;
   apiUrl: string; // anders dan Mollie alleen voor tests (nep-Mollie van Playwright), nooit in productie
-  priceCents: number;
   live: boolean; // echte betalingen (live-key, alleen in productie)
 }
 
@@ -45,11 +42,6 @@ type Env = Record<string, string | undefined>;
 
 const trimUrl = (value: string | undefined) => (value ?? "").trim().replace(/\/+$/, "");
 
-// Prijs van één betaling (4 spelletjes voor € 1,00), voor Mollie en PayPal gelijk
-export function readPriceCents(env: Env = process.env): number {
-  return parsePositiveInt(env.GAME_PRICE_CENTS, MAX_PRICE_CENTS) ?? DEFAULT_PRICE_CENTS;
-}
-
 // null = Mollie staat uit: geen MOLLIE_API_KEY, of een key die in deze omgeving niet mag (taak 12a).
 // Bij Mollie bepaalt de key de modus: live_... is echt geld, test_... de testmodus.
 // - Productie (VERCEL_ENV=production): alleen een live-key, altijd met de echte Mollie-API. Een
@@ -59,19 +51,18 @@ export function readPriceCents(env: Env = process.env): number {
 export function readMollieConfig(env: Env = process.env): MollieConfig | null {
   const apiKey = (env.MOLLIE_API_KEY ?? "").trim();
   if (!apiKey) return null;
-  const priceCents = readPriceCents(env);
   if (env.VERCEL_ENV === "production") {
     if (!apiKey.startsWith("live_")) {
       console.error("Mollie staat uit in productie: MOLLIE_API_KEY moet een live-key (live_...) zijn.");
       return null;
     }
-    return { apiKey, apiUrl: MOLLIE_API_URL, priceCents, live: true };
+    return { apiKey, apiUrl: MOLLIE_API_URL, live: true };
   }
   if (!apiKey.startsWith("test_")) {
     console.error("MOLLIE_API_KEY is geen test-key (test_...); buiten productie mag alleen de testmodus. Mollie staat uit.");
     return null;
   }
-  return { apiKey, apiUrl: trimUrl(env.MOLLIE_API_URL) || MOLLIE_API_URL, priceCents, live: false };
+  return { apiKey, apiUrl: trimUrl(env.MOLLIE_API_URL) || MOLLIE_API_URL, live: false };
 }
 
 // null = PayPal staat uit: geen PAYPAL_CLIENT_ID/PAYPAL_CLIENT_SECRET, of een omgeving die niet mag.
@@ -152,7 +143,7 @@ export function mollieAmount(cents: number): string {
 
 // 100 → "€ 1,00"
 export function formatEuro(cents: number): string {
-  return `€ ${(cents / 100).toFixed(2).replace(".", ",")}`;
+  return `€ ${euroInput(cents)}`;
 }
 
 // Willekeurige, niet te raden sleutel voor de cookie

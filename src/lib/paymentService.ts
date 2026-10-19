@@ -14,7 +14,6 @@ import {
   newPaymentToken,
   readMollieConfig,
   readPayPalConfig,
-  readPriceCents,
   webhookUrl,
   type PaymentClient,
   type PaymentStatus,
@@ -25,13 +24,18 @@ import { qrDataUrl } from "@/lib/qr";
 import type { PaymentProvider } from "@/lib/settings";
 import { loadPaymentProvider, loadSettings } from "@/lib/settingsStore";
 
+// Wat een betaling kost en oplevert (game-manager, anders .env), voor Mollie en PayPal gelijk
+export interface Offer {
+  priceCents: number; // prijs van één betaling (versie 3, taak 2)
+  credits: number; // spelletjes per betaling
+}
+
 export interface PaymentDeps {
-  priceCents: number;
   store: PaymentStore | null; // null: geen database, betalen lukt dan niet
   mollie: MollieClient | null; // null: geen Mollie-key, of een key die in deze omgeving niet mag (taak 12a)
   paypal: PayPalClient | null; // null: geen PayPal-sleutels, of een omgeving die niet mag (taak 12b)
   provider(): Promise<PaymentProvider>; // gekozen in de game-manager, anders .env, anders Mollie
-  credits(): Promise<number>; // spelletjes per betaling (game-manager, anders .env)
+  offer(): Promise<Offer>; // bij elke nieuwe betaling opnieuw gelezen
   encryptionKey: Buffer | null; // PAYMENT_ENCRYPTION_KEY; null: rekeningnummer niet opslaan
 }
 
@@ -53,12 +57,14 @@ export function defaultPaymentDeps(): PaymentDeps | null {
   if (!mollieConfig && !paypalConfig) return null;
   const available = { mollie: !!mollieConfig, paypal: !!paypalConfig };
   return {
-    priceCents: readPriceCents(),
     store: getPaymentStore(),
     mollie: mollieConfig && createMollieClient(mollieConfig),
     paypal: paypalConfig && createPayPalClient(paypalConfig),
     provider: async () => choosePaymentProvider(await loadPaymentProvider(), available),
-    credits: async () => (await loadSettings()).roundsPerPayment,
+    offer: async () => {
+      const settings = await loadSettings();
+      return { priceCents: settings.priceCents, credits: settings.roundsPerPayment };
+    },
     encryptionKey: readEncryptionKey(),
   };
 }
@@ -149,15 +155,24 @@ export async function getPlayerPayment(token: string | undefined, deps: PaymentD
   }
 }
 
+// price en credits: van deze betaling zelf, zodat de popup hetzelfde bedrag toont als de QR-code
 export type StartPaymentResult =
-  | { ok: true; token: string; payment: PaymentView; provider: PaymentProvider; providerId: string }
+  | {
+      ok: true;
+      token: string;
+      payment: PaymentView;
+      provider: PaymentProvider;
+      providerId: string;
+      price: string;
+      credits: number;
+    }
   | { ok: false; error: string };
 
 export const PAYMENT_ERROR = "Betalen lukt nu niet. Probeer het later opnieuw.";
 
 // Popup bij speel zonder credits. Een betaling met credits blijft staan, net als een betaling die
-// nog loopt met de methode die nu gekozen is (dezelfde QR-code); anders een nieuwe, unieke betaling
-// bij Mollie of PayPal voor deze speler.
+// nog loopt met de methode, prijs en credits die nu gelden (dezelfde QR-code); anders een nieuwe,
+// unieke betaling bij Mollie of PayPal voor deze speler.
 export async function startPayment(
   token: string | undefined,
   origin: string,
@@ -170,19 +185,27 @@ export async function startPayment(
   }
   try {
     const provider = await deps.provider();
+    const { priceCents: amountCents, credits } = await deps.offer();
     const existing = token ? await store.findByToken(token) : null;
     if (existing) {
       const view = toView(await refreshPayment(existing, deps));
-      const open = view.checkoutUrl && view.status !== "paid" && existing.provider === provider;
+      const current = existing.provider === provider && existing.amountCents === amountCents && existing.credits === credits;
+      const open = view.checkoutUrl && view.status !== "paid" && current;
       if (view.creditsLeft > 0 || open) {
-        return { ok: true, token: existing.token, payment: view, provider: existing.provider, providerId: providerId(existing) };
+        return {
+          ok: true,
+          token: existing.token,
+          payment: view,
+          provider: existing.provider,
+          providerId: providerId(existing),
+          price: formatEuro(existing.amountCents),
+          credits: existing.credits,
+        };
       }
     }
 
     const client = clientFor(provider, deps);
     if (!client) throw new Error(`betaalmethode ${provider} is niet ingesteld`);
-    const credits = await deps.credits();
-    const amountCents = deps.priceCents;
     const reference = newPaymentReference();
     const remote = await client.createPayment({
       amountCents,
@@ -202,7 +225,15 @@ export async function startPayment(
       amountCents,
       credits,
     });
-    return { ok: true, token: payment.token, payment: toView(payment), provider, providerId: remote.id };
+    return {
+      ok: true,
+      token: payment.token,
+      payment: toView(payment),
+      provider,
+      providerId: remote.id,
+      price: formatEuro(amountCents),
+      credits,
+    };
   } catch (error) {
     console.error("Betaling niet gestart:", error);
     return { ok: false, error: PAYMENT_ERROR };
@@ -287,10 +318,10 @@ export async function spendCredit(token: string | undefined, deps: PaymentDeps):
 }
 
 // Bij het laden van het spel: prijs, credits per betaling en de betaling van deze browser
-export async function loadPaymentInfo(token: string | undefined, credits: number, deps: PaymentDeps): Promise<PaymentInfo> {
+export async function loadPaymentInfo(token: string | undefined, offer: Offer, deps: PaymentDeps): Promise<PaymentInfo> {
   return {
-    price: formatEuro(deps.priceCents),
-    credits,
+    price: formatEuro(offer.priceCents),
+    credits: offer.credits,
     payment: await getPlayerPayment(isPaymentToken(token) ? token : undefined, deps),
   };
 }
