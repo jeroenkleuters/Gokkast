@@ -5,13 +5,11 @@ import { saveGame, spendGameCredit } from "@/app/actions";
 import {
   canToggleHold,
   decideOutcome,
-  formatChance,
   gameReducer,
   initialState,
   isWin,
   READY_MESSAGE,
   SYMBOL_NAMES,
-  winChance,
 } from "@/lib/game";
 import { coinShower } from "@/lib/coinShower";
 import { fitField, LAYOUTS } from "@/lib/designs";
@@ -26,7 +24,6 @@ import Lever from "./Lever";
 import PaymentDialog from "./PaymentDialog";
 import PrizeDialog from "./PrizeDialog";
 import Reel, { type ReelHandle } from "./Reel";
-import SettingsDialog from "./SettingsDialog";
 import Stats from "./Stats";
 
 const PRIZES_DELAY_MS = 1500; // eerst de winst zien (munten), dan de score-popup
@@ -41,7 +38,6 @@ export default function SlotMachine({ settings, payment }: SlotMachineProps) {
   const layout = LAYOUTS[design];
   const [state, dispatch] = useReducer(gameReducer, settings.maxTries, initialState);
   const [soundOn, setSoundOn] = useState(() => readStorage(KEYS.sound) !== "uit");
-  const [settingsOpen, setSettingsOpen] = useState(false);
   const [paymentOpen, setPaymentOpen] = useState(false);
   const [prizes, setPrizes] = useState<PrizeSummary | null>(null);
   const [credits, setCredits] = useState(payment?.payment.creditsLeft ?? 0);
@@ -141,11 +137,8 @@ export default function SlotMachine({ settings, payment }: SlotMachineProps) {
 
   const onKeyDown = useEffectEvent((e: KeyboardEvent) => {
     if (prizes) return; // de score-popup sluit alleen met de knop
-    if (settingsOpen || paymentOpen) {
-      if (e.key === "Escape") {
-        setSettingsOpen(false);
-        setPaymentOpen(false);
-      }
+    if (paymentOpen) {
+      if (e.key === "Escape") setPaymentOpen(false);
       return;
     }
     if (e.code === "Space" || e.key === "Enter") {
@@ -166,7 +159,6 @@ export default function SlotMachine({ settings, payment }: SlotMachineProps) {
   }
 
   const won = state.gameOver && isWin(state.current);
-  const chanceNow = state.gameOver ? "–" : formatChance(winChance(state.current, state.held, odds));
 
   const reels = (
     <div id="reels">
@@ -310,17 +302,12 @@ export default function SlotMachine({ settings, payment }: SlotMachineProps) {
         <button id="sound" title="Geluid aan/uit" onClick={toggleSound}>
           {soundOn ? "🔊" : "🔇"}
         </button>
-        <button id="gear" title="Instellingen" onClick={() => setSettingsOpen(true)}>
-          ⚙
-        </button>
 
         <InfoPanel design={design} maxTries={state.maxTries} />
         <Stats
           design={design}
           played={state.played}
           won={state.won}
-          odds={odds}
-          chanceNow={chanceNow}
           credits={payment ? credits : null}
           offer={payment && { credits: payment.credits, price: payment.price }}
         />
@@ -344,10 +331,6 @@ export default function SlotMachine({ settings, payment }: SlotMachineProps) {
         )}
 
         {prizes && <PrizeDialog summary={prizes} symbols={layout.symbols} onClose={() => setPrizes(null)} />}
-
-        {settingsOpen && (
-          <SettingsDialog settings={settings} onClose={() => setSettingsOpen(false)} />
-        )}
       </div>
     </>
   );

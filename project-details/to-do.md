@@ -144,6 +144,13 @@ De taken staan in volgorde: latere taken bouwen voort op eerdere.
     - in het plaatje zit er rechtsboven een vierkantje, dit mag weg
     - in het  vierkantje linksboven mogen de spelregels
     - zet poging links naast de vast knoppen
+    
+  [ ] **4 Verbetering Haven Design**
+    - gebruik de nieuwe afbeeldingen voor de rollen
+
+  [x] **5 Verberg Winkans en deze draai**
+    - Verberg Winkans en deze draai in het spel
+
 
 ## Open vragen
 

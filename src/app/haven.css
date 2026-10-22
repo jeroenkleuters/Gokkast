@@ -202,17 +202,14 @@
 #game.haven #stats dl div { display: flex; justify-content: space-between; border-top: 1px solid rgba(255,255,255,.08); }
 #game.haven #stats dd { color: #ffcf5a; font-weight: 700; }
 
-/* ---------- Geluid en instellingen ---------- */
-#game.haven #gear,
+/* ---------- Geluid ---------- */
 #game.haven #sound {
   border-color: #8fa2b8;
   background: rgba(10,18,30,.8);
   color: #d8e6f5;
 }
-#game.haven #gear:hover,
 #game.haven #sound:hover { background: rgba(30,44,64,.9); }
 
-/* Popups (instellingen, betalen, prijzen): de donkere laag bedekt ook de foto buiten het speelveld */
-#game.haven #settings,
+/* Popups (betalen, prijzen): de donkere laag bedekt ook de foto buiten het speelveld */
 #game.haven #payment,
 #game.haven #prizes { inset: -5000px; }

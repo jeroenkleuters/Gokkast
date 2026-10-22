@@ -1680,6 +1680,53 @@ Melding gebruiker: in de database alleen `LOST`, ook na winst. Oorzaak: de dev-s
 1. Taak "3 Haven Design" (versie 3) afgevinkt in `to-do.md`. Commit `dc696db` op `feature/haven-design`, gemerged in `main` (fast-forward), branch verwijderd (stond niet op origin).
 2. `current-feature.md` teruggezet met de samenvatting in History; `main` gepusht: CI test, past de migratie `20261020000000_game_settings_design_haven` toe op de productiedatabase en deployt productie.
 3. Dev-server gestopt, map `.next` verwijderd en `npm run dev` opnieuw gestart.
+4. CI-run `39334698567` geslaagd: lint, typecheck en tests; migratie `20261020000000_game_settings_design_haven` toegepast op de productiedatabase; productie gedeployd (`https://jackpot.broadsight.nl/` geeft 200).
+
+---
+
+## Stap 127 — Feature geladen: Verberg Winkans en deze draai (22 oktober 2026)
+
+**Vraag:**
+> /feature load 5
+
+**Uitgevoerde handelingen:**
+1. Taak "5 Verberg Winkans en deze draai" (versie 3) uit `to-do.md` geladen in `current-feature.md`: doelen en notities. De regels staan in `src/components/Stats.tsx` (alle drie de designs); `chanceNow` komt uit `SlotMachine.tsx`.
+2. Open vraag genoteerd: ook de winkans in het tandwiel (`SettingsDialog.tsx`) verbergen of niet.
+
+---
+
+## Stap 128 — Feature gestart: Verberg Winkans en deze draai (22 oktober 2026)
+
+**Vraag:**
+> /feature start
+
+**Besluit gebruiker:** het tandwiel (met de winkans) helemaal uit het spel halen.
+
+**Uitgevoerde handelingen:**
+1. Branch `feature/verberg-winkans` aangemaakt; status In Progress.
+2. `Stats.tsx`: regels Winkans en Deze draai weg in alle drie de designs (props `odds` en `chanceNow` vervallen). `SlotMachine.tsx`: `chanceNow`, tandwielknop, `settingsOpen` en de instellingen-popup weg (Escape sluit nu alleen de betaalpopup); `odds` blijft voor `decideOutcome`.
+3. `SettingsDialog.tsx` verwijderd; `formatChance` (`game.ts`) en de test ervan verwijderd (niet meer gebruikt).
+4. CSS: `#gear` en `#settings` weg uit `globals.css`, `jungle.css` en `haven.css`; de geluidsknop schuift naar rechts (16 px, de plek van het tandwiel).
+5. Jungle-bord: inhoud in een `div` en verticaal in het midden van het geschilderde bord (`top: 582px`, `height: 160px`, flex); haven- en originele bord krimpen vanzelf mee.
+6. E2E: twee tandwieltests vervangen door drie tests (per design): Gespeeld en Gewonnen zichtbaar, geen Winkans, Deze draai of "1 op" (ook na een draai), geen tandwiel, geluidsknop zichtbaar.
+7. README (Spelen, Instellingen, mappenlijst) en een opmerking in `settings.ts` bijgewerkt.
+8. Lint, typecheck, 306 Vitest- en 47 Playwright-tests geslaagd. Schermafbeeldingen van jungle, haven en origineel op 1024x768 gecontroleerd (console zonder fouten).
+9. `next build` stopte twee keer op een beveiligingsmelding van Next.js 16.4.0 (advies: upgraden); bij opnieuw draaien ging de build door. Upgrade niet uitgevoerd, voorgelegd aan de gebruiker.
+
+---
+
+## Stap 129 — Next.js-beveiligingsupdate 16.4.0 → 16.4.2 (22 oktober 2026)
+
+**Vraag:**
+> draai next upgrade --agent=security
+
+**Uitgevoerde handelingen:**
+1. `npx next upgrade --agent=security`: Next.js 16.4.0 heeft een gepubliceerd beveiligingslek; doel 16.4.2 (zelfde major, geen codemods). Gecontroleerd op dubbel werk: geen branches, commits of open PR's met een Next.js-upgrade.
+2. In deze map (branch `feature/verberg-winkans`) `next` en `eslint-config-next` exact op `16.4.2` gezet (`package.json`, `package-lock.json`); `next --version` geeft 16.4.2.
+3. `next.config.ts`: `experimental.agentUpgrade: "security"` (gevraagd door de upgrade; is ook de standaard, waarschuwt bij `next dev`/`build` als er een beveiligingsupdate is).
+4. Lint, typecheck, 306 Vitest- en 47 Playwright-tests en `next build` geslaagd; de build stopt niet meer op de beveiligingsmelding; `npm audit --omit=dev` meldt niets voor `next`.
+5. Telemetrie-commando van de upgradetool (`npx next@16.5.0-canary.23 internal report-agent-upgrade`) niet uitgevoerd: niet gevraagd en het downloadt een canary-versie. Geen PR.
+6. Op verzoek gecommit als aparte commit `c2364bd` op `feature/verberg-winkans` (alleen `package.json`, `package-lock.json`, `next.config.ts`; de featurewijzigingen blijven los). Het verwijderen van `SettingsDialog.tsx` stond al klaar en kwam eerst per ongeluk mee; uit de commit gehaald met `--amend` (nog niet gepusht).
 
 ---
 
@@ -1698,7 +1745,7 @@ Gokkast/
 │   │   ├── game-manager/ layout.tsx, page.tsx, actions.ts, actions.test.ts, ManagerTabs.tsx, SettingsForm.tsx, StatsSection.tsx, PaymentsSection.tsx, TableParts.tsx, game-manager.module.css, inloggen/page.tsx
 │   │   └── api/auth/[...nextauth]/route.ts
 │   ├── auth.ts           Auth.js (Google, alleen beheerders)
-│   ├── components/       SlotMachine, Reel, Lever, InfoPanel, Stats, SettingsDialog, GameClient, PaymentDialog, PrizeDialog
+│   ├── components/       SlotMachine, Reel, Lever, InfoPanel, Stats, GameClient, PaymentDialog, PrizeDialog
 │   ├── lib/              designs.ts, designs.test.ts, encryption.ts, encryption.test.ts, prizes.ts, payments.ts, paymentService.ts, paymentStore.ts, mollie.ts, qr.ts, game.ts, settings.ts, settingsStore.ts, db.ts, gameStore.ts, gameStats.ts, tables.ts, managerQuery.ts, paymentOverview.ts, admins.ts, dal.ts, sound.ts, storage.ts, coinShower.ts, game.test.ts, settings.test.ts, settingsStore.test.ts, gameStore.test.ts, gameStats.test.ts, tables.test.ts, managerQuery.test.ts, paymentOverview.test.ts, admins.test.ts
 │   └── generated/prisma/ Prisma Client (gegenereerd, niet in git)
 ├── prisma/               schema.prisma, seed.ts, migrations/ (20261013000000_init, 20261013163330_games_name_optional, 20261013200000_game_settings_optional, 20261013230000_games_outcome_symbol, 20261014000000_payments_mollie, 20261014120000_payments_reference, 20261014200000_payments_account_encrypted, 20261015000000_payments_paypal, 20261019000000_game_settings_design, 20261019120000_game_settings_price, 20261020000000_game_settings_design_haven, migration_lock.toml)

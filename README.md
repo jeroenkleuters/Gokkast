@@ -113,8 +113,8 @@ Voor PayPal (`e2e/paypal.spec.ts`) komen er nog twee bij: een nep-PayPal op poor
 - **Speelknop / hendel** of `Spatie` / `Enter`: rollen draaien.
 - **VAST-knoppen** of toetsen `1`, `2`, `3`: een rol vastzetten (na de eerste draai).
 - Je hebt standaard **3 pogingen** per spel (instelbaar); drie dezelfde plaatjes is winst.
-- Vastzetten van rollen met hetzelfde plaatje vergroot de winkans.
-- Het **tandwiel** toont de huidige instellingen (alleen-lezen).
+- Vastzetten van rollen met hetzelfde plaatje vergroot de winkans. De winkans zelf zien spelers niet;
+  die staat alleen in de [game-manager](#game-manager) (tab Instellingen, "Nu in het spel").
 - Staat [betalen](#betalen) aan, dan kost elk spel één credit; zonder credits opent de speelknop de betaalpopup.
 - De speelknop heet **DRAAI** in het jungle-design, **UITHALEN** in het havendesign en **SPEEL** in het
   originele; na een spel **NIEUW SPEL**. Het jungle-design heeft geen lampjes voor de pogingen: het
@@ -129,8 +129,8 @@ Voor PayPal (`e2e/paypal.spec.ts`) komen er nog twee bij: een nep-PayPal op poor
 De spelinstellingen staan in de database (tabel `game_settings`, zie [Database](#database)) en
 stel je in via de [game-manager](#game-manager). Zonder database, of als de tabel leeg of
 onbereikbaar is, gelden de omgevingsvariabelen hieronder; ook een lege ("standaard") of ongeldige
-waarde in de database valt per instelling terug op de variabele. Het tandwiel toont welke bron
-gebruikt wordt. `GAME_ALLOW_ODDS_URL` staat alleen in de omgevingsvariabelen.
+waarde in de database valt per instelling terug op de variabele. "Nu in het spel" in de
+game-manager toont welke bron gebruikt wordt. `GAME_ALLOW_ODDS_URL` staat alleen in de omgevingsvariabelen.
 
 De omgevingsvariabelen: kopieer [`.env.example`](.env.example) naar
 `.env.local` en pas de waarden aan. Echte `.env`-bestanden staan niet in git; op Vercel stel je
@@ -498,7 +498,7 @@ Gokkast/
 │   │   ├── api/mollie/webhook/  webhook van Mollie (betaalstatus)
 │   │   └── api/paypal/webhook/  webhook van PayPal (betaalde of geannuleerde factuur)
 │   ├── auth.ts         Auth.js-instellingen (Google, alleen beheerders)
-│   ├── components/     SlotMachine, Reel, Lever, InfoPanel, Stats, SettingsDialog, PaymentDialog, GameClient
+│   ├── components/     SlotMachine, Reel, Lever, InfoPanel, Stats, PaymentDialog, PrizeDialog, GameClient
 │   ├── lib/            spellogica (game.ts), maten per design en schalen (designs.ts), instellingen (settings.ts, settingsStore.ts), database (db.ts), rondes opslaan en lezen (gameStore.ts, gameStats.ts), tabellen en URL van de game-manager (tables.ts, managerQuery.ts), betalen (payments.ts, mollie.ts, paypal.ts, paymentStore.ts, paymentService.ts, paymentOverview.ts, qr.ts), beheerders (admins.ts, dal.ts), geluid, opslag, muntenregen, tests (*.test.ts)
 │   └── generated/      Prisma Client (gegenereerd, niet in git)
 ├── prisma/             schema.prisma, migrations/, seed.ts

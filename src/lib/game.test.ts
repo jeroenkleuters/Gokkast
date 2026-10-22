@@ -2,7 +2,6 @@ import { describe, expect, it } from "vitest";
 import {
   canToggleHold,
   decideOutcome,
-  formatChance,
   gameReducer,
   initialState,
   isWin,
@@ -259,13 +258,5 @@ describe("vastzetten", () => {
     state = hold(state, 0);
     state = spin(state, [1, 0, 2]);
     expect(state.held).toEqual([true, false, false]);
-  });
-});
-
-describe("formatChance", () => {
-  it("schrijft de kans als 1 op ...", () => {
-    expect(formatChance(0)).toBe("geen");
-    expect(formatChance(1 / 30)).toBe("1 op 30");
-    expect(formatChance(1 / 2.5)).toBe("1 op 2,5");
   });
 });

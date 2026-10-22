@@ -162,8 +162,3 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
     }
   }
 }
-
-export function formatChance(chance: number): string {
-  if (chance === 0) return "geen";
-  return "1 op " + (1 / chance).toFixed(1).replace(/\.0$/, "").replace(".", ",");
-}

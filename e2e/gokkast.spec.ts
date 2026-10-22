@@ -94,11 +94,22 @@ test("jungle: op een breed scherm en een telefoon past het hele speelveld, de ac
   }
 });
 
-test("jungle: het tandwiel toont het design", async ({ page }) => {
-  await openGame(page, "lose");
-  await page.locator("#gear").click();
-  await expect(page.locator("#settings")).toContainText("DesignJungle (nieuw)");
-});
+// Versie 3, taak 5: spelers zien de winkans niet, ook niet via een tandwiel (alleen in de game-manager)
+for (const design of ["jungle", "haven", "origineel"] as const) {
+  test(`${design}: geen Winkans, Deze draai of tandwiel in het spel`, async ({ page }) => {
+    await openGame(page, "lose", design);
+    const stats = page.locator("#stats");
+    await expect(stats).toContainText("Gespeeld");
+    await expect(stats).toContainText("Gewonnen");
+    await expect(stats).not.toContainText("Winkans");
+    await expect(stats).not.toContainText("Deze draai");
+    await spin(page); // ook midden in een spel niet
+    await expect(page.locator("#game")).not.toContainText(/winkans|deze draai|1 op /i);
+    await expect(page.locator("#gear")).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "Instellingen" })).toHaveCount(0);
+    await expect(page.locator("#sound")).toBeVisible();
+  });
+}
 
 test("draaien met de hendel verbruikt een poging en draait de rollen", async ({ page }) => {
   await openGame(page, "lose");
@@ -378,11 +389,5 @@ test.describe("havendesign", () => {
       expect(backdrop.width).toBeGreaterThanOrEqual(width);
       expect(backdrop.height).toBeGreaterThanOrEqual(height);
     }
-  });
-
-  test("het tandwiel toont het design", async ({ page }) => {
-    await openGame(page, "lose", "haven");
-    await page.locator("#gear").click();
-    await expect(page.locator("#settings")).toContainText("DesignHarbor Jackpot");
   });
 });

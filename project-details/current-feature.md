@@ -1,16 +1,25 @@
-# Current Feature
+# Current Feature: Verberg Winkans en deze draai
 
 ## Status
 
-Not Started
+In Progress
 
 ## Goals
 
-<!-- Doelen van de feature, in te vullen met /feature load -->
+- De regels **Winkans** (`1 op …`) en **Deze draai** (kans van de huidige draai) zijn niet meer zichtbaar in het spel
+- Geldt voor alle drie de designs: jungle (statistiekenbord), haven (bord CREDITS/STAND) en origineel
+- **Gespeeld**, **Gewonnen**, **Credits** en de regel "4 Credits: € …" blijven staan; de borden zien er zonder de twee regels nog netjes uit (geen lege ruimte of verschoven layout)
+- De spellogica verandert niet: de winkans wordt nog steeds gebruikt om de uitkomst te bepalen
+- De game-manager blijft de winkans tonen en laten instellen (tab Instellingen, "Nu in het spel")
+- Vitest- en Playwright-tests slagen; een test controleert dat Winkans en Deze draai niet in het spel staan
 
 ## Notes
 
-<!-- Extra context, beperkingen of details uit de spec -->
+- Versie 3, taak 5 in `to-do.md`: "Verberg Winkans en deze draai in het spel".
+- De regels staan in `src/components/Stats.tsx` (haven: `rows`; jungle en origineel: de tekst met `<br />`). `chanceNow` wordt berekend in `SlotMachine.tsx` (`formatChance(winChance(...))`) en vervalt als prop als het nergens meer getoond wordt; `odds` blijft nodig voor `decideOutcome`.
+- Posities in `jungle.css` en `haven.css` nalopen: het bord wordt twee regels korter.
+- Besluit gebruiker: het tandwiel (`SettingsDialog.tsx`) helemaal uit het spel halen; bron en design staan al bij "Nu in het spel" in de game-manager.
+- Taak 4 (Verbetering Haven Design) staat nog open en wordt los gedaan.
 
 ## History
 

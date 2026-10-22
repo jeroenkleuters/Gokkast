@@ -130,7 +130,8 @@
 #game.jungle #info p { margin: 0; }
 #game.jungle #info b { color: #fff; font-weight: 800; }
 #game.jungle #stats {
-  left: 30px; top: 586px; width: 214px;
+  left: 30px; top: 582px; width: 214px; height: 160px;
+  display: flex; flex-direction: column; justify-content: center;
   padding: 0; background: none; border: none; border-radius: 0;
   color: #f3ead8; font-family: var(--font-board), "Segoe UI", Arial, sans-serif;
   font-size: 18px; line-height: 26.5px;
@@ -138,18 +139,15 @@
 }
 #game.jungle #stats b { color: #f6c453; font-weight: 800; }
 
-/* ---------- Geluid en instellingen ---------- */
-#game.jungle #gear,
+/* ---------- Geluid ---------- */
 #game.jungle #sound {
   border-color: #c89b4a;
   background: rgba(44,26,12,.8);
   color: #ffd98a;
 }
-#game.jungle #gear:hover,
 #game.jungle #sound:hover { background: rgba(70,44,20,.9); }
 
-/* Popups (instellingen, betalen, prijzen): de donkere laag bedekt ook de schildering buiten het
+/* Popups (betalen, prijzen): de donkere laag bedekt ook de schildering buiten het
    speelveld; even ver aan alle kanten, zodat de popup in het midden van het speelveld blijft */
-#game.jungle #settings,
 #game.jungle #payment,
 #game.jungle #prizes { inset: -5000px; }

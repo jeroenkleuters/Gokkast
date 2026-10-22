@@ -287,48 +287,15 @@ html, body {
 }
 #stats b { color: #ffd34a; }
 
-/* ---------- Instellingen ---------- */
-#gear {
-  position: absolute; right: 16px; top: 14px;
-  width: 44px; height: 44px; border-radius: 50%;
-  border: 2px solid rgba(255,255,255,.3);
-  background: rgba(255,255,255,.08);
-  color: #ddd; font-size: 24px; cursor: pointer;
-}
-#gear:hover { background: rgba(255,255,255,.18); }
+/* ---------- Geluid ---------- */
 #sound {
-  position: absolute; right: 68px; top: 14px;
+  position: absolute; right: 16px; top: 14px;
   width: 44px; height: 44px; border-radius: 50%;
   border: 2px solid rgba(255,255,255,.3);
   background: rgba(255,255,255,.08);
   color: #ddd; font-size: 20px; cursor: pointer;
 }
 #sound:hover { background: rgba(255,255,255,.18); }
-
-#settings {
-  position: absolute; inset: 0;
-  background: rgba(0,0,0,.65);
-  display: none; align-items: center; justify-content: center;
-  z-index: 50;
-}
-#settings.open { display: flex; }
-#settings .box {
-  width: 420px;
-  background: #1d1530; border: 3px solid #ffcf6a; border-radius: 12px;
-  padding: 24px 28px;
-  color: #eee; font-family: "Segoe UI", Arial, sans-serif;
-  box-shadow: 0 0 40px rgba(255,180,0,.3);
-}
-#settings h3 { font-family: "Arial Black", Arial, sans-serif; color: #ffcf6a; font-size: 22px; margin-bottom: 16px; }
-#settings dl { display: grid; grid-template-columns: auto auto; gap: 6px 16px; font-size: 18px; margin-bottom: 14px; }
-#settings dd { font-weight: bold; color: #fff; }
-#settings .hint { font-size: 13px; color: #aaa; margin-bottom: 18px; }
-#settings .row { display: flex; justify-content: flex-end; gap: 10px; }
-#settings button {
-  font-family: inherit; font-size: 16px; font-weight: bold;
-  padding: 8px 18px; border-radius: 8px; border: none; cursor: pointer;
-}
-#settings .ok { background: #ffcf6a; color: #2a1a00; }
 
 /* ---------- Betalen (popup met QR-code) ---------- */
 #payment {

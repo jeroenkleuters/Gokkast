@@ -8,7 +8,7 @@ export interface GameSettings {
   roundsPerPayment: number; // speelrondes (credits) per betaling, zie payments.ts
   priceCents: number; // prijs van één betaling in centen (versie 3, taak 2)
   design: Design; // uiterlijk van het spel (versie 3, taak 1)
-  source?: SettingsSource; // waar de waarden vandaan komen (getoond bij het tandwiel)
+  source?: SettingsSource; // waar de waarden vandaan komen (getoond in de game-manager)
 }
 
 export type SettingsSource = "database" | "env";
