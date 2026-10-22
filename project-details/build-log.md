@@ -1730,6 +1730,18 @@ Melding gebruiker: in de database alleen `LOST`, ook na winst. Oorzaak: de dev-s
 
 ---
 
+## Stap 130 — Feature afgerond: Verberg Winkans en deze draai (22 oktober 2026)
+
+**Vraag:**
+> /feature complete
+
+**Uitgevoerde handelingen:**
+1. Taak "5 Verberg Winkans en deze draai" (versie 3) afgevinkt in `to-do.md`. Commit `2c5d5d9` op `feature/verberg-winkans` (zonder `voorbeeld/3-containers.png`, dat hoort bij taak 4), gemerged in `main` (fast-forward) samen met de Next.js-update `c2364bd`; branch verwijderd (stond niet op origin).
+2. `current-feature.md` teruggezet met de samenvatting in History; `main` gepusht: CI test en deployt productie (geen migraties).
+3. Dev-server gestopt, map `.next` verwijderd en `npm run dev` opnieuw gestart (nu met Next.js 16.4.2).
+
+---
+
 ## Huidige bestandsstructuur
 
 ```
